@@ -10,7 +10,7 @@ from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
 from loss import L2_LOSS, L1_LOSS
 from model_utilities import kpi_compute, exponential, complete_embedding_description, cuda_converter, \
-    kpi_compute_per_country,rounder
+    kpi_compute_per_country, rounder
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
 from vanilla_rnn import VanillaRNNModel
 import os
@@ -21,12 +21,12 @@ label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
 debug_mode = True
 if debug_mode:
-    num_csku_per_query_train  = 500
+    num_csku_per_query_train = 500
     num_csku_per_query_test = 100
     max_num_queries_train = 1
     max_num_queries_test = 1
 else:
-    num_csku_per_query_train  = 5000
+    num_csku_per_query_train = 5000
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 4
@@ -62,7 +62,7 @@ train_db = DatasetReader(
     path_to_training_db=validation_db,
     transform=train_transform,
     num_csku_per_query=num_csku_per_query_train,
-    max_num_queries= max_num_queries_train,
+    max_num_queries=max_num_queries_train,
     shuffle_dataset=True)
 
 test_db = DatasetReader(
@@ -92,8 +92,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     np.random.seed(0)
 
     def data_iter(data, loss_func, loss_func2, train_mode=True):
-        kpi_sale = []
-        kpi_sale_scale = []
+        kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
+        kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         if train_mode: vanilla_rnn.mode(train_mode=True)
         for batch_num, batch_data in enumerate(data):
 
@@ -102,8 +102,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 k1, k2, test_sale_kpi = data_iter(test_dataloader, train_mode=False, loss_func=loss_function,
                                                   loss_func2=loss_func2)
                 vanilla_rnn.mode(train_mode=True)
-                print "Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
-                print "Total Test KPI is {t_kpi}".format(t_kpi=np.sum(k1[:,0:-1]) / np.sum(k2[:,0:-1]) * 100)
+                print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
+                global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
+                print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
             input_encode = cuda_converter(torch.from_numpy(batch_data[0:TOTAL_INPUT, :, :]).float()).contiguous()
@@ -132,37 +133,51 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                                                       loss_value=loss)
             else:
                 # TODO to generalize KPI computation to many weeks this 0 should go away
-                output_global_sale, sale_predictions, _, _ = vanilla_rnn.predict((input_encode, input_decode),
-                                                                                 future_week_index=0)
+                output_global_sale, sale_predictions = vanilla_rnn.predict_over_period(
+                    inputs=(input_encode, input_decode))
+            for i in range(OUTPUT_SIZE):
+                target_sales = targets_future[SALES_MATRIX][i, :, :]
+                target_global_sales = targets_future[GLOBAL_SALE][i, :]
+                kpi_sale[i].append(kpi_compute_per_country(sale_predictions[i],
+                                                           target_sales=target_sales,
+                                                           target_global_sales=target_global_sales,
+                                                           log_transform=IS_LOG_TRANSFORM,
+                                                           weight=black_price
+                                                           ))
+                real_sales = exponential(targets_future[SALES_MATRIX][i, :, :], IS_LOG_TRANSFORM)
+                kpi_denominator = np.append(torch.sum(black_price * real_sales, dim=0).data.cpu().numpy(),
+                                            torch.sum(real_sales * black_price).item())
 
-            kpi_sale.append(kpi_compute_per_country(sale_predictions,
-                                                    targets_future,
-                                                    IS_LOG_TRANSFORM,
-                                                    black_price
-                                                    ))
-            real_sales = exponential(targets_future[SALES_MATRIX][-1, :, :], IS_LOG_TRANSFORM)
-            kpi_denominator = np.append(torch.sum(black_price * real_sales, dim=0).data.cpu().numpy(),
-                                        torch.sum(real_sales * black_price).item())
+                kpi_sale_scale[i].append(kpi_denominator)
+                if batch_num % 1000 == 0 and train_mode:
+                    kpi_per_country = np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]),
+                                                                                     axis=0) * 100
+                    print "{i}ith week: Train KPI at Batch number {bn} is {kpi}".format(
+                        i=i,
+                        bn=batch_num,
+                        kpi=rounder(kpi_per_country))
+                    print "{i}ith week Train KPI total is {t_kpi}".format(
+                        i=i,
+                        t_kpi=np.sum(
+                            np.array(kpi_sale[i])[:, 0:-1]) / np.sum(
+                            np.array(kpi_sale_scale[i])[:,
+                            0:-1]) * 100)
 
-            kpi_sale_scale.append(kpi_denominator)
-            if batch_num % 1000 == 0 and train_mode:
-                kpi_per_country = np.sum(np.array(kpi_sale), axis=0) / np.sum(np.array(kpi_sale_scale), axis=0) * 100
-                print "Train KPI at Batch number {bn} is {kpi}".format(bn=batch_num,
-                                                                       kpi=rounder(kpi_per_country))
-                print "Train KPI total is {t_kpi}".format(
-                    t_kpi=np.sum(np.array(kpi_sale)[:,0:-1]) / np.sum(np.array(kpi_sale_scale)[:,0:-1]) * 100)
             if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
                 vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
-        return np.array(kpi_sale), np.array(kpi_sale_scale), rounder(
-            100 * np.sum(np.array(kpi_sale), axis=0) / np.sum(np.array(kpi_sale_scale), axis=0))
+
+        kpi_per_country_total = [rounder(
+            100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
+            for i in range(OUTPUT_SIZE)]
+        return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
         if n_iter <= 4:
-            loss_function=msloss
+            loss_function = msloss
             loss_function2 = loss_function
         else:
-            loss_function=l1loss
+            loss_function = l1loss
             loss_function2 = msloss
         _, _, train_sale_kpi = data_iter(train_dataloader,
                                          train_mode=True,
@@ -176,8 +191,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     vanilla_rnn.mode(train_mode=False)
     k1, k2, test_sale_kpi = data_iter(test_dataloader, train_mode=False, loss_func=loss_function,
                                       loss_func2=loss_function2)
-    print "Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
-    print "Total Test KPI is {t_kpi}".format(t_kpi=np.sum(k1[:,0:-1]) / np.sum(k2[:,0:-1]) * 100)
+    print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
+    global_kpi = [np.sum(k1[i,:, 0:-1]) / np.sum(k2[i,:, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
+    print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
 
 
 train(vanilla_rnn, n_iters=8)

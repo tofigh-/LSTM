@@ -74,9 +74,7 @@ def round(input, th):
 def rounder(np_arr):
     return ','.join(['{num:.2f}'.format(num=num) for num in np_arr])
 
-def kpi_compute_per_country(out, target, log_transform, weight=None):
-    target_sales = target[SALES_MATRIX][-1, :, :]
-    target_global_sales = target[GLOBAL_SALE][-1, :]
+def kpi_compute_per_country(out, target_sales,target_global_sales, log_transform, weight=None):
     num_sales = target_sales.shape[1]
     kpi_per_country = []
     for i in range(num_sales):

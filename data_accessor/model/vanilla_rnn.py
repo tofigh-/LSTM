@@ -81,13 +81,21 @@ class VanillaRNNModel(object):
         hidden_state = None
         embedded_features = None
         future_unknown_estimates = None
+        all_week_predictions = []
+        global_sale_all_weeks = []
         for future_week_idx in range(OUTPUT_SIZE):
-            output_global_sale, out_sales_predictions, hidden_state, embedded_features = self.decode_output(inputs,
-                                                                                                            future_week_idx,
-                                                                                                            hidden_state,
-                                                                                                            embedded_features,
-                                                                                                            future_unknown_estimates,
-                                                                                                            )
+            output_global_sale, \
+            out_sales_predictions, \
+            hidden_state, \
+            embedded_features = self.decode_output(inputs,
+                                                   future_week_idx,
+                                                   hidden_state,
+                                                   embedded_features,
+                                                   future_unknown_estimates,
+                                                   train=True
+                                                   )
+            all_week_predictions.append(out_sales_predictions)
+            global_sale_all_weeks.append(output_global_sale)
             if out_sales_predictions.shape[0] == 0:
                 print ("output_prediction is empty", out_sales_predictions)
                 print inputs
@@ -112,7 +120,7 @@ class VanillaRNNModel(object):
         self.future_decoder_optimizer.step()
         self.future_decoder_optimizer.zero_grad()
 
-        return loss.item() / (OUTPUT_SIZE), output_global_sale, out_sales_predictions
+        return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions
 
     def encode_input(self, inputs):
         input_seq = inputs[0]  # PAST_KNOWN_LENGTH * BATCH * TOTAL_NUM_FEAT
@@ -128,6 +136,7 @@ class VanillaRNNModel(object):
                       hidden_state=None,
                       embedded_features=None,
                       future_unknown_estimates=None,
+                      train=False
                       ):
         '''
         :param inputs: # (TOTAL_INPUT x BATCH x TOTAL_FEAT, OUTPUT_SIZE * BATCH * TOTAL_FEAT)
@@ -146,10 +155,13 @@ class VanillaRNNModel(object):
             input_seq_decoder[future_week_index, :, self.sales_col] = inputs[0].data[TOTAL_INPUT - 1, :,
                                                                       self.sales_col]
         else:
-            # To make sure gradients flow over time
-            temp_input = input_seq_decoder.clone()
-            temp_input[future_week_index, :, self.sales_col] = future_unknown_estimates
-            input_seq_decoder = temp_input
+            if train:
+                # To make sure gradients flow over time
+                temp_input = input_seq_decoder.clone()
+                temp_input[future_week_index, :, self.sales_col] = future_unknown_estimates
+                input_seq_decoder = temp_input
+            else:
+                input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
 
         future_decoder_hidden = hidden_state
         output_global_sale, out_sales_predictions, hidden = self.future_decoder(
@@ -158,3 +170,23 @@ class VanillaRNNModel(object):
             embedded_inputs=embedded_features,
             encoder_outputs=encoder_outputs)
         return output_global_sale, out_sales_predictions, hidden, embedded_features
+
+    def predict_over_period(self, inputs,
+                            hidden_state=None,
+                            embedded_features=None,
+                            future_unknown_estimates=None,
+                            ):
+        all_week_predictions = []
+        global_sale_all_weeks = []
+        for week_idx in range(OUTPUT_SIZE):
+            global_sales_prediction, future_unknown_estimates, hidden_state, embedded_features = self.decode_output(
+                inputs,
+                week_idx,
+                hidden_state,
+                embedded_features,
+                future_unknown_estimates,
+                train=False
+            )
+            all_week_predictions.append(future_unknown_estimates)
+            global_sale_all_weeks.append(global_sales_prediction)
+        return global_sale_all_weeks, all_week_predictions
