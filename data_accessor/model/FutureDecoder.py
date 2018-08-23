@@ -54,7 +54,7 @@ class FutureDecoder(nn.Module):
         # BATCH_SIZE x TOTAL_NUM_FEAT
         features = self.batch_norm(torch.cat(numeric_features + embedded_inputs, dim=1))
         output, hidden = self.rnn(features.unsqueeze(0), hidden)
-        out_sales_prediction = self.relu(self.out_sale(
+        out_sales_prediction = (self.out_sale(
             torch.cat(
                 [output[0],
                  input[:, feature_indices[STOCK]].float(),

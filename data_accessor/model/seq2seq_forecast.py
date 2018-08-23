@@ -31,11 +31,11 @@ if debug_mode:
     max_num_queries_test = 1
     num_workers = 0
 else:
-    num_csku_per_query_train = 10000
+    num_csku_per_query_train = 5000
     num_csku_per_query_test = 5000
     max_num_queries_train = None
     max_num_queries_test = 8
-    num_workers =  0
+    num_workers =  2
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
@@ -49,7 +49,7 @@ train_transform = Transform(
     min_start_date='2014-01-01',
     max_end_date='2016-12-28',
     training_transformation=True,
-    keep_zero_stock_filter=0.5)
+    keep_zero_stock_filter=0.2)
 if label_encoders is None:
     label_encoders = train_transform.label_encoders
     save_label_encoder(label_encoders, label_encoder_file)

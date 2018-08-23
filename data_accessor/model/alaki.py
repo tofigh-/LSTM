@@ -19,6 +19,22 @@ z.backward(torch.FloatTensor([[1,1],[1,1]]))
 print z
 print x.grad
 
+import numpy as np
+def loopcumsum(a):
+    csum = np.empty_like(a)
+    s = 0.0
+    for i in range(a.shape[1]):
+        csum[:,i] = s = s + a[:,i]
+    return csum
+
+z = np.random.randn(14,200)
+print
+from time import time
+st=time()
+for i in range(100):
+    np.cumsum(z,axis=1)
+
+print ((time()-st) * 10)
 # import torch
 # from torch.autograd import Variable
 # x = torch.ones(3,requires_grad=True)
