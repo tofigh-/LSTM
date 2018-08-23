@@ -14,6 +14,10 @@ from model_utilities import kpi_compute, exponential, complete_embedding_descrip
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
 from vanilla_rnn import VanillaRNNModel
 import os
+import sys
+import os
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 dir_path = ""
 file_name = "training.db"
