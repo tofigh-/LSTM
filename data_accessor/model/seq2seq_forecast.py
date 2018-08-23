@@ -31,7 +31,7 @@ if debug_mode:
     max_num_queries_test = 1
     num_workers = 0
 else:
-    num_csku_per_query_train = 5000
+    num_csku_per_query_train = 2500
     num_csku_per_query_test = 5000
     max_num_queries_train = None
     max_num_queries_test = 8
@@ -211,4 +211,4 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
 
 
-train(vanilla_rnn, n_iters=8)
+train(vanilla_rnn, n_iters=20)
