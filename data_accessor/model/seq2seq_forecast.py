@@ -47,7 +47,7 @@ train_transform = Transform(
     min_start_date='2014-01-01',
     max_end_date='2016-12-28',
     training_transformation=True,
-    keep_zero_stock_filter=0.0)
+    keep_zero_stock_filter=0.5)
 if label_encoders is None:
     label_encoders = train_transform.label_encoders
     save_label_encoder(label_encoders, label_encoder_file)
@@ -60,6 +60,7 @@ test_transform = Transform(
     db_file=validation_db,
     target_dates=['2017-01-07'],
     training_transformation=True,
+    keep_zero_stock_filter=1.0,
     activate_filters=True)
 
 train_db = DatasetReader(
@@ -95,7 +96,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     loss_function = msloss
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2,teacher_forcing_ratio=1.0, train_mode=True):
+    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         if train_mode: vanilla_rnn.mode(train_mode=True)
@@ -189,7 +190,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         else:
             loss_function = l1loss
             loss_function2 = msloss
-        _, _, train_sale_kpi = data_iter(data = train_dataloader,
+        _, _, train_sale_kpi = data_iter(data=train_dataloader,
                                          train_mode=True,
                                          loss_func=loss_function,
                                          loss_func2=loss_function2,
@@ -203,7 +204,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     k1, k2, test_sale_kpi = data_iter(test_dataloader, train_mode=False, loss_func=loss_function,
                                       loss_func2=loss_function2)
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
-    global_kpi = [np.sum(k1[i,:, 0:-1]) / np.sum(k2[i,:, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
+    global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
     print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
 
 
