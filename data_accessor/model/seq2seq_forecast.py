@@ -23,7 +23,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 50
     num_csku_per_query_test = 10
@@ -34,8 +34,8 @@ else:
     num_csku_per_query_train = 5000
     num_csku_per_query_test = 10000
     max_num_queries_train = None
-    max_num_queries_test = 3
-    num_workers = 4
+    max_num_queries_test = 4
+    num_workers = 3
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
