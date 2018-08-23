@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from Settings import *
+from data_accessor.data_loader.Settings import *
 from model_utilities import cuda_converter
 from time_distributed import TimeDistributed
 import torch.nn.functional as F

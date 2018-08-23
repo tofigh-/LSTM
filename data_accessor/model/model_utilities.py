@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 from torch.autograd import Variable
-from Settings import *
+from data_accessor.data_loader.Settings import *
 
 use_cuda = torch.cuda.is_available()
 

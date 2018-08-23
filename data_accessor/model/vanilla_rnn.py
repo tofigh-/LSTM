@@ -6,7 +6,7 @@ from torch import optim
 from EncoderRNN import EncoderRNN
 from FutureDecoder import FutureDecoder
 from FutureDecoderWithAttention import FutureDecoderWithAttention
-from Settings import *
+from data_accessor.data_loader.Settings import *
 from model_utilities import cuda_converter
 
 
@@ -146,7 +146,11 @@ class VanillaRNNModel(object):
             input_seq_decoder[future_week_index, :, self.sales_col] = inputs[0].data[TOTAL_INPUT - 1, :,
                                                                       self.sales_col]
         else:
-            input_seq_decoder.data[future_week_index, :, [self.sales_col]] = future_unknown_estimates
+            # To make sure gradients flow over time
+            temp_input = input_seq_decoder.clone()
+            temp_input[future_week_index, :, self.sales_col] = future_unknown_estimates
+            input_seq_decoder = temp_input
+
         future_decoder_hidden = hidden_state
         output_global_sale, out_sales_predictions, hidden = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],

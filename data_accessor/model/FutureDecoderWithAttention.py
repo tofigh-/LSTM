@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 from time_distributed import TimeDistributed
-from Settings import *
+from data_accessor.data_loader.Settings import *
 from my_relu import MyReLU
 
 from model_utilities import log, exponential

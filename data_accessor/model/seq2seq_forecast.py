@@ -3,16 +3,15 @@ from os.path import join
 import numpy as np
 import torch
 
-from Settings import *
-from Settings import embedding_descriptions
-from data_loader.data_loader import DatasetLoader
-from data_loader.my_dataset import DatasetReader
-from data_loader.my_feature_class import MyFeatureClass
-from data_loader.transformer import Transform
+from data_accessor.data_loader.Settings import *
+from data_accessor.data_loader.data_loader import DatasetLoader
+from data_accessor.data_loader.my_dataset import DatasetReader
+from data_accessor.data_loader.my_feature_class import MyFeatureClass
+from data_accessor.data_loader.transformer import Transform
 from loss import L2_LOSS, L1_LOSS
 from model_utilities import kpi_compute, exponential, complete_embedding_description, cuda_converter, \
     kpi_compute_per_country,rounder
-from data_loader.utilities import load_label_encoder, save_label_encoder
+from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
 from vanilla_rnn import VanillaRNNModel
 import os
 
@@ -20,6 +19,18 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
+debug_mode = True
+if debug_mode:
+    num_csku_per_query_train  = 500
+    num_csku_per_query_test = 100
+    max_num_queries_train = 1
+    max_num_queries_test = 1
+else:
+    num_csku_per_query_train  = 5000
+    num_csku_per_query_test = 10000
+    max_num_queries_train = None
+    max_num_queries_test = 4
+
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
 else:
@@ -50,14 +61,15 @@ test_transform = Transform(
 train_db = DatasetReader(
     path_to_training_db=validation_db,
     transform=train_transform,
-    num_csku_per_query=5000,
+    num_csku_per_query=num_csku_per_query_train,
+    max_num_queries= max_num_queries_train,
     shuffle_dataset=True)
 
 test_db = DatasetReader(
     path_to_training_db=validation_db,
     transform=test_transform,
-    num_csku_per_query=10000,
-    max_num_queries=4,
+    num_csku_per_query=num_csku_per_query_test,
+    max_num_queries=max_num_queries_test,
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=4)
