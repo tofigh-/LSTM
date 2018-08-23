@@ -31,10 +31,10 @@ if debug_mode:
     max_num_queries_test = 1
     num_workers = 0
 else:
-    num_csku_per_query_train = 1000
-    num_csku_per_query_test = 10000
+    num_csku_per_query_train = 10000
+    num_csku_per_query_test = 5000
     max_num_queries_train = None
-    max_num_queries_test = 4
+    max_num_queries_test = 8
     num_workers = 2
 
 if os.path.exists(label_encoder_file):
