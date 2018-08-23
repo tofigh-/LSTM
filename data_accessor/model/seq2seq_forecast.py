@@ -208,4 +208,4 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
 
 
-train(vanilla_rnn, n_iters=8)
+train(vanilla_rnn, n_iters=50)
