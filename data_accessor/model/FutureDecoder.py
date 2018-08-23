@@ -29,6 +29,7 @@ class FutureDecoder(nn.Module):
         self.embedding_sizes = [embedding_descriptions[feature][EMBEDDING_SIZE] for feature in embedded_features]
         self.embedding_feature_indices = embedding_feature_indices
         self.numeric_feature_indices = numeric_feature_indices
+        self.mean_sales_feature_indices = feature_indices[PAST_MEAN_SALE]
         total_num_features = sum(self.embedding_sizes) + len(self.numeric_feature_indices)
 
         # It shares the batch_norm layer with encoder
@@ -61,5 +62,6 @@ class FutureDecoder(nn.Module):
                  ], dim=1))).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
         if len(out_sales_prediction.shape) == 1 and self.num_output > 1:
             out_sales_prediction = out_sales_prediction[None, :]
+        out_sales_prediction = self.relu(out_sales_prediction + input[:, self.mean_sales_feature_indices].float())
         out_global_sales = log(torch.sum(exponential(out_sales_prediction, IS_LOG_TRANSFORM), dim=1), IS_LOG_TRANSFORM)
         return out_global_sales, out_sales_prediction, hidden

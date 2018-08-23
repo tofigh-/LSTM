@@ -25,15 +25,17 @@ label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
 debug_mode = False
 if debug_mode:
-    num_csku_per_query_train = 500
-    num_csku_per_query_test = 100
+    num_csku_per_query_train = 50
+    num_csku_per_query_test = 10
     max_num_queries_train = 1
     max_num_queries_test = 1
+    num_workers = 0
 else:
     num_csku_per_query_train = 5000
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 4
+    num_workers = 4
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
@@ -77,7 +79,7 @@ test_db = DatasetReader(
     max_num_queries=max_num_queries_test,
     shuffle_dataset=True,
     seed=42)
-train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=4)
+train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=num_workers)
 test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 vanilla_rnn = VanillaRNNModel(embedding_descripts,
@@ -118,7 +120,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             targets_future = dict()
 
             # OUT_PUT x BATCH x NUM_COUNTRY
-            targets_future[SALES_MATRIX] = input_decode[:, :, feature_indices[SALES_MATRIX]].clone()
+            targets_future[SALES_MATRIX] = input_decode[:, :, feature_indices[SALES_MATRIX]].clone() + input_decode[:, :, feature_indices[PAST_MEAN_SALE]].clone()
             targets_future[GLOBAL_SALE] = input_decode[:, :, feature_indices[GLOBAL_SALE][0]].clone()
 
             targets_future[STOCK] = input_decode[:, :, feature_indices[STOCK][0]].clone()
@@ -126,6 +128,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             input_decode[:, :, feature_indices[SALES_MATRIX]] = input_encode[-1, :, feature_indices[SALES_MATRIX]]
             input_decode[:, :, feature_indices[GLOBAL_SALE][0]] = input_encode[-1, :, feature_indices[GLOBAL_SALE][0]]
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
+            input_decode[:, :, feature_indices[PAST_MEAN_SALE]] = input_encode[-1, :, feature_indices[PAST_MEAN_SALE]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
             if train_mode:
                 loss, output_global_sale, sale_predictions = vanilla_rnn.train(

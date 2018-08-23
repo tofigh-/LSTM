@@ -1,7 +1,8 @@
 from features_base import FeaturesBase
 from Settings import *
 from utilities import add_cgs, iso_week_generate, get_supplier_stock_uplift, log_transform, zero_padder, \
-    iso_week_padding, encode_strings, to_string, add_country, high_dimensional_harmonic
+    iso_week_padding, encode_strings, to_string, add_country, high_dimensional_harmonic, log_mean_reducer, \
+    log_moving_average
 import numpy as np
 
 
@@ -9,8 +10,9 @@ class MyFeatureClass(FeaturesBase):
     def __init__(self, feature_descriptions, low_sale_percentage):
         super(MyFeatureClass, self).__init__(feature_descriptions)
         self.transformations = {LOG_TRANSFORM: log_transform, LABEL_ENCODING: encode_strings,
-                                ZERO_PAD: zero_padder, ISO_WEEK_PADDING: iso_week_padding, TO_STRING: to_string
-            ,HIGH_DIMENSIONAL_SIN: high_dimensional_harmonic}
+                                ZERO_PAD: zero_padder, ISO_WEEK_PADDING: iso_week_padding, TO_STRING: to_string,
+                                LOG_MOVING_AVG: log_moving_average, LOG_MEAN_REDUCER: log_mean_reducer,
+                                HIGH_DIMENSIONAL_SIN: high_dimensional_harmonic}
         self.low_sale_percentage = low_sale_percentage
 
     def to_feature_parameter_format(self, csku_object):
@@ -34,6 +36,7 @@ class MyFeatureClass(FeaturesBase):
         csku_object[GLOBAL_SALE] = np.sum(csku_object[SALES_MATRIX], axis=0)
         csku_object = add_country(csku_object)
         csku_object[STOCK_UPLIFT] = np.maximum(csku_object[STOCK_UPLIFT], 0)
+        csku_object[PAST_MEAN_SALE] = csku_object[SALES_MATRIX]
         if training_transformation:
             return csku_object
 

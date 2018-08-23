@@ -61,6 +61,26 @@ def add_country(csku_object):
     return csku_object
 
 
+def log_mean_reducer(x, **kwargs):
+    log_x = log_transform(x, True)
+    if len(x.shape) == 1:
+        normalized_x = log_x - (np.cumsum(log_x) / range(1, log_x.shape[0] + 1))
+    else:
+        normalized_x = log_x - (np.cumsum(log_x, axis=1) / range(1, log_x.shape[1] + 1))
+
+    return normalized_x
+
+
+def log_moving_average(x, **kwargs):
+    log_x = log_transform(x, True)
+
+    if len(x.shape) == 1:
+        log_mean_x = (np.cumsum(log_x) / range(1, log_x.shape[0] + 1))
+    else:
+        log_mean_x = (np.cumsum(log_x, axis=1) / range(1, log_x.shape[1] + 1))
+    return log_mean_x
+
+
 def add_cgs(csku_object):
     for idx, cg in enumerate(csku_object[COMMODITY_GROUPS]):
         csku_object[u'CG{i}'.format(i=idx + 1)] = cg
@@ -144,4 +164,3 @@ def save_label_encoder(label_encoders, file_path):
 
 def append_lists(inputs):
     return sum(inputs, [])
-
