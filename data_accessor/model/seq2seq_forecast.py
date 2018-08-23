@@ -44,8 +44,8 @@ train_transform = Transform(
     feature_transforms=my_feature_class_train,
     label_encoders=label_encoders,
     db_file=validation_db,
-    min_start_date='2012-11-03',
-    max_end_date='2016-01-28',
+    min_start_date='2014-01-01',
+    max_end_date='2016-12-28',
     training_transformation=True,
     keep_zero_stock_filter=0.0)
 if label_encoders is None:
@@ -58,7 +58,7 @@ test_transform = Transform(
     feature_transforms=my_feature_class_test,
     label_encoders=label_encoders,
     db_file=validation_db,
-    target_dates=['2016-02-01'],
+    target_dates=['2017-01-07'],
     training_transformation=True,
     activate_filters=True)
 
