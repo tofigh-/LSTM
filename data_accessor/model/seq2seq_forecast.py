@@ -95,7 +95,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     loss_function = msloss
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2, train_mode=True):
+    def data_iter(data, loss_func, loss_func2,teacher_forcing_ratio=1.0, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         if train_mode: vanilla_rnn.mode(train_mode=True)
@@ -103,7 +103,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             if batch_num % 10001 == 0 and train_mode:
                 vanilla_rnn.mode(train_mode=False)
-                k1, k2, test_sale_kpi = data_iter(test_dataloader, train_mode=False, loss_func=loss_function,
+                k1, k2, test_sale_kpi = data_iter(data=test_dataloader, train_mode=False, loss_func=loss_function,
                                                   loss_func2=loss_func2)
                 vanilla_rnn.mode(train_mode=True)
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
@@ -131,7 +131,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     inputs=(input_encode, input_decode),
                     targets_future=targets_future,
                     loss_function=loss_func,
-                    loss_function2=loss_func2)
+                    loss_function2=loss_func2,
+                    teacher_forcing_ratio=1.0
+                )
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
@@ -156,11 +158,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 if batch_num % 1000 == 0 and train_mode:
                     kpi_per_country = np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]),
                                                                                      axis=0) * 100
-                    print "{i}ith week: Train KPI at Batch number {bn} is {kpi}".format(
+                    print "{i}ith week: National Train KPI at Batch number {bn} is {kpi}".format(
                         i=i,
                         bn=batch_num,
                         kpi=rounder(kpi_per_country))
-                    print "{i}ith week Train KPI total is {t_kpi}".format(
+                    print "{i}ith week Global Train KPI is {t_kpi}".format(
                         i=i,
                         t_kpi=np.sum(
                             np.array(kpi_sale[i])[:, 0:-1]) / np.sum(
@@ -177,16 +179,21 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
+        if n_iter <= 3:
+            teacher_forcing_ratio = 1.0
+        else:
+            teacher_forcing_ratio = 0.3
         if n_iter <= 4:
             loss_function = msloss
             loss_function2 = loss_function
         else:
             loss_function = l1loss
             loss_function2 = msloss
-        _, _, train_sale_kpi = data_iter(train_dataloader,
+        _, _, train_sale_kpi = data_iter(data = train_dataloader,
                                          train_mode=True,
                                          loss_func=loss_function,
-                                         loss_func2=loss_function2)
+                                         loss_func2=loss_function2,
+                                         teacher_forcing_ratio=teacher_forcing_ratio)
         print "Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
 

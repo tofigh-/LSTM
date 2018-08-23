@@ -71,7 +71,7 @@ class VanillaRNNModel(object):
         else:
             self.encoder.eval(), self.future_decoder.eval()
 
-    def train(self, inputs, targets_future, loss_function, loss_function2):
+    def train(self, inputs, targets_future, loss_function, loss_function2,teacher_forcing_ratio):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
