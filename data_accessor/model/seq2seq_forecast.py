@@ -35,7 +35,7 @@ else:
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 4
-    num_workers = 3
+    num_workers = 2
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
