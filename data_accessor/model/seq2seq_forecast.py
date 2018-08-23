@@ -30,7 +30,7 @@ if debug_mode:
     max_num_queries_train = 1
     max_num_queries_test = 1
 else:
-    num_csku_per_query_train = 5000
+    num_csku_per_query_train = 20000
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 4
