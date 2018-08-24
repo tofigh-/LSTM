@@ -62,7 +62,7 @@ test_transform = Transform(
     db_file=validation_db,
     target_dates=['2017-01-07'],
     training_transformation=True,
-    keep_zero_stock_filter=0.0,
+    keep_zero_stock_filter=1.0,
     activate_filters=True)
 
 train_db = DatasetReader(
