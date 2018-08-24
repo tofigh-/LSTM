@@ -2,20 +2,20 @@ import torch
 import torch.tensor as T
 def f(x, out):
     return x * out
-x = torch.ones((2,2), requires_grad=True)
+x = torch.ones(4, requires_grad=True)
 y=  2 * x
-c = torch.ones((2,2),requires_grad = False)
+c = torch.ones(4,requires_grad = False)
 for i in range(2):
     z = c * y * y * y
     # z.backward()
     # z.detach()
     u = c.clone()
-    u[0,0] = z[0,0]
+    u[0] = z[0]
     c = u
     # c = z
     print "x req grad", x.requires_grad
 # print z, z.requires_grad
-z.backward(torch.FloatTensor([[1,1],[1,1]]))
+z.backward(torch.FloatTensor([1.0,0.0,0.0,0.0]))
 print z
 print x.grad
 

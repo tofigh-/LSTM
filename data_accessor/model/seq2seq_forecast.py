@@ -35,7 +35,7 @@ else:
     num_csku_per_query_test = 5000
     max_num_queries_train = None
     max_num_queries_test = 8
-    num_workers =  2
+    num_workers = 2
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
@@ -49,7 +49,7 @@ train_transform = Transform(
     min_start_date='2014-01-01',
     max_end_date='2016-12-28',
     training_transformation=True,
-    keep_zero_stock_filter=0.2)
+    keep_zero_stock_filter=1.0)
 if label_encoders is None:
     label_encoders = train_transform.label_encoders
     save_label_encoder(label_encoders, label_encoder_file)
@@ -62,7 +62,7 @@ test_transform = Transform(
     db_file=validation_db,
     target_dates=['2017-01-07'],
     training_transformation=True,
-    keep_zero_stock_filter=1.0,
+    keep_zero_stock_filter=0.0,
     activate_filters=True)
 
 train_db = DatasetReader(
@@ -111,7 +111,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 vanilla_rnn.mode(train_mode=True)
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
                 global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
-                print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+                print "National AVG Test KPI is {t_kpi}".format(t_kpi=global_kpi)
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
             input_encode = cuda_converter(torch.from_numpy(batch_data[0:TOTAL_INPUT, :, :]).float()).contiguous()
@@ -120,7 +120,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             targets_future = dict()
 
             # OUT_PUT x BATCH x NUM_COUNTRY
-            targets_future[SALES_MATRIX] = input_decode[:, :, feature_indices[SALES_MATRIX]].clone() + input_decode[:, :, feature_indices[PAST_MEAN_SALE]].clone()
+            targets_future[SALES_MATRIX] = input_decode[:, :, feature_indices[SALES_MATRIX]].clone() + \
+                                           input_decode[:, :, feature_indices[PAST_MEAN_SALE]].clone()
+
             targets_future[GLOBAL_SALE] = input_decode[:, :, feature_indices[GLOBAL_SALE][0]].clone()
 
             targets_future[STOCK] = input_decode[:, :, feature_indices[STOCK][0]].clone()
@@ -166,7 +168,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                         i=i,
                         bn=batch_num,
                         kpi=rounder(kpi_per_country))
-                    print "{i}ith week Global Train KPI is {t_kpi}".format(
+                    print "{i}ith week National AVG Train KPI is {t_kpi}".format(
                         i=i,
                         t_kpi=np.sum(
                             np.array(kpi_sale[i])[:, 0:-1]) / np.sum(
@@ -208,7 +210,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                       loss_func2=loss_function2)
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
     global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
-    print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+    print "National AVG Test KPI is {t_kpi}".format(t_kpi=global_kpi)
 
 
 train(vanilla_rnn, n_iters=20)
