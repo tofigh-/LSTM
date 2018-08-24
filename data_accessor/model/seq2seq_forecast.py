@@ -99,6 +99,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
+        predicted_country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
+        country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
         if train_mode: vanilla_rnn.mode(train_mode=True)
         for batch_num, batch_data in enumerate(data):
 
@@ -151,7 +153,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                            log_transform=IS_LOG_TRANSFORM,
                                                            weight=black_price
                                                            ))
-                real_sales = exponential(targets_future[SALES_MATRIX][i, :, :], IS_LOG_TRANSFORM)
+                predicted_country_sales[i] = predicted_country_sales[i] + torch.sum(
+                    exponential(sale_predictions[i], LOG_TRANSFORM), dim=0).data.cpu().numpy()
+
+                real_sales = exponential(target_sales, IS_LOG_TRANSFORM)
+                country_sales[i] = country_sales[i] + torch.sum(real_sales, dim=0).data.cpu().numpy()
                 kpi_denominator = np.append(torch.sum(black_price * real_sales, dim=0).data.cpu().numpy(),
                                             torch.sum(real_sales * black_price).item())
 
@@ -169,6 +175,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                             np.array(kpi_sale[i])[:, 0:-1]) / np.sum(
                             np.array(kpi_sale_scale[i])[:,
                             0:-1]) * 100)
+                    print "{i}th week bias is {bias}".format(i=i,
+                                                             bias=predicted_country_sales[i] / country_sales[i]
+                                                             )
 
             if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
                 vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
