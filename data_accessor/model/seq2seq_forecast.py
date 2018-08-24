@@ -106,12 +106,15 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             if batch_num % 10001 == 0 and train_mode:
                 vanilla_rnn.mode(train_mode=False)
-                k1, k2, test_sale_kpi = data_iter(data=test_dataloader, train_mode=False, loss_func=loss_function,
+                k1, k2, test_sale_kpi,predicted_country_sales,country_sales = data_iter(data=test_dataloader, train_mode=False, loss_func=loss_function,
                                                   loss_func2=loss_func2)
                 vanilla_rnn.mode(train_mode=True)
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
                 global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
-                print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+                print "Natioanl Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+                bias = [predicted_country_sales[i] / country_sales[i] for i in range(OUTPUT_SIZE)]
+                print "National AVG Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+                print "Bias Test per country per week {bias}".format(bias=bias)
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
             input_encode = cuda_converter(torch.from_numpy(batch_data[0:TOTAL_INPUT, :, :]).float()).contiguous()
@@ -169,7 +172,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                         i=i,
                         bn=batch_num,
                         kpi=rounder(kpi_per_country))
-                    print "{i}ith week Global Train KPI is {t_kpi}".format(
+                    print "{i}ith week Natioanl AVG Train KPI is {t_kpi}".format(
                         i=i,
                         t_kpi=np.sum(
                             np.array(kpi_sale[i])[:, 0:-1]) / np.sum(
@@ -185,7 +188,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         kpi_per_country_total = [rounder(
             100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
             for i in range(OUTPUT_SIZE)]
-        return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total
+        return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total,\
+               predicted_country_sales,country_sales
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
@@ -199,22 +203,24 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         else:
             loss_function = l1loss
             loss_function2 = msloss
-        _, _, train_sale_kpi = data_iter(data=train_dataloader,
+        _, _, train_sale_kpi,predicted_country_sales,country_sales = data_iter(data=train_dataloader,
                                          train_mode=True,
                                          loss_func=loss_function,
                                          loss_func2=loss_function2,
                                          teacher_forcing_ratio=teacher_forcing_ratio)
-        print "Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
+        print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
 
         train_dataloader.reshuffle_dataset()
 
     vanilla_rnn.mode(train_mode=False)
-    k1, k2, test_sale_kpi = data_iter(test_dataloader, train_mode=False, loss_func=loss_function,
+    k1, k2, test_sale_kpi,predicted_country_sales, country_sales = data_iter(test_dataloader, train_mode=False, loss_func=loss_function,
                                       loss_func2=loss_function2)
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
     global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
-    print "Global Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+    bias = [predicted_country_sales[i]/country_sales[i] for i in range(OUTPUT_SIZE)]
+    print "National AVG Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+    print "Bias Test per country per week {bias}".format(bias = bias)
 
 
 train(vanilla_rnn, n_iters=50)
