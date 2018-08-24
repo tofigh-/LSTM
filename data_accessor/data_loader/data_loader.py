@@ -15,7 +15,8 @@ class DatasetLoader(object):
     def __iter__(self):
         st = time.time()
         for query_call_num, big_batch in enumerate(self.dataloader):
-            print (time.time() - st)
+            print "load data time:", (time.time() - st)
+            print "size of big_batch data", len(big_batch)
 
             num_samples = len(big_batch)
             if num_samples % self.mini_batch_size != 0:
