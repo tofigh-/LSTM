@@ -7,7 +7,7 @@ from EncoderRNN import EncoderRNN
 from FutureDecoder import FutureDecoder
 from FutureDecoderWithAttention import FutureDecoderWithAttention
 from data_accessor.data_loader.Settings import *
-from model_utilities import cuda_converter
+from model_utilities import cuda_converter,exponential
 
 
 class VanillaRNNModel(object):
@@ -71,7 +71,7 @@ class VanillaRNNModel(object):
         else:
             self.encoder.eval(), self.future_decoder.eval()
 
-    def train(self, inputs, targets_future, loss_function, loss_function2,teacher_forcing_ratio):
+    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
@@ -102,9 +102,12 @@ class VanillaRNNModel(object):
                 print hidden_state
                 raise Exception
 
-            loss += loss_function(out_sales_predictions[:, 1:], sales_future[future_week_idx, :, 1:])
-            loss += loss_function2(out_sales_predictions[:, 0], sales_future[future_week_idx, :, 0])
-            loss += loss_function(output_global_sale, global_sales[future_week_idx, :])
+            loss += loss_function(exponential(out_sales_predictions[:, 1:],LOG_TRANSFORM),
+                                  exponential(sales_future[future_week_idx, :, 1:],LOG_TRANSFORM))
+            loss += loss_function2(exponential(out_sales_predictions[:, 0],LOG_TRANSFORM),
+                                   exponential(sales_future[future_week_idx, :, 0],LOG_TRANSFORM))
+            loss += loss_function(exponential(output_global_sale,LOG_TRANSFORM),
+                                  exponential(global_sales[future_week_idx, :],LOG_TRANSFORM))
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
