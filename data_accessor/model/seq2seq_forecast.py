@@ -49,7 +49,7 @@ train_transform = Transform(
     min_start_date='2014-01-01',
     max_end_date='2016-12-28',
     training_transformation=True,
-    keep_zero_stock_filter=1.0)
+    keep_zero_stock_filter=0.0)
 if label_encoders is None:
     label_encoders = train_transform.label_encoders
     save_label_encoder(label_encoders, label_encoder_file)
@@ -62,7 +62,7 @@ test_transform = Transform(
     db_file=validation_db,
     target_dates=['2017-01-07'],
     training_transformation=True,
-    keep_zero_stock_filter=1.0,
+    keep_zero_stock_filter=0.0,
     activate_filters=True)
 
 train_db = DatasetReader(
