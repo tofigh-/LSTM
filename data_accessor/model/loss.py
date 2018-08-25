@@ -70,7 +70,7 @@ class L1_LOSS(nn.Module):
         if self.sum_weight:
             out = out / torch.sum(target)
         if not self.reduce:
-            out = torch.sum(torch.log(torch.mean(out,dim=0)))
+            out = torch.sum(torch.log(torch.sum(out,dim=0)))
         return out
 
 
@@ -95,5 +95,5 @@ class L2_LOSS(nn.Module):
         else:
             out = F.mse_loss(input, target, size_average=self.size_average,reduce = self.reduce)
             if not self.reduce:
-                out = torch.sum(torch.log(torch.mean(out, dim=0)))
+                out = torch.sum(torch.log(torch.sum(out, dim=0)))
             return out

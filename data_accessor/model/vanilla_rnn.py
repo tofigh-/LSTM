@@ -111,7 +111,7 @@ class VanillaRNNModel(object):
 
             loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain))
-            final_loss = torch.exp(loss/15) * 1000
+            final_loss = torch.exp(loss/15)
 
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
