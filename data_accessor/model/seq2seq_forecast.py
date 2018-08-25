@@ -91,8 +91,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         vanilla_rnn.load_checkpoint({FUTURE_DECODER_CHECKPOINT: 'decoder.gz', ENCODER_CHECKPOINT: 'encoder.gz'})
     vanilla_rnn.encoder_optimizer.zero_grad()
     vanilla_rnn.future_decoder_optimizer.zero_grad()
-    msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
-    l1loss = L1_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
+    msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT,reduce = False)
+    l1loss = L1_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT,reduce = False)
     loss_function = msloss
     np.random.seed(0)
 
@@ -203,7 +203,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             teacher_forcing_ratio = 0.5
             loss_in_normal_domain = True
         if n_iter <= 4:
-            loss_function = msloss
+            loss_function = l1loss
             loss_function2 = loss_function
         else:
             loss_function = l1loss

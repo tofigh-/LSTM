@@ -58,24 +58,28 @@ class LogNegativeBinomial(nn.Module):
 
 
 class L1_LOSS(nn.Module):
-    def __init__(self, size_average=True, sum_weight=False):
+    def __init__(self, size_average=True, sum_weight=False,reduce = True):
         super(L1_LOSS, self).__init__()
         self.size_average = size_average
         self.sum_weight = sum_weight
+        self.reduce = reduce
 
     def forward(self, input, target):
         _assert_no_grad(target)
-        out = F.l1_loss(input, target, size_average=self.size_average)
+        out = F.l1_loss(input, target, size_average=self.size_average,reduce=self.reduce)
         if self.sum_weight:
             out = out / torch.sum(target)
+        if not self.reduce:
+            out = torch.sum(torch.log(torch.mean(out,dim=0)))
         return out
 
 
 class L2_LOSS(nn.Module):
-    def __init__(self, size_average=True, sum_weight=False):
+    def __init__(self, size_average=True, sum_weight=False,reduce = False):
         super(L2_LOSS, self).__init__()
         self.size_average = size_average
         self.sum_weight = sum_weight
+        self.reduce = reduce
         self.average = True
         if self.sum_weight:
             self.average = False
@@ -89,5 +93,7 @@ class L2_LOSS(nn.Module):
                 out = torch.sum(out * weights) / (torch.sum(weights * target) + .0001)
             return out
         else:
-            out = F.mse_loss(input, target, size_average=self.size_average)
+            out = F.mse_loss(input, target, size_average=self.size_average,reduce = self.reduce)
+            if not self.reduce:
+                out = torch.sum(torch.log(torch.mean(out, dim=0)))
             return out

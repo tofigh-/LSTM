@@ -7,7 +7,7 @@ from EncoderRNN import EncoderRNN
 from FutureDecoder import FutureDecoder
 from FutureDecoderWithAttention import FutureDecoderWithAttention
 from data_accessor.data_loader.Settings import *
-from model_utilities import cuda_converter,exponential
+from model_utilities import cuda_converter, exponential
 
 
 class VanillaRNNModel(object):
@@ -71,7 +71,8 @@ class VanillaRNNModel(object):
         else:
             self.encoder.eval(), self.future_decoder.eval()
 
-    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio,loss_in_normal_domain):
+    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio,
+              loss_in_normal_domain):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
@@ -101,19 +102,24 @@ class VanillaRNNModel(object):
                 print inputs
                 print hidden_state
                 raise Exception
-            loss += loss_function(exponential(out_sales_predictions[:, 1:],loss_in_normal_domain),
-                                  exponential(sales_future[future_week_idx, :, 1:],loss_in_normal_domain))
-            loss += loss_function2(exponential(out_sales_predictions[:, 0],loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 0],loss_in_normal_domain))
-            loss += loss_function(exponential(output_global_sale,loss_in_normal_domain),
-                                  exponential(global_sales[future_week_idx, :],loss_in_normal_domain))
+
+            loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
+                                  exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain))
+
+            loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
+                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain))
+
+            loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
+                                  exponential(global_sales[future_week_idx, :], loss_in_normal_domain))
+            final_loss = torch.exp(loss/15) * 1000
+
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
                 # without teacher forcing
                 future_unknown_estimates = out_sales_predictions
 
-        loss.backward()
+        final_loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
         torch.nn.utils.clip_grad_norm_(self.future_decoder.parameters(), GRADIENT_CLIP)
 
@@ -121,8 +127,8 @@ class VanillaRNNModel(object):
         self.encoder_optimizer.zero_grad()
         self.future_decoder_optimizer.step()
         self.future_decoder_optimizer.zero_grad()
-
-        return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions
+        print "final loss is: ", final_loss
+        return final_loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions
 
     def encode_input(self, inputs):
         input_seq = inputs[0]  # PAST_KNOWN_LENGTH * BATCH * TOTAL_NUM_FEAT
