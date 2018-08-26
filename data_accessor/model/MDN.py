@@ -18,7 +18,7 @@ class MDN(nn.Module):
         self.pi_old = None
     def forward(self, x):
         z_h = F.tanh(x)
-        pi = F.softmax(self.z_pi(z_h), -1)
+        pi = F.softmax(self.z_pi(z_h).clamp(min=0.00001), -1)
         sigma = (torch.exp(self.z_sigma(z_h))).clamp(min=0.0001)
         mu = (torch.exp(self.z_mu(z_h))).clamp(min=0.00001)
         if torch.sum(torch.isnan(mu)).item():
@@ -37,11 +37,19 @@ class MDN(nn.Module):
         if torch.sum(torch.isnan(sigma)).item():
             print "sigma is nan for unknown reason"
             print sigma
+            print "%%%%%%%%%%%%%%"
+            print self.mu_old
+            print self.sigma_old
+            print self.pi_old
             sys.exit()
 
         if torch.sum(torch.isnan(pi)).item():
             print "pi is nan for unknown reason"
             print pi
+            print "%%%%%%%%%%%%%%"
+            print self.mu_old
+            print self.sigma_old
+            print self.pi_old
             sys.exit()
 
         return pi, mu, sigma
