@@ -44,7 +44,7 @@ class MDN(nn.Module):
             sampled_data = F.relu(torch.sum(selected_classes * (mu_data + rn * sigma_data), dim=1))
 
         else:
-            indices = (torch.arange(0, num_samples, out=torch.LongTensor()), selected_classes)
+            indices = (cuda_converter(torch.arange(0, num_samples, out=torch.LongTensor())), selected_classes)
             rn = torch.randn(num_samples)
             sampled_data = F.relu(rn * sigma_data[indices] + mu_data[indices])
         return sampled_data
