@@ -197,10 +197,10 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
         if n_iter <= 3:
-            teacher_forcing_ratio = 0.2
+            teacher_forcing_ratio = 0.0
             loss_in_normal_domain = False
         else:
-            teacher_forcing_ratio = 0.5
+            teacher_forcing_ratio = 0.0
             loss_in_normal_domain = True
         if n_iter <= 4:
             loss_function = msloss
