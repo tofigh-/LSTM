@@ -18,7 +18,7 @@ class MDN(nn.Module):
         self.pi_old = None
     def forward(self, x):
         z_h = F.tanh(x)
-        pi = F.softmax(self.z_pi(z_h).clamp(min=0.00001), -1)
+        pi = F.softmax(F.sigmoid(self.z_pi(z_h)).clamp(min=0.00001), -1)
         sigma = (torch.exp(self.z_sigma(z_h))).clamp(min=0.0001)
         mu = (torch.exp(self.z_mu(z_h))).clamp(min=0.00001)
         if torch.sum(torch.isnan(mu)).item():
