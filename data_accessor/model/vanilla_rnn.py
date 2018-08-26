@@ -7,7 +7,7 @@ from EncoderRNN import EncoderRNN
 from FutureDecoder import FutureDecoder
 from FutureDecoderWithAttention import FutureDecoderWithAttention
 from data_accessor.data_loader.Settings import *
-from model_utilities import cuda_converter,exponential
+from model_utilities import cuda_converter, exponential
 
 
 class VanillaRNNModel(object):
@@ -71,7 +71,8 @@ class VanillaRNNModel(object):
         else:
             self.encoder.eval(), self.future_decoder.eval()
 
-    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio,loss_in_normal_domain):
+    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio,
+              soft_prediction, expected_prediction):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
@@ -87,13 +88,16 @@ class VanillaRNNModel(object):
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \
-            embedded_features = self.decode_output(inputs,
-                                                   future_week_idx,
-                                                   hidden_state,
-                                                   embedded_features,
-                                                   future_unknown_estimates,
-                                                   train=True
-                                                   )
+            embedded_features, \
+            mdn_outputs = self.decode_output(inputs=inputs,
+                                             future_week_index=future_week_idx,
+                                             hidden_state=hidden_state,
+                                             embedded_features=embedded_features,
+                                             future_unknown_estimates=future_unknown_estimates,
+                                             train=True,
+                                             soft_prediction=soft_prediction,
+                                             expected_prediction=expected_prediction
+                                             )
             all_week_predictions.append(out_sales_predictions)
             global_sale_all_weeks.append(output_global_sale)
             if out_sales_predictions.shape[0] == 0:
@@ -101,12 +105,12 @@ class VanillaRNNModel(object):
                 print inputs
                 print hidden_state
                 raise Exception
-            loss += loss_function(exponential(out_sales_predictions[:, 1:],loss_in_normal_domain),
-                                  exponential(sales_future[future_week_idx, :, 1:],loss_in_normal_domain))
-            loss += loss_function2(exponential(out_sales_predictions[:, 0],loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 0],loss_in_normal_domain))
-            loss += loss_function(exponential(output_global_sale,loss_in_normal_domain),
-                                  exponential(global_sales[future_week_idx, :],loss_in_normal_domain))
+
+            for country_idx, (pi, mu, sigma) in enumerate(mdn_outputs):
+                loss += loss_function(pi, sigma, mu, sales_future[future_week_idx, :, country_idx])
+
+            loss += loss_function2(output_global_sale, global_sales[future_week_idx, :])
+
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
@@ -138,7 +142,9 @@ class VanillaRNNModel(object):
                       hidden_state=None,
                       embedded_features=None,
                       future_unknown_estimates=None,
-                      train=False
+                      train=False,
+                      soft_prediction=False,
+                      expected_prediction=True
                       ):
         '''
         :param inputs: # (TOTAL_INPUT x BATCH x TOTAL_FEAT, OUTPUT_SIZE * BATCH * TOTAL_FEAT)
@@ -166,28 +172,34 @@ class VanillaRNNModel(object):
                 input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
 
         future_decoder_hidden = hidden_state
-        output_global_sale, out_sales_predictions, hidden = self.future_decoder(
+        output_global_sale, out_sales_predictions, hidden, mdn_outputs = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
             embedded_inputs=embedded_features,
-            encoder_outputs=encoder_outputs)
-        return output_global_sale, out_sales_predictions, hidden, embedded_features
+            encoder_outputs=encoder_outputs,
+            soft_prediction=soft_prediction,
+            expected_prediction=expected_prediction)
+        return output_global_sale, out_sales_predictions, hidden, embedded_features, mdn_outputs
 
     def predict_over_period(self, inputs,
                             hidden_state=None,
                             embedded_features=None,
                             future_unknown_estimates=None,
+                            soft_prediction=False,
+                            expected_prediction=False
                             ):
         all_week_predictions = []
         global_sale_all_weeks = []
         for week_idx in range(OUTPUT_SIZE):
-            global_sales_prediction, future_unknown_estimates, hidden_state, embedded_features = self.decode_output(
+            global_sales_prediction, future_unknown_estimates, hidden_state, embedded_features, mdn_outputs = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,
                 embedded_features,
                 future_unknown_estimates,
-                train=False
+                train=False,
+                soft_prediction=soft_prediction,
+                expected_prediction=expected_prediction
             )
             all_week_predictions.append(future_unknown_estimates)
             global_sale_all_weeks.append(global_sales_prediction)

@@ -8,12 +8,11 @@ from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
 from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
-from loss import L2_LOSS, L1_LOSS
+from loss import L2_LOSS, L1_LOSS, MDNLOSS
 from model_utilities import kpi_compute, exponential, complete_embedding_description, cuda_converter, \
     kpi_compute_per_country, rounder
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
 from vanilla_rnn import VanillaRNNModel
-import os
 import sys
 import os
 
@@ -86,30 +85,41 @@ vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               num_output=NUM_COUNTRIES)
 
 
-def train(vanilla_rnn, n_iters, resume=RESUME):
+def train(vanilla_rnn, n_iters, soft_prediction, expected_prediction, resume=RESUME):
     if resume:
         vanilla_rnn.load_checkpoint({FUTURE_DECODER_CHECKPOINT: 'decoder.gz', ENCODER_CHECKPOINT: 'encoder.gz'})
     vanilla_rnn.encoder_optimizer.zero_grad()
     vanilla_rnn.future_decoder_optimizer.zero_grad()
+    mdnloss = MDNLOSS()
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     l1loss = L1_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     loss_function = msloss
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
+    def data_iter(data, loss_func, loss_func2,
+                  soft_prediction,
+                  expected_prediction,
+                  teacher_forcing_ratio=1.0,
+                  train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         predicted_country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
         country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
-        if train_mode: vanilla_rnn.mode(train_mode=True)
+        if train_mode:
+            vanilla_rnn.mode(train_mode=True)
         for batch_num, batch_data in enumerate(data):
 
             if batch_num % 10001 == 0 and train_mode:
                 vanilla_rnn.mode(train_mode=False)
-                k1, k2, test_sale_kpi, predicted_country_sales, country_sales = data_iter(data=test_dataloader,
-                                                                                          train_mode=False,
-                                                                                          loss_func=loss_function,
-                                                                                          loss_func2=loss_func2)
+                k1, k2, test_sale_kpi, \
+                predicted_country_sales, \
+                country_sales = data_iter(data=test_dataloader,
+                                          train_mode=False,
+                                          loss_func=loss_function,
+                                          loss_func2=loss_func2,
+                                          soft_prediction=soft_prediction,
+                                          expected_prediction=expected_prediction
+                                          )
                 vanilla_rnn.mode(train_mode=True)
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
                 global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
@@ -140,8 +150,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     targets_future=targets_future,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
-                    teacher_forcing_ratio=1.0,
-                    loss_in_normal_domain=loss_in_normal_domain
+                    teacher_forcing_ratio=teacher_forcing_ratio,
+                    soft_prediction=soft_prediction,
+                    expected_prediction=expected_prediction
                 )
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
@@ -198,34 +209,39 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         if n_iter <= 3:
             teacher_forcing_ratio = 0.8
-            loss_in_normal_domain = False
         else:
             teacher_forcing_ratio = 0.5
-            loss_in_normal_domain = True
         if n_iter <= 4:
-            loss_function = msloss
-            loss_function2 = loss_function
-        else:
-            loss_function = l1loss
+            loss_function = mdnloss
             loss_function2 = msloss
+        else:
+            loss_function = mdnloss
+            loss_function2 = l1loss
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
         country_sales = data_iter(data=train_dataloader,
-                                  train_mode=True,
                                   loss_func=loss_function,
+                                  soft_prediction=soft_prediction,
+                                  expected_prediction=expected_prediction,
                                   loss_func2=loss_function2,
-                                  loss_in_normal_domain=loss_in_normal_domain,
-                                  teacher_forcing_ratio=teacher_forcing_ratio)
+                                  teacher_forcing_ratio=teacher_forcing_ratio,
+                                  train_mode=True
+                                  )
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
 
         train_dataloader.reshuffle_dataset()
 
     vanilla_rnn.mode(train_mode=False)
-    k1, k2, test_sale_kpi, predicted_country_sales, country_sales = data_iter(test_dataloader, train_mode=False,
-                                                                              loss_func=loss_function,
-                                                                              loss_func2=loss_function2)
+    k1, k2, test_sale_kpi, \
+    predicted_country_sales, \
+    country_sales = data_iter(data=test_dataloader,
+                              soft_prediction=soft_prediction,
+                              expected_prediction=expected_prediction,
+                              loss_func=loss_function,
+                              loss_func2=loss_function2,
+                              train_mode=False)
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
     global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
     bias = [predicted_country_sales[i] / country_sales[i] for i in range(OUTPUT_SIZE)]
@@ -233,4 +249,4 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     print "Bias Test per country per week {bias}".format(bias=bias)
 
 
-train(vanilla_rnn, n_iters=50)
+train(vanilla_rnn, n_iters=50, soft_prediction=False, expected_prediction=False)
