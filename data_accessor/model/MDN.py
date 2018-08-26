@@ -40,7 +40,7 @@ class MDN(nn.Module):
     def probabilistic_inference(num_samples, p_matrix, sigma_data, mu_data, soft=False):
         selected_classes = MDN.gumbel_class_sample(p_matrix, axis=1, soft=soft)
         if soft:
-            rn = torch.randn(sigma_data.shape)
+            rn = cuda_converter(torch.randn(sigma_data.shape))
             sampled_data = F.relu(torch.sum(selected_classes * (mu_data + rn * sigma_data), dim=1))
 
         else:
