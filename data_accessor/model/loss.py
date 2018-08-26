@@ -103,7 +103,7 @@ class MDNLOSS(nn.Module):
         result_g = self.gaussian_distribution(y, mu, sigma) * pi
         result = torch.sum(result_g, dim=1)
         result = -torch.log(result)
-        if isnan(result):
+        if torch.sum(isnan(result)).item():
             print "mu"
             print mu
             print "sigma"
