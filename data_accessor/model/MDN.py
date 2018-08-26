@@ -13,16 +13,27 @@ class MDN(nn.Module):
         self.z_pi = nn.Linear(input, n_gaussians)
         self.z_sigma = nn.Linear(input, n_gaussians)
         self.z_mu = nn.Linear(input, n_gaussians)
-
+        self.mu_old = None
+        self.sigma_old = None
+        self.pi_old = None
     def forward(self, x):
         z_h = F.tanh(x)
         pi = F.softmax(self.z_pi(z_h), -1)
-        sigma = torch.exp(self.z_sigma(z_h))
-        mu = torch.exp(self.z_mu(z_h))
+        sigma = (torch.exp(self.z_sigma(z_h))).clamp(min=0.0001)
+        mu = (torch.exp(self.z_mu(z_h))).clamp(min=0.00001)
         if torch.sum(torch.isnan(mu)).item():
             print "Mu is nan for unknown reason"
             print mu
+            print "%%%%%%%%%%%%%%"
+            print self.mu_old
+            print self.sigma_old
+            print self.pi_old
             sys.exit()
+        else:
+            self.mu_old = mu
+            self.sigma_old = sigma
+            self.pi_old = pi
+
         if torch.sum(torch.isnan(sigma)).item():
             print "sigma is nan for unknown reason"
             print sigma
