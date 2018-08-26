@@ -33,6 +33,7 @@ class MDN(nn.Module):
             self.mu_old = mu
             self.sigma_old = sigma
             self.pi_old = pi
+            print mu
 
         if torch.sum(torch.isnan(sigma)).item() or float('inf') == torch.mean(sigma).item():
             print "sigma is nan for unknown reason"
