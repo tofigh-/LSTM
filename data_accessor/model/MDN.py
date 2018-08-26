@@ -5,6 +5,7 @@ import torch.nn.functional as F
 import numpy as np
 from torch.distributions.gumbel import Gumbel
 
+from model_utilities import cuda_converter
 
 class MDN(nn.Module):
     def __init__(self, input, n_gaussians):
@@ -23,7 +24,7 @@ class MDN(nn.Module):
     @staticmethod
     def gumbel_class_sample(p_matrix, axis=1, soft=False):
         # Select one out o K pi values for each row of p_matrix
-        z = Gumbel(loc=0, scale=1).sample(sample_shape=p_matrix.shape)
+        z = cuda_converter(Gumbel(loc=0, scale=1).sample(sample_shape=p_matrix.shape))
         noisy_samples = (torch.log(p_matrix) + z)
         if soft:
             out = F.softmax(noisy_samples, dim=axis)
