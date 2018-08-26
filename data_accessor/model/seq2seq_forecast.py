@@ -140,7 +140,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     targets_future=targets_future,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
-                    teacher_forcing_ratio=1.0,
+                    teacher_forcing_ratio=teacher_forcing_ratio,
                     loss_in_normal_domain=loss_in_normal_domain
                 )
                 if batch_num % 100 == 0:
@@ -197,7 +197,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
         if n_iter <= 3:
-            teacher_forcing_ratio = 0.8
+            teacher_forcing_ratio = 0.2
             loss_in_normal_domain = False
         else:
             teacher_forcing_ratio = 0.5
