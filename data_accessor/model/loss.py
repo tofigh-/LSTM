@@ -95,12 +95,23 @@ class MDNLOSS(nn.Module):
 
     def gaussian_distribution(self, y, mu, sigma):
         # make |mu|=K copies of y, subtract mu, divide by sigma
-        result = (y[:,None].expand_as(mu) - mu) * torch.reciprocal(sigma + 0.001)
+        result = (y[:, None].expand_as(mu) - mu) * torch.reciprocal(sigma + 0.001)
         result = -0.5 * (result * result)
         return (torch.exp(result) * torch.reciprocal(sigma)) * self.constant
 
     def forward(self, pi, sigma, mu, y):
-        result = self.gaussian_distribution(y, mu, sigma) * pi
-        result = torch.sum(result, dim=1)
+        result_g = self.gaussian_distribution(y, mu, sigma) * pi
+        result = torch.sum(result_g, dim=1)
         result = -torch.log(result)
+        if isnan(result):
+            print "mu"
+            print mu
+            print "sigma"
+            print sigma
+            print "after convert to gaussian"
+            print result_g
         return torch.mean(result)
+
+
+def isnan(x):
+    return x != x
