@@ -109,7 +109,7 @@ class VanillaRNNModel(object):
             for country_idx, (pi, mu, sigma) in enumerate(mdn_outputs):
                 loss += loss_function(pi, sigma, mu, sales_future[future_week_idx, :, country_idx])
 
-            loss += loss_function2(output_global_sale, global_sales[future_week_idx, :])
+            # loss += loss_function2(output_global_sale, global_sales[future_week_idx, :])
 
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
