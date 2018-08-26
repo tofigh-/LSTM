@@ -104,12 +104,14 @@ class MDNLOSS(nn.Module):
         result = torch.sum(result_g, dim=1)
         result = -torch.log(result)
         if torch.sum(isnan(result)).item():
+            import sys
             print "mu"
             print mu
             print "sigma"
             print sigma
             print "after convert to gaussian"
             print result_g
+            sys.exit()
         return torch.mean(result)
 
 

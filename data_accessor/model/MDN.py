@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from torch.distributions.gumbel import Gumbel
-
+import sys
 from model_utilities import cuda_converter
 
 class MDN(nn.Module):
@@ -19,6 +19,20 @@ class MDN(nn.Module):
         pi = F.softmax(self.z_pi(z_h), -1)
         sigma = torch.exp(self.z_sigma(z_h))
         mu = torch.exp(self.z_mu(z_h))
+        if torch.sum(torch.isnan(mu)).item():
+            print "Mu is nan for unknown reason"
+            print mu
+            sys.exit()
+        if torch.sum(torch.isnan(sigma)).item():
+            print "sigma is nan for unknown reason"
+            print sigma
+            sys.exit()
+
+        if torch.sum(torch.isnan(pi)).item():
+            print "pi is nan for unknown reason"
+            print pi
+            sys.exit()
+
         return pi, mu, sigma
 
     @staticmethod
