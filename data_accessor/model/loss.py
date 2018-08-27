@@ -107,7 +107,7 @@ class MDNLOSS(nn.Module):
     def mdn_loss_stable(self,y, pi, mu, sigma):
         m = torch.distributions.Normal(loc=mu, scale=sigma)
         m_lp_y = m.log_prob(y[:, None].expand_as(mu))
-        loss = -self.weighted_logsumexp(m_lp_y, pi, dim=2)
+        loss = -self.weighted_logsumexp(m_lp_y, pi, dim=1)
         return loss.mean()
 
     def gaussian_distribution(self, y, mu, sigma):
