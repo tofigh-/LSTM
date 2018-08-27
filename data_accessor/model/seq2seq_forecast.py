@@ -212,10 +212,10 @@ def train(vanilla_rnn, n_iters, soft_prediction, expected_prediction, resume=RES
         else:
             teacher_forcing_ratio = 0.5
         if n_iter <= 4:
-            loss_function = mdnloss
+            loss_function = msloss
             loss_function2 = msloss
         else:
-            loss_function = mdnloss
+            loss_function = msloss
             loss_function2 = l1loss
         _, _, \
         train_sale_kpi, \
@@ -249,4 +249,4 @@ def train(vanilla_rnn, n_iters, soft_prediction, expected_prediction, resume=RES
     print "Bias Test per country per week {bias}".format(bias=bias)
 
 
-train(vanilla_rnn, n_iters=50, soft_prediction=False, expected_prediction=False)
+train(vanilla_rnn, n_iters=50, soft_prediction=True, expected_prediction=False)
