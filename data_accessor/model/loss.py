@@ -97,6 +97,7 @@ class MDNLOSS(nn.Module):
         # make |mu|=K copies of y, subtract mu, divide by sigma
         result = (y[:, None].expand_as(mu) - mu) * torch.reciprocal(sigma)
         result = -0.5 * (result * result)
+        print torch.mean(mu)
         return (torch.exp(result) * torch.reciprocal(sigma)) * self.constant
 
     def forward(self, pi, sigma, mu, y):
