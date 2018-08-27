@@ -19,7 +19,7 @@ class MDN(nn.Module):
     def forward(self, x):
         z_h = F.tanh(x)
         pi = F.softmax(F.sigmoid(self.z_pi(z_h)).clamp(min=0.00001), -1)
-        sigma = (torch.exp(self.z_sigma(z_h))).clamp(min=0.0001,max=10)
+        sigma = (torch.exp(self.z_sigma(z_h))).clamp(min=0.01)
         mu = (torch.exp(self.z_mu(z_h))).clamp(min=0.00001)
         if torch.sum(torch.isnan(mu)).item() or float('inf') == torch.mean(mu).item():
             print "Mu is nan for unknown reason"
@@ -33,7 +33,6 @@ class MDN(nn.Module):
             self.mu_old = mu
             self.sigma_old = sigma
             self.pi_old = pi
-            print mu
 
         if torch.sum(torch.isnan(sigma)).item() or float('inf') == torch.mean(sigma).item():
             print "sigma is nan for unknown reason"
