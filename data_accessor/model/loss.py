@@ -105,7 +105,7 @@ class MDNLOSS(nn.Module):
         return x if keepdim else x.squeeze(dim)
 
     def mdn_loss_stable(self,y, pi, mu, sigma):
-        m = torch.distributions.Normal(loc=mu, scale=sigma)
+        m = torch.distributions.Normal(loc=mu, scale=sigma + 0.1)
         m_lp_y = m.log_prob(y[:, None].expand_as(mu))
         loss = -self.weighted_logsumexp(m_lp_y, pi, dim=1)
         return loss.mean()
@@ -114,7 +114,6 @@ class MDNLOSS(nn.Module):
         # make |mu|=K copies of y, subtract mu, divide by sigma
         result = (y[:, None].expand_as(mu) - mu) * torch.reciprocal(sigma)
         result = -0.5 * (result * result)
-        print torch.mean(mu)
         return (torch.exp(result) * torch.reciprocal(sigma)) * self.constant
 
     def forward(self, pi, sigma, mu, y):
