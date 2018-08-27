@@ -93,6 +93,23 @@ class MDNLOSS(nn.Module):
         super(MDNLOSS, self).__init__()
         self.constant = 1.0 / np.sqrt(2.0 * np.pi)  # normalization factor for Gaussians
 
+    def weighted_logsumexp(self, x, w, dim=None, keepdim=False):
+        if dim is None:
+            x, dim = x.view(-1), 0
+        xm, _ = torch.max(x, dim, keepdim=True)
+        x = torch.where(
+            # to prevent nasty nan's
+            (xm == float('inf')) | (xm == float('-inf')),
+            xm,
+            xm + torch.log(torch.sum(torch.exp(x - xm) * w, dim, keepdim=True)))
+        return x if keepdim else x.squeeze(dim)
+
+    def mdn_loss_stable(self,y, pi, mu, sigma):
+        m = torch.distributions.Normal(loc=mu, scale=sigma)
+        m_lp_y = m.log_prob(y)
+        loss = -self.weighted_logsumexp(m_lp_y, pi, dim=2)
+        return loss.mean()
+
     def gaussian_distribution(self, y, mu, sigma):
         # make |mu|=K copies of y, subtract mu, divide by sigma
         result = (y[:, None].expand_as(mu) - mu) * torch.reciprocal(sigma)
@@ -101,9 +118,7 @@ class MDNLOSS(nn.Module):
         return (torch.exp(result) * torch.reciprocal(sigma)) * self.constant
 
     def forward(self, pi, sigma, mu, y):
-        result_g = self.gaussian_distribution(y, mu, sigma) * pi
-        result = torch.sum(result_g, dim=1)
-        result = -torch.log(result)
+        result = self.mdn_loss_stable(y,pi,mu,sigma)
         if torch.sum(isnan(result)).item():
             import sys
             print "mu"
@@ -111,9 +126,8 @@ class MDNLOSS(nn.Module):
             print "sigma"
             print sigma
             print "after convert to gaussian"
-            print result_g
             sys.exit()
-        return torch.mean(result)
+        return result
 
 
 def isnan(x):
