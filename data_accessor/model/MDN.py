@@ -1,11 +1,13 @@
+import sys
+
+import numpy as np
 import torch
 import torch.nn as nn
-
 import torch.nn.functional as F
-import numpy as np
 from torch.distributions.gumbel import Gumbel
-import sys
+
 from model_utilities import cuda_converter
+
 
 class MDN(nn.Module):
     def __init__(self, input, n_gaussians):
