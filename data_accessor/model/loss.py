@@ -93,19 +93,19 @@ class MDNLOSS(nn.Module):
         super(MDNLOSS, self).__init__()
         self.constant = 1.0 / np.sqrt(2.0 * np.pi)  # normalization factor for Gaussians
 
-    def weighted_logsumexp(self, x, w, dim=None, keepdim=False):
+    def weighted_logsumexp(self, log_prob_y, p, dim=None, keepdim=False):
         if dim is None:
-            x, dim = x.view(-1), 0
-        xm, _ = torch.max(x, dim, keepdim=True)
-        x = torch.where(
+            log_prob_y, dim = log_prob_y.view(-1), 0
+        xm, _ = torch.max(log_prob_y, dim, keepdim=True)
+        log_prob_y = torch.where(
             # to prevent nasty nan's
             (xm == float('inf')) | (xm == float('-inf')),
             xm,
-            xm + torch.log(torch.sum(torch.exp(x - xm) * w, dim, keepdim=True)))
-        return x if keepdim else x.squeeze(dim)
+            xm + torch.log(torch.sum(torch.exp(log_prob_y - xm) * p, dim, keepdim=True)))
+        return log_prob_y if keepdim else log_prob_y.squeeze(dim)
 
     def mdn_loss_stable(self,y, pi, mu, sigma):
-        m = torch.distributions.Normal(loc=mu, scale=sigma + 0.1)
+        m = torch.distributions.Normal(loc=mu, scale=sigma)
         m_lp_y = m.log_prob(y[:, None].expand_as(mu))
         loss = -self.weighted_logsumexp(m_lp_y, pi, dim=1)
         return loss.mean()

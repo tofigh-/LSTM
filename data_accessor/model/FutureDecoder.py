@@ -44,7 +44,7 @@ class FutureDecoder(nn.Module):
         self.factor = 2 if self.rnn.bidirectional else 1
         self.mdns = nn.ModuleList(
             [
-                MDN(input=self.hidden_size * self.factor + NUM_COUNTRIES + 1, n_gaussians=10)
+                MDN(input=self.hidden_size * self.factor + NUM_COUNTRIES + 1, n_gaussians=1)
                 for _ in range(NUM_COUNTRIES)
             ]
         )
