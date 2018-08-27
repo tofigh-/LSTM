@@ -20,7 +20,7 @@ class MDN(nn.Module):
         z_h = F.tanh(x)
         pi = F.softmax(F.sigmoid(self.z_pi(z_h)).clamp(min=0.00001), -1)
         sigma = (torch.exp(self.z_sigma(z_h))).clamp(min=.001)
-        mu = (torch.exp(self.z_mu(z_h))).clamp(min=0.00001) + cuda_converter(torch.randn(sigma.shape)*0.1 + 0.1)
+        mu = (torch.exp(self.z_mu(z_h))).clamp(min=0.00001)
         if torch.sum(torch.isnan(mu)).item() or float('inf') == torch.mean(mu).item():
             print "Mu is nan for unknown reason"
             print mu
