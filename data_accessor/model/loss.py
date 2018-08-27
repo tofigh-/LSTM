@@ -95,7 +95,6 @@ class MDNLOSS(nn.Module):
 
     def gaussian_distribution(self, y, mu, sigma):
         # make |mu|=K copies of y, subtract mu, divide by sigma
-        print torch.mean(sigma)
         result = (y[:, None].expand_as(mu) - mu) * torch.reciprocal(sigma)
         result = -0.5 * (result * result)
         return (torch.exp(result) * torch.reciprocal(sigma)) * self.constant
