@@ -42,11 +42,9 @@ class FutureDecoder(nn.Module):
         else:
             self.rnn = nn.LSTM(input=total_num_features, hidden_size=self.hidden_size, num_layers=n_layers)
         self.factor = 2 if self.rnn.bidirectional else 1
-        self.out_sale = nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, 250)
-
         self.mdns = nn.ModuleList(
             [
-                MDN(input=self.hidden_size * self.factor + NUM_COUNTRIES + 1, n_gaussians=50)
+                MDN(input=self.hidden_size * self.factor + NUM_COUNTRIES + 1, n_gaussians=10)
                 for _ in range(NUM_COUNTRIES)
             ]
         )
