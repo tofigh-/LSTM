@@ -33,10 +33,10 @@ class VanillaRNNModel(object):
                                                                n_layers=1,
                                                                rnn_layer=self.encoder.rnn,
                                                                num_output=num_output))
-        # self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE)
-        # self.future_decoder_optimizer = optim.Adam(self.future_decoder.parameters(), lr=LEARNING_RATE)
-        self.encoder_optimizer = optim.Adagrad(self.encoder.parameters(), lr=0.01)
-        self.future_decoder_optimizer = optim.Adagrad(self.future_decoder.parameters(), lr=0.01)
+        self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE)
+        self.future_decoder_optimizer = optim.Adam(self.future_decoder.parameters(), lr=LEARNING_RATE)
+        # self.encoder_optimizer = optim.Adagrad(self.encoder.parameters(), lr=0.01)
+        # self.future_decoder_optimizer = optim.Adagrad(self.future_decoder.parameters(), lr=0.01)
         if load_saved_model:
             self.load_checkpoint(model_path_dict)
         self.sales_col = feature_indices[SALES_MATRIX]
