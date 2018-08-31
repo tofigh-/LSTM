@@ -109,7 +109,7 @@ class VanillaRNNModel(object):
 
             for country_idx, (pi, mu, sigma) in enumerate(mdn_outputs):
                 real_sales = exponential(sales_future[future_week_idx, :, country_idx], IS_LOG_TRANSFORM)
-                noise = torch.randn(real_sales.shape) * (log(real_sales + 1,IS_LOG_TRANSFORM) - sales_future[future_week_idx, :, country_idx]) / 2.0
+                noise = cuda_converter(torch.randn(real_sales.shape)) * (log(real_sales + 1,IS_LOG_TRANSFORM) - sales_future[future_week_idx, :, country_idx]) / 2.0
                 loss += loss_function(pi, sigma, mu, noise + sales_future[future_week_idx, :, country_idx])
                 # loss += loss_function(out_sales_predictions[:,country_idx],sales_future[future_week_idx, :, country_idx])
             loss += loss_function2(output_global_sale, global_sales[future_week_idx, :])
