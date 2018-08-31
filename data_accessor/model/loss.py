@@ -64,11 +64,15 @@ class L1_LOSS(nn.Module):
         self.sum_weight = sum_weight
         if self.sum_weight: self.size_average = False
 
-    def forward(self, input, target):
+    def forward(self, input, target, weights=None):
         _assert_no_grad(target)
-        out = F.l1_loss(input, target, size_average=self.size_average)
-        if self.sum_weight:
-            out = out / (torch.sum(target) + 0.0001)
+        if weights is not None:
+            out = torch.mean(F.l1_loss(input, target, size_average=False, reduce=False) * weights)
+        else:
+
+            out = F.l1_loss(input, target, size_average=self.size_average)
+            if self.sum_weight:
+                out = out / (torch.sum(target) + 0.0001)
         return out
 
 
@@ -82,7 +86,10 @@ class L2_LOSS(nn.Module):
 
     def forward(self, input, target, weights=None):
         _assert_no_grad(target)
-        out = F.mse_loss(input, target, size_average=self.size_average)
-        if self.sum_weight:
-            out = out / (torch.sum(target) + 0.0001)
+        if weights is not None:
+            out = torch.mean(F.mse_loss(input, target, size_average=False, reduce=False) * weights)
+        else:
+            out = F.mse_loss(input, target, size_average=self.size_average)
+            if self.sum_weight:
+                out = out / (torch.sum(target) + 0.0001)
         return out
