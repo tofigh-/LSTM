@@ -47,7 +47,9 @@ train_transform = Transform(
     min_start_date='2014-01-01',
     max_end_date='2016-12-28',
     training_transformation=True,
-    keep_zero_stock_filter=0.5)
+    keep_zero_stock_filter=0.5,
+    keep_zero_sale_filter=0.1)
+
 if label_encoders is None:
     label_encoders = train_transform.label_encoders
     save_label_encoder(label_encoders, label_encoder_file)

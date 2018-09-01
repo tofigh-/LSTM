@@ -20,6 +20,7 @@ class Transform(object):
                  target_dates=[],
                  training_transformation=True,
                  keep_zero_stock_filter=0.0,
+                 keep_zero_sale_filter=1.0,
                  activate_filters=True):
         '''
 
@@ -32,6 +33,7 @@ class Transform(object):
         :param training_transformation: If False, It should output features for production
         '''
         self.keep_zero_stock_filter = keep_zero_stock_filter
+        self.keep_zero_sale_filter = keep_zero_sale_filter
         self.feature_transforms = feature_transforms
         if label_encoders is None:
             assert db_file is not None, 'Path to DB to compute label encoder is not provided'
@@ -129,9 +131,9 @@ class Transform(object):
             if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx, 0):
                 if np.random.rand() >= self.keep_zero_stock_filter:
                     continue
-            # if self.activate_filters and FILTER_LOW_SALE and self.filter_out_low_sales(feature_dictionary,
-            #                                                                            first_target_week_idx, 0):
-            #     continue
+            if self.activate_filters and self.filter_out_low_sales(feature_dictionary, first_target_week_idx, 0):
+                if np.random.rand() >= self.keep_zero_sale_filter:
+                    continue
             selected_range = range(first_target_week_idx - TOTAL_LENGTH + 1, first_target_week_idx + 1)
             sample = self.feature_transforms.to_final_format_training(feature_dictionary, selected_range,
                                                                       self.activate_filters)
