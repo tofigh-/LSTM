@@ -101,6 +101,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
+        weekly_aggregated_kpi = []
+        weekly_aggregated_kpi_scale = []
         predicted_country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
         country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
         if train_mode: vanilla_rnn.mode(train_mode=True)
@@ -108,15 +110,24 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             if batch_num % 10001 == 0 and train_mode:
                 vanilla_rnn.mode(train_mode=False)
-                k1, k2, test_sale_kpi, predicted_country_sales, country_sales = data_iter(data=test_dataloader,
-                                                                                          train_mode=False,
-                                                                                          loss_func=loss_function,
-                                                                                          loss_func2=loss_func2)
+                k1, k2, test_sale_kpi, \
+                predicted_country_sales_test, \
+                country_sales_test, weekly_aggregated_kpi_test, weekly_aggregated_kpi_scale_test = data_iter(
+                    data=test_dataloader,
+                    train_mode=False,
+                    loss_func=loss_function,
+                    loss_func2=loss_func2
+                )
                 vanilla_rnn.mode(train_mode=True)
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
+                print "Weekly Test Aggregated KPI {kpi}".format(
+                    kpi=rounder(
+                        np.sum(weekly_aggregated_kpi_test, axis=0) / np.sum(weekly_aggregated_kpi_scale_test,
+                                                                            axis=0) * 100)
+                )
                 global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
                 print "Natioanl Test KPI is {t_kpi}".format(t_kpi=global_kpi)
-                bias = [predicted_country_sales[i] / country_sales[i] for i in range(OUTPUT_SIZE)]
+                bias = [predicted_country_sales_test[i] / country_sales_test[i] for i in range(OUTPUT_SIZE)]
                 print "National AVG Test KPI is {t_kpi}".format(t_kpi=global_kpi)
                 print "Bias Test per country per week {bias}".format(bias=bias)
 
@@ -234,22 +245,33 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
-        country_sales = data_iter(data=train_dataloader,
-                                  train_mode=True,
-                                  loss_func=loss_function,
-                                  loss_func2=loss_function2,
-                                  loss_in_normal_domain=loss_in_normal_domain,
-                                  teacher_forcing_ratio=teacher_forcing_ratio)
+        country_sales, weekly_aggregated_kpi, weekly_aggregated_kpi_scale = data_iter(data=train_dataloader,
+                                                                                      train_mode=True,
+                                                                                      loss_func=loss_function,
+                                                                                      loss_func2=loss_function2,
+                                                                                      loss_in_normal_domain=loss_in_normal_domain,
+                                                                                      teacher_forcing_ratio=teacher_forcing_ratio)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
+        print "Weekly Aggregated KPI {kpi}".format(
+            kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
+        )
         vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
 
         train_dataloader.reshuffle_dataset()
 
     vanilla_rnn.mode(train_mode=False)
-    k1, k2, test_sale_kpi, predicted_country_sales, country_sales = data_iter(test_dataloader, train_mode=False,
-                                                                              loss_func=loss_function,
-                                                                              loss_func2=loss_function2)
+    k1, k2, test_sale_kpi, \
+    predicted_country_sales, \
+    country_sales, \
+    weekly_aggregated_kpi, \
+    weekly_aggregated_kpi_scale = data_iter(test_dataloader, train_mode=False,
+                                            loss_func=loss_function,
+                                            loss_func2=loss_function2)
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
+
+    print "Weekly Test Aggregated KPI {kpi}".format(
+        kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
+    )
     global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
     bias = [predicted_country_sales[i] / country_sales[i] for i in range(OUTPUT_SIZE)]
     print "National AVG Test KPI is {t_kpi}".format(t_kpi=global_kpi)
