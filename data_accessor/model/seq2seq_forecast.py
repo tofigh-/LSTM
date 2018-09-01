@@ -152,49 +152,70 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 # TODO to generalize KPI computation to many weeks this 0 should go away
                 output_global_sale, sale_predictions = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
-            for i in range(OUTPUT_SIZE):
-                target_sales = targets_future[SALES_MATRIX][i, :, :]
-                target_global_sales = targets_future[GLOBAL_SALE][i, :]
-                kpi_sale[i].append(kpi_compute_per_country(sale_predictions[i],
-                                                           target_sales=target_sales,
-                                                           target_global_sales=target_global_sales,
-                                                           log_transform=IS_LOG_TRANSFORM,
-                                                           weight=black_price
-                                                           ))
-                predicted_country_sales[i] = predicted_country_sales[i] + torch.sum(
-                    exponential(sale_predictions[i], LOG_TRANSFORM), dim=0).data.cpu().numpy()
+                # Batch x Country
+                weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
+                                              dim=0)
+                weekly_aggregated_predictions = torch.sum(exponential(torch.stack(sale_predictions), IS_LOG_TRANSFORM),
+                                                          dim=0)
 
-                real_sales = exponential(target_sales, IS_LOG_TRANSFORM)
-                country_sales[i] = country_sales[i] + torch.sum(real_sales, dim=0).data.cpu().numpy()
-                kpi_denominator = np.append(torch.sum(black_price * real_sales, dim=0).data.cpu().numpy(),
-                                            torch.sum(real_sales * black_price).item())
+                # size: (Country,)
+                aggregated_err = torch.sum(torch.abs(weekly_aggregated - weekly_aggregated_predictions) * black_price,
+                                           dim=0).data.cpu().numpy()
+                aggregated_sale = torch.sum(weekly_aggregated * black_price, dim=0).data.cpu().numpy()
 
-                kpi_sale_scale[i].append(kpi_denominator)
+                weekly_aggregated_kpi.append(aggregated_err)
+                weekly_aggregated_kpi_scale.append(aggregated_sale)
                 if batch_num % 1000 == 0 and train_mode:
-                    kpi_per_country = np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]),
-                                                                                     axis=0) * 100
-                    print "{i}ith week: National Train KPI at Batch number {bn} is {kpi}".format(
-                        i=i,
+                    weekly_aggregated_kpi_per_country = np.sum(np.array(weekly_aggregated_kpi), axis=0) / np.sum(
+                        np.array(weekly_aggregated_kpi_scale), axis=0) * 100
+                    print "Weekly Aggregated Train KPI at Batch number {bn} is {kpi}".format(
                         bn=batch_num,
-                        kpi=rounder(kpi_per_country))
-                    print "{i}ith week Natioanl AVG Train KPI is {t_kpi}".format(
-                        i=i,
-                        t_kpi=np.sum(
-                            np.array(kpi_sale[i])[:, 0:-1]) / np.sum(
-                            np.array(kpi_sale_scale[i])[:,
-                            0:-1]) * 100)
-                    print "{i}th week bias is {bias}".format(i=i,
-                                                             bias=predicted_country_sales[i] / country_sales[i]
-                                                             )
+                        kpi=rounder(weekly_aggregated_kpi_per_country))
 
-            if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
-                vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
+                for i in range(OUTPUT_SIZE):
+                    target_sales = targets_future[SALES_MATRIX][i, :, :]
+                    target_global_sales = targets_future[GLOBAL_SALE][i, :]
+                    kpi_sale[i].append(kpi_compute_per_country(sale_predictions[i],
+                                                               target_sales=target_sales,
+                                                               target_global_sales=target_global_sales,
+                                                               log_transform=IS_LOG_TRANSFORM,
+                                                               weight=black_price
+                                                               ))
+                    predicted_country_sales[i] = predicted_country_sales[i] + torch.sum(
+                        exponential(sale_predictions[i], LOG_TRANSFORM), dim=0).data.cpu().numpy()
 
-        kpi_per_country_total = [rounder(
-            100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
-            for i in range(OUTPUT_SIZE)]
-        return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total, \
-               predicted_country_sales, country_sales
+                    real_sales = exponential(target_sales, IS_LOG_TRANSFORM)
+                    country_sales[i] = country_sales[i] + torch.sum(real_sales, dim=0).data.cpu().numpy()
+                    kpi_denominator = np.append(torch.sum(black_price * real_sales, dim=0).data.cpu().numpy(),
+                                                torch.sum(real_sales * black_price).item())
+
+                    kpi_sale_scale[i].append(kpi_denominator)
+                    if batch_num % 1000 == 0 and train_mode:
+                        kpi_per_country = np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]),
+                                                                                         axis=0) * 100
+                        print "{i}ith week: National Train KPI at Batch number {bn} is {kpi}".format(
+                            i=i,
+                            bn=batch_num,
+                            kpi=rounder(kpi_per_country))
+                        print "{i}ith week Natioanl AVG Train KPI is {t_kpi}".format(
+                            i=i,
+                            t_kpi=np.sum(
+                                np.array(kpi_sale[i])[:, 0:-1]) / np.sum(
+                                np.array(kpi_sale_scale[i])[:,
+                                0:-1]) * 100)
+                        print "{i}th week bias is {bias}".format(i=i,
+                                                                 bias=predicted_country_sales[i] / country_sales[i]
+                                                                 )
+
+                if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
+                    vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
+
+            kpi_per_country_total = [rounder(
+                100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
+                for i in range(OUTPUT_SIZE)]
+            return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total, \
+                   predicted_country_sales, country_sales, np.array(weekly_aggregated_kpi), np.array(
+                weekly_aggregated_kpi_scale)
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
