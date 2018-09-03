@@ -10,7 +10,7 @@ class MyFeatureClass(FeaturesBase):
         super(MyFeatureClass, self).__init__(feature_descriptions)
         self.transformations = {LOG_TRANSFORM: log_transform, LABEL_ENCODING: encode_strings,
                                 ZERO_PAD: zero_padder, ISO_WEEK_PADDING: iso_week_padding, TO_STRING: to_string
-            ,HIGH_DIMENSIONAL_SIN: high_dimensional_harmonic}
+            , HIGH_DIMENSIONAL_SIN: high_dimensional_harmonic}
         self.low_sale_percentage = low_sale_percentage
 
     def to_feature_parameter_format(self, csku_object):
