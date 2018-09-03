@@ -30,7 +30,7 @@ if debug_mode:
     max_num_queries_train = 1
     max_num_queries_test = 1
 else:
-    num_csku_per_query_train = 5000
+    num_csku_per_query_train = 10000
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 10
@@ -47,8 +47,10 @@ train_transform = Transform(
     min_start_date='2014-01-01',
     max_end_date='2016-12-28',
     training_transformation=True,
-    keep_zero_stock_filter=0.5,
-    keep_zero_sale_filter=0.1)
+    keep_zero_stock_filter=0.0,
+    keep_percentage_zero_price=0.0,
+    keep_zero_sale_filter=0.1,
+    activate_filters=True)
 
 if label_encoders is None:
     label_encoders = train_transform.label_encoders
@@ -62,7 +64,9 @@ test_transform = Transform(
     db_file=validation_db,
     target_dates=['2017-01-07'],
     training_transformation=True,
-    keep_zero_stock_filter=1.0,
+    keep_zero_stock_filter=0.0,
+    keep_percentage_zero_price=0.0,
+    keep_zero_sale_filter=1.0,
     activate_filters=True)
 
 train_db = DatasetReader(

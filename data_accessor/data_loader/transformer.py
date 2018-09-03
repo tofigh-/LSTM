@@ -21,6 +21,7 @@ class Transform(object):
                  training_transformation=True,
                  keep_zero_stock_filter=0.0,
                  keep_zero_sale_filter=1.0,
+                 keep_percentage_zero_price=0.0,
                  activate_filters=True):
         '''
 
@@ -34,6 +35,8 @@ class Transform(object):
         '''
         self.keep_zero_stock_filter = keep_zero_stock_filter
         self.keep_zero_sale_filter = keep_zero_sale_filter
+        self.keep_zero_price_percentage = keep_percentage_zero_price
+
         self.feature_transforms = feature_transforms
         if label_encoders is None:
             assert db_file is not None, 'Path to DB to compute label encoder is not provided'
@@ -99,6 +102,9 @@ class Transform(object):
     def filter_out_low_sales(self, feature_dictionary, first_target_week, threshold):
         return sum(feature_dictionary[SALES_MATRIX][:, first_target_week]) <= threshold
 
+    def filter_out_zero_price(self, feature_dictionary):
+        return feature_dictionary[BLACK_PRICE_INT][0] <= 0
+
     def __call__(self, csku_object, *args, **kwargs):
         transformed_samples = []
         csku_list = []
@@ -128,12 +134,17 @@ class Transform(object):
         samples = []
         for slide_i in range(num_window_shifts):
             first_target_week_idx = num_weeks - slide_i * WINDOW_SHIFT - 1
-            if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx, 0):
+            if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx, 5):
                 if np.random.rand() >= self.keep_zero_stock_filter:
                     continue
             if self.activate_filters and self.filter_out_low_sales(feature_dictionary, first_target_week_idx, 0):
                 if np.random.rand() >= self.keep_zero_sale_filter:
                     continue
+
+            if self.activate_filters and self.filter_out_zero_price(feature_dictionary):
+                if np.random.rand() >= self.keep_zero_price_percentage:
+                    continue
+
             selected_range = range(first_target_week_idx - TOTAL_LENGTH + 1, first_target_week_idx + 1)
             sample = self.feature_transforms.to_final_format_training(feature_dictionary, selected_range,
                                                                       self.activate_filters)
