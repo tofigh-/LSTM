@@ -8,7 +8,7 @@ from FutureDecoder import FutureDecoder
 from FutureDecoderWithAttention import FutureDecoderWithAttention
 from data_accessor.data_loader.Settings import *
 from model_utilities import cuda_converter, exponential
-
+import math
 
 class VanillaRNNModel(object):
 
@@ -119,10 +119,9 @@ class VanillaRNNModel(object):
                 # without teacher forcing
                 future_unknown_estimates = out_sales_predictions
 
-        if loss.item() is float('nan'):
+        if math.isnan(loss.item()):
             print loss
             print inputs
-
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
