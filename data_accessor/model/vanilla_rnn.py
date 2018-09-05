@@ -119,6 +119,11 @@ class VanillaRNNModel(object):
                 # without teacher forcing
                 future_unknown_estimates = out_sales_predictions
 
+        if loss.item() is float('nan'):
+            print loss
+            print inputs
+
+
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
         torch.nn.utils.clip_grad_norm_(self.future_decoder.parameters(), GRADIENT_CLIP)
