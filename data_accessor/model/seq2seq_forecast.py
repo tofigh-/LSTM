@@ -142,7 +142,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
             # time x Batch x num
-            x, y, z = np.isinf(batch_data[:, :, :])
+            x, y, z = np.where(np.isinf(batch_data))
             if len(z) > 0:
                 print z
                 print feature_indices
