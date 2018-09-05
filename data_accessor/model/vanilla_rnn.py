@@ -120,8 +120,7 @@ class VanillaRNNModel(object):
                 future_unknown_estimates = out_sales_predictions
 
         if math.isnan(loss.item()):
-            print loss
-            print inputs
+            print "loss is ", loss
             print "sum input 0 ", torch.sum(inputs[0])
             print "sum input 1 ", torch.sum(inputs[1])
             sum_rnn = 0

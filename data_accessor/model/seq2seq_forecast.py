@@ -144,7 +144,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             # time x Batch x num
             x, y, z = np.where(np.isinf(batch_data))
             if len(z) > 0:
-                print z
+                print "these feature indices are inf: ", z
                 print feature_indices
                 sys.exit()
 

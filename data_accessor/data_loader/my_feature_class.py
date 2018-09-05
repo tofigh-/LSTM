@@ -3,6 +3,7 @@ from Settings import *
 from utilities import add_cgs, iso_week_generate, get_supplier_stock_uplift, log_transform, zero_padder, \
     iso_week_padding, encode_strings, to_string, add_country, high_dimensional_harmonic
 import numpy as np
+from numpy import inf
 
 
 class MyFeatureClass(FeaturesBase):
@@ -34,6 +35,11 @@ class MyFeatureClass(FeaturesBase):
         csku_object[GLOBAL_SALE] = np.sum(csku_object[SALES_MATRIX], axis=0)
         csku_object = add_country(csku_object)
         csku_object[STOCK_UPLIFT] = np.maximum(csku_object[STOCK_UPLIFT], 0)
+        csku_object[STOCK_UPLIFT][csku_object[STOCK_UPLIFT] == inf] = 0
+        csku_object[STOCK_UPLIFT][csku_object[STOCK_UPLIFT] == -inf] = 0
+        csku_object[STOCK][csku_object[STOCK] == inf] = 0
+        csku_object[STOCK][csku_object[STOCK] == -inf] = 0
+
         if training_transformation:
             return csku_object
 
