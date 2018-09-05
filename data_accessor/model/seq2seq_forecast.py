@@ -43,7 +43,7 @@ else:
 my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, low_sale_percentage=1.0)
 max_end_date = datetime.strptime('2017-12-28', '%Y-%m-%d').date()
 min_start_date = datetime.strptime('2016-01-01', '%Y-%m-%d').date() + timedelta(weeks=1)
-target_test_date = min_start_date
+target_test_date = min_start_date - timedelta(weeks=1)
 train_transform = Transform(
     feature_transforms=my_feature_class_train,
     label_encoders=label_encoders,
