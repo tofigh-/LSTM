@@ -122,6 +122,14 @@ class VanillaRNNModel(object):
         if math.isnan(loss.item()):
             print loss
             print inputs
+            print "sum input 0 ", torch.sum(inputs[0])
+            print "sum input 1 ", torch.sum(inputs[1])
+            sum_rnn = 0
+            for l1 in range(2):
+                for l2 in range(4):
+                    sum_rnn +=torch.sum(self.encoder.rnn.all_weights[l1][l2]).item()
+            print "sum rnn: ", sum_rnn
+            print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
 
         loss.backward()
