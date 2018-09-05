@@ -18,6 +18,7 @@ import sys
 import os
 from datetime import datetime
 from datetime import timedelta
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 dir_path = ""
@@ -140,6 +141,13 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 print "Bias Test per country per week {bias}".format(bias=bias)
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
+            # time x Batch x num
+            x, y, z = np.isinf(batch_data[:, :, :])
+            if len(z) > 0:
+                print z
+                print feature_indices
+                sys.exit()
+
             input_encode = cuda_converter(torch.from_numpy(batch_data[0:TOTAL_INPUT, :, :]).float()).contiguous()
             input_decode = cuda_converter(
                 torch.from_numpy(batch_data[TOTAL_INPUT:TOTAL_LENGTH, :, :]).float()).contiguous()
