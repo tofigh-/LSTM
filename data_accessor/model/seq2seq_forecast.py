@@ -169,9 +169,6 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                         train_only_last_layer = True
                     if epoch_num > 3:
                         ready_to_use_final_layer = True
-                if train_only_last_layer:
-                    vanilla_rnn.future_decoder
-                    vanilla_rnn.future_decoder.final_out_sale.train(True)
                 loss, \
                 output_global_sale, \
                 sale_predictions, \
