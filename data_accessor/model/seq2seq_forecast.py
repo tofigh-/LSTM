@@ -142,6 +142,13 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 print "Bias Test per country per week {bias}".format(bias=bias)
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
+            # time x Batch x num
+            x, y, z = np.where(np.isinf(batch_data))
+            if len(z) > 0:
+                print "these feature indices are inf: ", z
+                print feature_indices
+                sys.exit()
+
             input_encode = cuda_converter(torch.from_numpy(batch_data[0:TOTAL_INPUT, :, :]).float()).contiguous()
             input_decode = cuda_converter(
                 torch.from_numpy(batch_data[TOTAL_INPUT:TOTAL_LENGTH, :, :]).float()).contiguous()
@@ -165,9 +172,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     train_only_last_layer = False
                     ready_to_use_final_layer = False
                 else:
-                    if batch_num % 10 == 0:
+                    if batch_num % 5 == 0:
                         train_only_last_layer = True
-                    if epoch_num > 3:
+                    if epoch_num > 10:
                         ready_to_use_final_layer = True
                 loss, \
                 output_global_sale, \
@@ -182,6 +189,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     train_only_last_layer=train_only_last_layer,
                     ready_to_use_final_layer=ready_to_use_final_layer
                 )
+
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)

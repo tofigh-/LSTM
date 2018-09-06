@@ -7,9 +7,9 @@ from EncoderRNN import EncoderRNN
 from FutureDecoder import FutureDecoder
 from FutureDecoderWithAttention import FutureDecoderWithAttention
 from data_accessor.data_loader.Settings import *
-from model_utilities import cuda_converter, exponential, log
-
-
+from model_utilities import cuda_converter, exponential,log
+import math
+import sys
 class VanillaRNNModel(object):
 
     def __init__(self, embedding_descripts, load_saved_model=True, is_attention=True, model_path_dict=None,
@@ -138,6 +138,18 @@ class VanillaRNNModel(object):
                     future_unknown_estimates = log(out_sales_normal_domain_predictions, True)
                 else:
                     future_unknown_estimates = out_sales_predictions
+
+        if math.isnan(loss.item()):
+            print "loss is ", loss
+            print "sum input 0 ", torch.sum(inputs[0])
+            print "sum input 1 ", torch.sum(inputs[1])
+            sum_rnn = 0
+            for l1 in range(2):
+                for l2 in range(4):
+                    sum_rnn +=torch.sum(self.encoder.rnn.all_weights[l1][l2]).item()
+            print "sum rnn: ", sum_rnn
+            print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
+            sys.exit()
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
