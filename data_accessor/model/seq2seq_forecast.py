@@ -23,7 +23,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -102,7 +102,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     loss_function = msloss
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
+    def data_iter(data, loss_func, loss_func2, epoch_num, teacher_forcing_ratio=1.0,
+                  train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         weekly_aggregated_kpi = []
@@ -120,9 +121,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     data=test_dataloader,
                     train_mode=False,
                     loss_func=loss_function,
-                    loss_func2=loss_func2
+                    loss_func2=loss_func2,
+                    epoch_num=0
                 )
-                vanilla_rnn.mode(train_mode=True)
+                if epoch_num > 3:
+                    print "After Bias reduction"
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
                 print "Weekly Test Aggregated KPI {kpi}".format(
                     kpi=rounder(
@@ -152,22 +155,47 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
             if train_mode:
-                loss, output_global_sale, sale_predictions = vanilla_rnn.train(
+                vanilla_rnn.mode(train_mode=True)
+                train_only_last_layer = False
+                ready_to_use_final_layer = False
+                if epoch_num < 2:
+                    train_only_last_layer = False
+                    ready_to_use_final_layer = False
+                else:
+                    if batch_num % 10 == 0:
+                        train_only_last_layer = True
+                    if epoch_num > 3:
+                        ready_to_use_final_layer = True
+                if train_only_last_layer:
+                    vanilla_rnn.future_decoder
+                    vanilla_rnn.future_decoder.final_out_sale.train(True)
+                loss, \
+                output_global_sale, \
+                sale_predictions, \
+                global_sales_all_weeks_final, \
+                all_weeks_normal_domain_final = vanilla_rnn.train(
                     inputs=(input_encode, input_decode),
                     targets_future=targets_future,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
                     teacher_forcing_ratio=teacher_forcing_ratio,
-                    loss_in_normal_domain=loss_in_normal_domain
+                    train_only_last_layer=train_only_last_layer,
+                    ready_to_use_final_layer=ready_to_use_final_layer
                 )
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
             else:
                 # TODO to generalize KPI computation to many weeks this 0 should go away
-                output_global_sale, sale_predictions = vanilla_rnn.predict_over_period(
+                output_global_sale, \
+                sale_predictions, \
+                global_sales_all_weeks_final, \
+                all_weeks_normal_domain_final = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
             # Batch x Country
+            if epoch_num > 3:
+                sale_predictions = all_weeks_normal_domain_final
+
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
                                           dim=0)
             weekly_aggregated_predictions = torch.sum(exponential(torch.stack(sale_predictions), IS_LOG_TRANSFORM),
@@ -235,10 +263,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         if n_iter <= 3:
             teacher_forcing_ratio = 0.7
-            loss_in_normal_domain = False
         else:
             teacher_forcing_ratio = 0.3
-            loss_in_normal_domain = False
         if n_iter <= 4:
             loss_function = msloss
             loss_function2 = loss_function
@@ -251,8 +277,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         country_sales, weekly_aggregated_kpi, weekly_aggregated_kpi_scale = data_iter(data=train_dataloader,
                                                                                       train_mode=True,
                                                                                       loss_func=loss_function,
+                                                                                      epoch_num=n_iter,
                                                                                       loss_func2=loss_function2,
-                                                                                      loss_in_normal_domain=loss_in_normal_domain,
                                                                                       teacher_forcing_ratio=teacher_forcing_ratio)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
@@ -268,8 +294,10 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     country_sales, \
     weekly_aggregated_kpi, \
     weekly_aggregated_kpi_scale = data_iter(test_dataloader, train_mode=False,
+                                            epoch_num=0,
                                             loss_func=loss_function,
                                             loss_func2=loss_function2)
+    print "After Bias reduction"
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
 
     print "Weekly Test Aggregated KPI {kpi}".format(

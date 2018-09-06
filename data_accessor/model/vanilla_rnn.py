@@ -7,7 +7,7 @@ from EncoderRNN import EncoderRNN
 from FutureDecoder import FutureDecoder
 from FutureDecoderWithAttention import FutureDecoderWithAttention
 from data_accessor.data_loader.Settings import *
-from model_utilities import cuda_converter, exponential
+from model_utilities import cuda_converter, exponential, log
 
 
 class VanillaRNNModel(object):
@@ -71,8 +71,8 @@ class VanillaRNNModel(object):
         else:
             self.encoder.eval(), self.future_decoder.eval()
 
-    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio,
-              loss_in_normal_domain):
+    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio, train_only_last_layer,
+              ready_to_use_final_layer):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
@@ -84,51 +84,82 @@ class VanillaRNNModel(object):
         future_unknown_estimates = None
         all_week_predictions = []
         global_sale_all_weeks = []
+        all_week_normal_domain_predictions = []
+        global_sale_normal_domain_all_weeks = []
         for future_week_idx in range(OUTPUT_SIZE):
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \
-            embedded_features = self.decode_output(inputs,
-                                                   future_week_idx,
-                                                   hidden_state,
-                                                   embedded_features,
-                                                   future_unknown_estimates,
-                                                   train=True
-                                                   )
+            embedded_features, \
+            global_sales_normal_domain_predictions, \
+            out_sales_normal_domain_predictions = self.decode_output(inputs,
+                                                                     future_week_idx,
+                                                                     hidden_state,
+                                                                     embedded_features,
+                                                                     future_unknown_estimates,
+                                                                     train=True
+                                                                     )
             all_week_predictions.append(out_sales_predictions)
             global_sale_all_weeks.append(output_global_sale)
+            all_week_normal_domain_predictions.append(out_sales_normal_domain_predictions)
+            global_sale_normal_domain_all_weeks.append(global_sales_normal_domain_predictions)
             if out_sales_predictions.shape[0] == 0:
                 print ("output_prediction is empty", out_sales_predictions)
                 print inputs
                 print hidden_state
                 raise Exception
-            loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
-                                  exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
-                                  sales_future[future_week_idx, :, 1:] + 1
-                                  )
-            loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
-                                   sales_future[future_week_idx, :, 0] + 1
-                                   )
-            loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
-                                  exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-                                  )
-            if use_teacher_forcing:
+            if train_only_last_layer:
+                loss += loss_function(out_sales_normal_domain_predictions,
+                                      exponential(sales_future[future_week_idx, :, :], True)
+                                      )
+
+                loss += loss_function(global_sales_normal_domain_predictions,
+                                      exponential(global_sales[future_week_idx, :], True)
+                                      )
+            else:
+
+                loss += loss_function(out_sales_predictions[:, 1:],
+                                      (sales_future[future_week_idx, :, 1:]),
+                                      sales_future[future_week_idx, :, 1:] + 1
+                                      )
+                loss += loss_function2(out_sales_predictions[:, 0],
+                                       (sales_future[future_week_idx, :, 0]),
+                                       sales_future[future_week_idx, :, 0] + 1
+                                       )
+                loss += loss_function(output_global_sale,
+                                      (global_sales[future_week_idx, :])
+                                      )
+
+            if use_teacher_forcing or train_only_last_layer:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
                 # without teacher forcing
-                future_unknown_estimates = out_sales_predictions
+                if ready_to_use_final_layer:
+                    future_unknown_estimates = log(out_sales_normal_domain_predictions, True)
+                else:
+                    future_unknown_estimates = out_sales_predictions
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
         torch.nn.utils.clip_grad_norm_(self.future_decoder.parameters(), GRADIENT_CLIP)
+        if train_only_last_layer:
+            self.encoder_optimizer.zero_grad()
+            for module_name, layer in self.future_decoder._modules.iteritems():
+                if module_name != "final_out_sale":
+                    layer.zero_grad()
+            self.future_decoder_optimizer.step()
+            self.future_decoder_optimizer.zero_grad()
+        else:
+            self.encoder_optimizer.step()
+            self.encoder_optimizer.zero_grad()
+            self.future_decoder_optimizer.step()
+            self.future_decoder_optimizer.zero_grad()
 
-        self.encoder_optimizer.step()
-        self.encoder_optimizer.zero_grad()
-        self.future_decoder_optimizer.step()
-        self.future_decoder_optimizer.zero_grad()
-
-        return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions
+        return loss.item() / (OUTPUT_SIZE), \
+               global_sale_all_weeks, \
+               all_week_predictions, \
+               global_sale_normal_domain_all_weeks, \
+               all_week_normal_domain_predictions
 
     def encode_input(self, inputs):
         input_seq = inputs[0]  # PAST_KNOWN_LENGTH * BATCH * TOTAL_NUM_FEAT
@@ -172,12 +203,17 @@ class VanillaRNNModel(object):
                 input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
 
         future_decoder_hidden = hidden_state
-        output_global_sale, out_sales_predictions, hidden = self.future_decoder(
+        output_global_sale, out_sales_predictions, hidden, global_out_sales_normal_domain, out_sales_in_normal_domain = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
             embedded_inputs=embedded_features,
             encoder_outputs=encoder_outputs)
-        return output_global_sale, out_sales_predictions, hidden, embedded_features
+        return output_global_sale, \
+               out_sales_predictions, \
+               hidden, \
+               embedded_features, \
+               log(global_out_sales_normal_domain, IS_LOG_TRANSFORM), \
+               log(out_sales_in_normal_domain, IS_LOG_TRANSFORM)
 
     def predict_over_period(self, inputs,
                             hidden_state=None,
@@ -186,8 +222,15 @@ class VanillaRNNModel(object):
                             ):
         all_week_predictions = []
         global_sale_all_weeks = []
+        all_weeks_normal_domain_final = []
+        global_sales_all_weeks_final = []
         for week_idx in range(OUTPUT_SIZE):
-            global_sales_prediction, future_unknown_estimates, hidden_state, embedded_features = self.decode_output(
+            global_sales_prediction, \
+            future_unknown_estimates, \
+            hidden_state, \
+            embedded_features, \
+            global_out_sales_normal_domain, \
+            out_sales_in_normal_domain = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,
@@ -197,4 +240,9 @@ class VanillaRNNModel(object):
             )
             all_week_predictions.append(future_unknown_estimates)
             global_sale_all_weeks.append(global_sales_prediction)
-        return global_sale_all_weeks, all_week_predictions
+            all_weeks_normal_domain_final.append(log(out_sales_in_normal_domain, IS_LOG_TRANSFORM))
+            global_sales_all_weeks_final.append(log(global_out_sales_normal_domain, IS_LOG_TRANSFORM))
+        return global_sale_all_weeks, \
+               all_week_predictions, \
+               global_sales_all_weeks_final, \
+               all_weeks_normal_domain_final

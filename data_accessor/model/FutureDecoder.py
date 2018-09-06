@@ -43,6 +43,8 @@ class FutureDecoder(nn.Module):
         self.factor = 2 if self.rnn.bidirectional else 1
         self.out_sale = nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output)
 
+        self.final_out_sale = nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output)
+
     def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
                 ):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
@@ -53,13 +55,21 @@ class FutureDecoder(nn.Module):
         # BATCH_SIZE x TOTAL_NUM_FEAT
         features = self.batch_norm(torch.cat(numeric_features + embedded_inputs, dim=1))
         output, hidden = self.rnn(features.unsqueeze(0), hidden)
-        out_sales_prediction = self.relu(self.out_sale(
-            torch.cat(
-                [output[0],
-                 input[:, feature_indices[STOCK]].float(),
-                 input[:, feature_indices[DISCOUNT_MATRIX]].float()
-                 ], dim=1))).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
+        skiped_inputs = torch.cat(
+            [output[0],
+             input[:, feature_indices[STOCK]].float(),
+             input[:, feature_indices[DISCOUNT_MATRIX]].float()
+             ], dim=1)
+
+        out_sales_prediction = self.relu(self.out_sale(skiped_inputs)).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
         if len(out_sales_prediction.shape) == 1 and self.num_output > 1:
             out_sales_prediction = out_sales_prediction[None, :]
         out_global_sales = log(torch.sum(exponential(out_sales_prediction, IS_LOG_TRANSFORM), dim=1), IS_LOG_TRANSFORM)
-        return out_global_sales, out_sales_prediction, hidden
+
+        out_sales_in_normal_domain = self.final_out_sale(skiped_inputs).squeeze() + exponential(out_sales_prediction,
+                                                                                                IS_LOG_TRANSFORM)
+        if len(out_sales_in_normal_domain.shape) == 1 and self.num_output > 1:
+            out_sales_in_normal_domain = out_sales_in_normal_domain[None, :]
+        global_out_sales_normal_domain = torch.sum(out_sales_in_normal_domain, dim=1)
+
+        return out_global_sales, out_sales_prediction, hidden, global_out_sales_normal_domain, out_sales_in_normal_domain
