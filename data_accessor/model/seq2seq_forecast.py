@@ -16,14 +16,15 @@ from vanilla_rnn import VanillaRNNModel
 import os
 import sys
 import os
-
+from datetime import datetime
+from datetime import timedelta
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = True
+debug_mode = False
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -40,12 +41,14 @@ if os.path.exists(label_encoder_file):
 else:
     label_encoders = None
 my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, low_sale_percentage=1.0)
+max_end_date = datetime.strptime('2016-12-28', '%Y-%m-%d').date()
+target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 1)
 train_transform = Transform(
     feature_transforms=my_feature_class_train,
     label_encoders=label_encoders,
     db_file=validation_db,
     min_start_date='2014-01-01',
-    max_end_date='2016-12-28',
+    max_end_date=max_end_date,
     training_transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
@@ -62,7 +65,7 @@ test_transform = Transform(
     feature_transforms=my_feature_class_test,
     label_encoders=label_encoders,
     db_file=validation_db,
-    target_dates=['2017-01-07'],
+    target_dates=[target_test_date],
     training_transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
