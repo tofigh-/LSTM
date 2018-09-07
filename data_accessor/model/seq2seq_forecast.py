@@ -171,16 +171,16 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             input_decode[:, :, feature_indices[GLOBAL_SALE][0]] = input_encode[-1, :, feature_indices[GLOBAL_SALE][0]]
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
+
             if train_mode:
                 vanilla_rnn.mode(train_mode=True)
                 train_only_last_layer = False
                 ready_to_use_final_layer = False
-                if epoch_num < 2:
+                if epoch_num < 6:
                     train_only_last_layer = False
                     ready_to_use_final_layer = False
                 else:
-                    if batch_num % 5 == 0:
-                        train_only_last_layer = True
+                    train_only_last_layer = True
                 loss, \
                 output_global_sale, \
                 sale_predictions, \
