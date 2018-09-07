@@ -65,8 +65,9 @@ class FutureDecoder(nn.Module):
         if len(out_sales_prediction.shape) == 1 and self.num_output > 1:
             out_sales_prediction = out_sales_prediction[None, :]
         out_global_sales = log(torch.sum(exponential(out_sales_prediction, IS_LOG_TRANSFORM), dim=1), IS_LOG_TRANSFORM)
-
-        out_sales_in_normal_domain = self.relu(self.final_out_sale(skiped_inputs).squeeze() + exponential(out_sales_prediction,
+        residual_in_normal_domain = self.final_out_sale(skiped_inputs).squeeze()
+        print residual_in_normal_domain
+        out_sales_in_normal_domain = self.relu(residual_in_normal_domain.squeeze() + exponential(out_sales_prediction,
                                                                                                 IS_LOG_TRANSFORM))
         if len(out_sales_in_normal_domain.shape) == 1 and self.num_output > 1:
             out_sales_in_normal_domain = out_sales_in_normal_domain[None, :]
