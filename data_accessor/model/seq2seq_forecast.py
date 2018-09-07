@@ -31,7 +31,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = True
+debug_mode = False
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -114,7 +114,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     def data_iter(data, loss_func, loss_func2, epoch_num, teacher_forcing_ratio=1.0,
                   train_mode=True):
-        freeze_lstm_epoch = -1
+        freeze_lstm_epoch = 3
 
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
