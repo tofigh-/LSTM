@@ -31,7 +31,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -132,7 +132,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     train_mode=False,
                     loss_func=loss_function,
                     loss_func2=loss_func2,
-                    epoch_num=0
+                    epoch_num=epoch_num
                 )
                 if epoch_num > 3:
                     print "After Bias reduction"
@@ -174,7 +174,6 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             if train_mode:
                 vanilla_rnn.mode(train_mode=True)
-                train_only_last_layer = False
                 ready_to_use_final_layer = False
                 if epoch_num < 6:
                     train_only_last_layer = False
@@ -304,7 +303,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     country_sales, \
     weekly_aggregated_kpi, \
     weekly_aggregated_kpi_scale = data_iter(test_dataloader, train_mode=False,
-                                            epoch_num=0,
+                                            epoch_num=n_iters,
                                             loss_func=loss_function,
                                             loss_func2=loss_function2)
     print "After Bias reduction"
