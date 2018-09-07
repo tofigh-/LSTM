@@ -44,7 +44,7 @@ class FutureDecoder(nn.Module):
         self.out_sale = nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output)
 
         self.final_out_sale = nn.Sequential(
-            nn.BatchNorm1d(num_features = self.hidden_size * self.factor + NUM_COUNTRIES + 1),
+            nn.BatchNorm1d(num_features=self.hidden_size * self.factor + NUM_COUNTRIES + 1),
             nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output),
             nn.Tanh()
         )
