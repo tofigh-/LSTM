@@ -44,6 +44,7 @@ class FutureDecoder(nn.Module):
         self.out_sale = nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output)
 
         self.final_out_sale = nn.Sequential(
+            nn.BatchNorm1d(num_features = self.hidden_size * self.factor + NUM_COUNTRIES + 1),
             nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output),
             nn.Tanh()
         )
@@ -69,7 +70,7 @@ class FutureDecoder(nn.Module):
             out_sales_prediction = out_sales_prediction[None, :]
         out_global_sales = log(torch.sum(exponential(out_sales_prediction, IS_LOG_TRANSFORM), dim=1), IS_LOG_TRANSFORM)
         residual_in_normal_domain = self.final_out_sale(skiped_inputs).squeeze()
-        print residual_in_normal_domain
+        # print residual_in_normal_domain
         out_sales_in_normal_domain = self.relu(
             (residual_in_normal_domain.squeeze() + 1) * exponential(out_sales_prediction,
                                                                     IS_LOG_TRANSFORM))
