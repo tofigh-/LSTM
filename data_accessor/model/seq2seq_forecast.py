@@ -19,6 +19,12 @@ import os
 from datetime import datetime
 from datetime import timedelta
 
+
+def teacher_forcing_shceme(n_iter):
+    ratio = np.exp(-0.1 * n_iter)
+    return ratio
+
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 
 dir_path = ""
@@ -314,8 +320,3 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
 
 train(vanilla_rnn, n_iters=50)
-
-
-def teacher_forcing_shceme(n_iter):
-    ratio = np.exp(-0.1 * n_iter)
-    return ratio
