@@ -59,7 +59,7 @@ train_transform = Transform(
     training_transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
-    keep_zero_sale_filter=0.1,
+    keep_zero_sale_filter=.1,
     activate_filters=True)
 
 if label_encoders is None:

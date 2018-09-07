@@ -18,7 +18,11 @@ class DatasetLoader(object):
             print (time.time() - st)
 
             num_samples = len(big_batch)
-            num_mini_batchs = num_samples // self.mini_batch_size
+            if num_samples == 1: continue
+            if num_samples % self.mini_batch_size != 0:
+                num_mini_batchs = num_samples // self.mini_batch_size + 1
+            else:
+                num_mini_batchs = num_samples // self.mini_batch_size
 
             for idx in range(num_mini_batchs):
                 yield big_batch[idx * self.mini_batch_size:(idx + 1) * self.mini_batch_size]
