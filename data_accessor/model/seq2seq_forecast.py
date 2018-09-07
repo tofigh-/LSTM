@@ -114,6 +114,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     def data_iter(data, loss_func, loss_func2, epoch_num, teacher_forcing_ratio=1.0,
                   train_mode=True):
+        freeze_lstm_epoch = 6
+
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         weekly_aggregated_kpi = []
@@ -134,7 +136,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     loss_func2=loss_func2,
                     epoch_num=epoch_num
                 )
-                if epoch_num > 3:
+                if epoch_num > freeze_lstm_epoch:
                     print "After Bias reduction"
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
                 print "Weekly Test Aggregated KPI {kpi}".format(
@@ -171,11 +173,10 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             input_decode[:, :, feature_indices[GLOBAL_SALE][0]] = input_encode[-1, :, feature_indices[GLOBAL_SALE][0]]
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
-
             if train_mode:
                 vanilla_rnn.mode(train_mode=True)
                 ready_to_use_final_layer = False
-                if epoch_num < 6:
+                if epoch_num < freeze_lstm_epoch:
                     train_only_last_layer = False
                     ready_to_use_final_layer = False
                 else:
@@ -205,7 +206,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 all_weeks_normal_domain_final = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
             # Batch x Country
-            if epoch_num > 3:
+            if epoch_num > freeze_lstm_epoch :
                 sale_predictions = all_weeks_normal_domain_final
 
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
