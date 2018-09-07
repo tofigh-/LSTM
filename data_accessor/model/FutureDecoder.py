@@ -43,7 +43,10 @@ class FutureDecoder(nn.Module):
         self.factor = 2 if self.rnn.bidirectional else 1
         self.out_sale = nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output)
 
-        self.final_out_sale = nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output)
+        self.final_out_sale = nn.Sequential(
+            nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output),
+            nn.Tanh()
+        )
 
     def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
                 ):
@@ -67,8 +70,9 @@ class FutureDecoder(nn.Module):
         out_global_sales = log(torch.sum(exponential(out_sales_prediction, IS_LOG_TRANSFORM), dim=1), IS_LOG_TRANSFORM)
         residual_in_normal_domain = self.final_out_sale(skiped_inputs).squeeze()
         print residual_in_normal_domain
-        out_sales_in_normal_domain = self.relu(residual_in_normal_domain.squeeze() + exponential(out_sales_prediction,
-                                                                                                IS_LOG_TRANSFORM))
+        out_sales_in_normal_domain = self.relu(
+            (residual_in_normal_domain.squeeze() + 1) * exponential(out_sales_prediction,
+                                                                    IS_LOG_TRANSFORM))
         if len(out_sales_in_normal_domain.shape) == 1 and self.num_output > 1:
             out_sales_in_normal_domain = out_sales_in_normal_domain[None, :]
         global_out_sales_normal_domain = torch.sum(out_sales_in_normal_domain, dim=1)
