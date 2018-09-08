@@ -42,7 +42,7 @@ class FutureDecoder(nn.Module):
             self.rnn = nn.LSTM(input=total_num_features, hidden_size=self.hidden_size, num_layers=n_layers)
         self.factor = 2 if self.rnn.bidirectional else 1
         self.out_sale = nn.Sequential(
-            nn.Dropout(0.5),
+            nn.Dropout(0.2),
             nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output)
         )
 

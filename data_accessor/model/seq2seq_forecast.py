@@ -35,8 +35,7 @@ def alternation_strategy(n_iter, batch_num):
         ready_to_use_final_layer = False
     elif n_iter >= 3 and n_iter % 3 == 0:
         train_only_last_layer = True
-    if n_iter > 25:
-        ready_to_use_final_layer = True
+
 
     return train_only_last_layer, ready_to_use_final_layer
 
