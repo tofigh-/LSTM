@@ -111,11 +111,11 @@ class VanillaRNNModel(object):
                 print hidden_state
                 raise Exception
             if train_only_last_layer:
-                loss += loss_function(out_sales_normal_domain_predictions,
+                loss += loss_function(exponential(out_sales_normal_domain_predictions,True),
                                       exponential(sales_future[future_week_idx, :, :], True)
                                       )
 
-                loss += loss_function(global_sales_normal_domain_predictions,
+                loss += loss_function(exponential(global_sales_normal_domain_predictions,True),
                                       exponential(global_sales[future_week_idx, :], True)
                                       )
             else:
@@ -253,8 +253,8 @@ class VanillaRNNModel(object):
             )
             all_week_predictions.append(future_unknown_estimates)
             global_sale_all_weeks.append(global_sales_prediction)
-            all_weeks_normal_domain_final.append(log(out_sales_in_normal_domain, IS_LOG_TRANSFORM))
-            global_sales_all_weeks_final.append(log(global_out_sales_normal_domain, IS_LOG_TRANSFORM))
+            all_weeks_normal_domain_final.append(out_sales_in_normal_domain)
+            global_sales_all_weeks_final.append(global_out_sales_normal_domain)
         return global_sale_all_weeks, \
                all_week_predictions, \
                global_sales_all_weeks_final, \
