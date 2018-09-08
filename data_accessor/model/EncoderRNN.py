@@ -40,7 +40,7 @@ class EncoderRNN(nn.Module):
 
         self.p = rnn_dropout
         self.rnn = nn.LSTM(input_size=total_num_features, hidden_size=hidden_size, num_layers=n_layers,
-                           bidirectional=bidirectional, dropout=rnn_dropout)
+                           bidirectional=bidirectional)
 
     def forward(self, input, hidden):
         batch_size = input.size()[1]

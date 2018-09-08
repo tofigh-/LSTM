@@ -25,7 +25,23 @@ def teacher_forcing_shceme(n_iter):
     return ratio
 
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+def alternation_strategy(n_iter, batch_num):
+    ready_to_use_final_layer = False
+    train_only_last_layer = False
+    if n_iter < 3:
+        train_only_last_layer = False
+        ready_to_use_final_layer = False
+    elif n_iter == 4:
+        train_only_last_layer = True
+    elif n_iter > 4:
+        if batch_num % 5 == 0:
+            train_only_last_layer = True
+        ready_to_use_final_layer = True
+
+    return train_only_last_layer, ready_to_use_final_layer
+
+    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 
 dir_path = ""
 file_name = "training.db"
@@ -114,7 +130,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     def data_iter(data, loss_func, loss_func2, epoch_num, teacher_forcing_ratio=1.0,
                   train_mode=True):
-        freeze_lstm_epoch = 5
+        after_bias_reduction = 5
 
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
@@ -136,7 +152,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     loss_func2=loss_func2,
                     epoch_num=epoch_num
                 )
-                if epoch_num > freeze_lstm_epoch:
+                if epoch_num > after_bias_reduction:
                     print "After Bias reduction"
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
                 print "Weekly Test Aggregated KPI {kpi}".format(
@@ -176,12 +192,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
             if train_mode:
                 vanilla_rnn.mode(train_mode=True)
-                ready_to_use_final_layer = False
-                if epoch_num < freeze_lstm_epoch:
-                    train_only_last_layer = False
-                    ready_to_use_final_layer = False
-                else:
-                    train_only_last_layer = True
+                train_only_last_layer, ready_to_use_final_layer = alternation_strategy(epoch_num, batch_num)
                 loss, \
                 output_global_sale, \
                 sale_predictions, \
@@ -207,7 +218,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 all_weeks_normal_domain_final = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
             # Batch x Country
-            if epoch_num > freeze_lstm_epoch:
+            if epoch_num > after_bias_reduction:
                 sale_predictions = all_weeks_normal_domain_final
 
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
