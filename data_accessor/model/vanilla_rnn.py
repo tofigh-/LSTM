@@ -152,7 +152,6 @@ class VanillaRNNModel(object):
             print "sum rnn: ", sum_rnn
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
-        print loss
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
         torch.nn.utils.clip_grad_norm_(self.future_decoder.parameters(), GRADIENT_CLIP)
