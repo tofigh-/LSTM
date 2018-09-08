@@ -151,6 +151,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 print "Bias Test per country per week {bias}".format(bias=bias)
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
+            if batch_data.shape[1] < 2: continue
             # time x Batch x num
             x, y, z = np.where(np.isinf(batch_data))
             if len(z) > 0:
@@ -206,7 +207,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 all_weeks_normal_domain_final = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
             # Batch x Country
-            if epoch_num > freeze_lstm_epoch :
+            if epoch_num > freeze_lstm_epoch:
                 sale_predictions = all_weeks_normal_domain_final
 
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
