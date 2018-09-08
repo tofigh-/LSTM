@@ -19,6 +19,8 @@ import os
 from datetime import datetime
 from datetime import timedelta
 
+sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+
 
 def teacher_forcing_shceme(n_iter):
     ratio = np.exp(-0.1 * n_iter)
@@ -31,22 +33,12 @@ def alternation_strategy(n_iter, batch_num):
     if n_iter < 3:
         train_only_last_layer = False
         ready_to_use_final_layer = False
-    elif n_iter == 4:
+    elif n_iter >= 3 and n_iter % 3 == 0:
         train_only_last_layer = True
-    elif n_iter > 4 and n_iter <= 10:
-        if batch_num % 5 == 0:
-            train_only_last_layer = True
-    elif n_iter > 10 and n_iter <= 15:
-        if batch_num % 5 == 0:
-            train_only_last_layer = True
-        if batch_num % 3 == 0:
-            ready_to_use_final_layer = True
-    elif n_iter > 15:
-        train_only_last_layer = True
+    if n_iter > 25:
         ready_to_use_final_layer = True
-    return train_only_last_layer, ready_to_use_final_layer
 
-    sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+    return train_only_last_layer, ready_to_use_final_layer
 
 
 dir_path = ""
@@ -136,7 +128,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     def data_iter(data, loss_func, loss_func2, epoch_num, teacher_forcing_ratio=1.0,
                   train_mode=True):
-        after_bias_reduction = 5
+        after_bias_reduction = 15
 
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
