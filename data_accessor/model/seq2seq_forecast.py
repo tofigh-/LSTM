@@ -33,11 +33,17 @@ def alternation_strategy(n_iter, batch_num):
         ready_to_use_final_layer = False
     elif n_iter == 4:
         train_only_last_layer = True
-    elif n_iter > 4:
+    elif n_iter > 4 and n_iter <= 10:
         if batch_num % 5 == 0:
             train_only_last_layer = True
+    elif n_iter > 10 and n_iter <= 15:
+        if batch_num % 5 == 0:
+            train_only_last_layer = True
+        if batch_num % 3 == 0:
+            ready_to_use_final_layer = True
+    elif n_iter > 15:
+        train_only_last_layer = True
         ready_to_use_final_layer = True
-
     return train_only_last_layer, ready_to_use_final_layer
 
     sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
