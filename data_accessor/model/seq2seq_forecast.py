@@ -30,10 +30,10 @@ def teacher_forcing_shceme(n_iter):
 def alternation_strategy(n_iter, batch_num):
     ready_to_use_final_layer = False
     train_only_last_layer = False
-    if n_iter < 3:
+    if n_iter < 300:
         train_only_last_layer = False
         ready_to_use_final_layer = False
-    elif n_iter >= 3 and n_iter % 3 == 0:
+    elif n_iter >= 300 and n_iter % 3 == 0:
         train_only_last_layer = True
 
 
@@ -127,7 +127,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     def data_iter(data, loss_func, loss_func2, epoch_num, teacher_forcing_ratio=1.0,
                   train_mode=True):
-        after_bias_reduction = 15
+        after_bias_reduction = 150
 
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
