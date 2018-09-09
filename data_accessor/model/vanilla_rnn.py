@@ -7,9 +7,11 @@ from EncoderRNN import EncoderRNN
 from FutureDecoder import FutureDecoder
 from FutureDecoderWithAttention import FutureDecoderWithAttention
 from data_accessor.data_loader.Settings import *
-from model_utilities import cuda_converter, exponential
+from model_utilities import cuda_converter, exponential, log
 import math
 import sys
+
+
 class VanillaRNNModel(object):
 
     def __init__(self, embedding_descripts, load_saved_model=True, is_attention=True, model_path_dict=None,
@@ -84,6 +86,7 @@ class VanillaRNNModel(object):
         future_unknown_estimates = None
         all_week_predictions = []
         global_sale_all_weeks = []
+        aggregated_sale = 0
         for future_week_idx in range(OUTPUT_SIZE):
             output_global_sale, \
             out_sales_predictions, \
@@ -102,14 +105,15 @@ class VanillaRNNModel(object):
                 print inputs
                 print hidden_state
                 raise Exception
+
+            aggregated_sale = aggregated_sale + exponential(out_sales_predictions, IS_LOG_TRANSFORM)
+
             loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
                                   exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
                                   sales_future[future_week_idx, :, 1:] + 1
                                   )
             loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
-                                   sales_future[future_week_idx, :, 0] + 1
-                                   )
+                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain))
             loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                   )
@@ -118,7 +122,10 @@ class VanillaRNNModel(object):
             else:
                 # without teacher forcing
                 future_unknown_estimates = out_sales_predictions
-
+        loss_over_time = OUTPUT_SIZE * loss_function(log(aggregated_sale, IS_LOG_TRANSFORM),
+                                                     log(torch.sum(exponential(sales_future, IS_LOG_TRANSFORM), dim=0),
+                                                         IS_LOG_TRANSFORM))
+        loss += loss_over_time
         if math.isnan(loss.item()):
             print "loss is ", loss
             print "sum input 0 ", torch.sum(inputs[0])
@@ -126,7 +133,7 @@ class VanillaRNNModel(object):
             sum_rnn = 0
             for l1 in range(2):
                 for l2 in range(4):
-                    sum_rnn +=torch.sum(self.encoder.rnn.all_weights[l1][l2]).item()
+                    sum_rnn += torch.sum(self.encoder.rnn.all_weights[l1][l2]).item()
             print "sum rnn: ", sum_rnn
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
