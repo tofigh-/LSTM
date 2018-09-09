@@ -106,14 +106,13 @@ class VanillaRNNModel(object):
                 print hidden_state
                 raise Exception
 
-            aggregated_sale = aggregated_sale + exponential(out_sales_predictions, IS_LOG_TRANSFORM)
-
             # loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
             #                       exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
             #                       sales_future[future_week_idx, :, 1:] + 1
             #                       )
-            # loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
-            #                        exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain))
+            loss += loss_function2(exponential(out_sales_predictions[:, 4], loss_in_normal_domain),
+                                   exponential(sales_future[future_week_idx, :, 4], loss_in_normal_domain),
+                                   sales_future[future_week_idx, :, 4] + 1)
             loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                   )
@@ -122,10 +121,7 @@ class VanillaRNNModel(object):
             else:
                 # without teacher forcing
                 future_unknown_estimates = out_sales_predictions
-        loss_over_time = OUTPUT_SIZE * loss_function(log(aggregated_sale, IS_LOG_TRANSFORM),
-                                                     log(torch.sum(exponential(sales_future, IS_LOG_TRANSFORM), dim=0),
-                                                         IS_LOG_TRANSFORM))
-        loss += loss_over_time
+
         if math.isnan(loss.item()):
             print "loss is ", loss
             print "sum input 0 ", torch.sum(inputs[0])
