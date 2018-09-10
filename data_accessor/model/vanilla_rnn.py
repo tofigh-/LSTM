@@ -87,10 +87,11 @@ class VanillaRNNModel(object):
         all_week_predictions = []
         global_sale_all_weeks = []
         aggregated_sale = 0
-        for future_week_idx in range(-1, -OUTPUT_SIZE - 1, -1):
+        for future_week_idx in range(OUTPUT_SIZE):
+
             output_global_sale, \
             out_sales_predictions, \
-            hidden_state, \
+            hidden_state_forward, \
             embedded_features = self.decode_output(inputs,
                                                    future_week_idx,
                                                    hidden_state,
@@ -98,6 +99,21 @@ class VanillaRNNModel(object):
                                                    future_unknown_estimates,
                                                    train=True
                                                    )
+            output_global_sale_reverse, \
+            out_sales_predictions_reverse, \
+            hidden_state_reverse, \
+            _ = self.decode_output(inputs,
+                                   OUTPUT_SIZE - future_week_idx - 1,
+                                   hidden_state,
+                                   embedded_features,
+                                   future_unknown_estimates,
+                                   train=True
+                                   )
+            hidden_state = (
+                torch.cat([hidden_state_forward[0][[0]], hidden_state_reverse[0][[1]]], dim=0),
+                torch.cat([hidden_state_forward[1][[0]], hidden_state_reverse[1][[1]]], dim=0)
+            )
+
             all_week_predictions.append(out_sales_predictions)
             global_sale_all_weeks.append(output_global_sale)
             if out_sales_predictions.shape[0] == 0:
@@ -147,8 +163,6 @@ class VanillaRNNModel(object):
         self.encoder_optimizer.zero_grad()
         self.future_decoder_optimizer.step()
         self.future_decoder_optimizer.zero_grad()
-        global_sale_all_weeks.reverse()
-        all_week_predictions.reverse()
         return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions
 
     def encode_input(self, inputs):
