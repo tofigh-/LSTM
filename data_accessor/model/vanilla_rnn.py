@@ -86,7 +86,8 @@ class VanillaRNNModel(object):
         future_unknown_estimates = None
         all_week_predictions = []
         global_sale_all_weeks = []
-        aggregated_sale = 0
+        aggregated_sale = aggregated_sale_reverse = 0
+        future_unknown_estimates_forward = future_unknown_estimates_reverse = future_unknown_estimates
         for future_week_idx in range(OUTPUT_SIZE):
 
             output_global_sale, \
@@ -96,7 +97,7 @@ class VanillaRNNModel(object):
                                                    future_week_idx,
                                                    hidden_state,
                                                    embedded_features,
-                                                   future_unknown_estimates,
+                                                   future_unknown_estimates_forward,
                                                    train=True
                                                    )
             output_global_sale_reverse, \
@@ -106,7 +107,7 @@ class VanillaRNNModel(object):
                                    OUTPUT_SIZE - future_week_idx - 1,
                                    hidden_state,
                                    embedded_features,
-                                   future_unknown_estimates,
+                                   future_unknown_estimates_reverse,
                                    train=True
                                    )
             hidden_state = (
@@ -123,7 +124,8 @@ class VanillaRNNModel(object):
                 raise Exception
 
             aggregated_sale = aggregated_sale + exponential(out_sales_predictions, IS_LOG_TRANSFORM)
-
+            aggregated_sale_reverse = aggregated_sale_reverse + exponential(out_sales_predictions_reverse,
+                                                                            IS_LOG_TRANSFORM)
             loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
                                   exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
                                   sales_future[future_week_idx, :, 1:] + 1
@@ -135,13 +137,16 @@ class VanillaRNNModel(object):
                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                   )
             if use_teacher_forcing:
-                future_unknown_estimates = sales_future.data[future_week_idx, :, :]
+                future_unknown_estimates_forward = sales_future.data[future_week_idx, :, :]
+                future_unknown_estimates_reverse = sales_future.data[OUTPUT_SIZE - future_week_idx - 1, :, :]
             else:
                 # without teacher forcing
-                future_unknown_estimates = out_sales_predictions
-        loss_over_time = OUTPUT_SIZE * loss_function(log(aggregated_sale, IS_LOG_TRANSFORM),
-                                                     log(torch.sum(exponential(sales_future, IS_LOG_TRANSFORM), dim=0),
-                                                         IS_LOG_TRANSFORM))
+                future_unknown_estimates_forward = out_sales_predictions
+                future_unknown_estimates_reverse = out_sales_predictions_reverse
+        loss_over_time = OUTPUT_SIZE * loss_function(
+            log((aggregated_sale + aggregated_sale_reverse) * 0.5, IS_LOG_TRANSFORM),
+            log(torch.sum(exponential(sales_future, IS_LOG_TRANSFORM), dim=0),
+                IS_LOG_TRANSFORM))
         loss += loss_over_time
         if math.isnan(loss.item()):
             print "loss is ", loss
@@ -221,15 +226,30 @@ class VanillaRNNModel(object):
                             ):
         all_week_predictions = []
         global_sale_all_weeks = []
+        future_unknown_estimates_forward = future_unknown_estimates_reverse = future_unknown_estimates
         for week_idx in range(OUTPUT_SIZE):
-            global_sales_prediction, future_unknown_estimates, hidden_state, embedded_features = self.decode_output(
+            global_sales_prediction, future_unknown_estimates_forward, hidden_state_forward, embedded_features = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,
                 embedded_features,
-                future_unknown_estimates,
+                future_unknown_estimates_forward,
                 train=False
             )
-            all_week_predictions.append(future_unknown_estimates)
+            global_sales_prediction, future_unknown_estimates_reverse, hidden_state_reverse, _ = self.decode_output(
+                inputs,
+                OUTPUT_SIZE - week_idx - 1,
+                hidden_state,
+                embedded_features,
+                future_unknown_estimates_reverse,
+                train=False
+            )
+
+            hidden_state = (
+                torch.cat([hidden_state_forward[0][[0]], hidden_state_reverse[0][[1]]], dim=0),
+                torch.cat([hidden_state_forward[1][[0]], hidden_state_reverse[1][[1]]], dim=0)
+            )
+
+            all_week_predictions.append(future_unknown_estimates_forward)
             global_sale_all_weeks.append(global_sales_prediction)
         return global_sale_all_weeks, all_week_predictions
