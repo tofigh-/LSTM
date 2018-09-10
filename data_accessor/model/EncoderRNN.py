@@ -41,6 +41,10 @@ class EncoderRNN(nn.Module):
         self.p = rnn_dropout
         self.rnn = nn.LSTM(input_size=total_num_features, hidden_size=hidden_size, num_layers=n_layers,
                            bidirectional=bidirectional)
+        self.hidden_state_dimensionality_reduction = nn.Sequential(
+            nn.Linear(in_features=2 * hidden_size, out_features=hidden_size),
+            nn.Softplus()
+        )
 
     def forward(self, input, hidden):
         batch_size = input.size()[1]
@@ -59,7 +63,11 @@ class EncoderRNN(nn.Module):
         output = F.dropout(self.time_dist_batch_norm(torch.cat(numeric_features + embedded_input, dim=2).contiguous()),
                            self.p)
         output, hidden = self.rnn(output, hidden)
-        return output, hidden, [embedded_feature[0, :, :] for embedded_feature in embedded_input]
+        hidden_out = (
+            self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None,:,:],
+            self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None,:,:]
+        )
+        return output, hidden_out, [embedded_feature[0, :, :] for embedded_feature in embedded_input]
 
     def initHidden(self, batch_size):
         factor = 2 if self.bidirectional else 1

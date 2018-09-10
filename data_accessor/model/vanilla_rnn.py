@@ -33,6 +33,7 @@ class VanillaRNNModel(object):
             self.future_decoder = cuda_converter(FutureDecoder(self.encoder.batch_norm,
                                                                embedding_descripts,
                                                                n_layers=1,
+                                                               hidden_size=HIDDEN_SIZE,
                                                                rnn_layer=self.encoder.rnn,
                                                                num_output=num_output))
         self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE)
@@ -86,7 +87,6 @@ class VanillaRNNModel(object):
         future_unknown_estimates = None
         all_week_predictions = []
         global_sale_all_weeks = []
-        aggregated_sale = 0
         for future_week_idx in range(OUTPUT_SIZE):
             output_global_sale, \
             out_sales_predictions, \
@@ -106,15 +106,16 @@ class VanillaRNNModel(object):
                 print hidden_state
                 raise Exception
 
-            # loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
-            #                       exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
-            #                       sales_future[future_week_idx, :, 1:] + 1
-            #                       )
-            loss += loss_function2(exponential(out_sales_predictions[:, 4], loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 4], loss_in_normal_domain))
-            # loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
-            #                       exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-            #                       )
+            loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
+                                  exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
+                                  sales_future[future_week_idx, :, 1:] + 1
+                                  )
+            loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
+                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
+                                   sales_future[future_week_idx, :, 0] + 1)
+            loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
+                                  exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+                                  )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:

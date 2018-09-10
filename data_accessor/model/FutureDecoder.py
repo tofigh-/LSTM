@@ -18,10 +18,6 @@ class FutureDecoder(nn.Module):
                  rnn_layer=None,
                  num_output=1):
         super(FutureDecoder, self).__init__()
-        if hidden_size is not None and rnn_layer is not None:
-            raise ValueError('If hidden size is provided, lstm layer should be None')
-        if hidden_size is None and rnn_layer is None:
-            raise ValueError('hidden size and lstm_layer are exclusive parameters. One of them should be set.')
         self.output_size = OUTPUT_SIZE  # 1 in our case where we emit only sales forecast for 1 week at a time.
         self.n_layers = n_layers
         self.hidden_size = hidden_size
@@ -35,13 +31,14 @@ class FutureDecoder(nn.Module):
         # (i.e., implicitly assumes encoder and decoder feature inputs have equal dimensions)
         self.batch_norm = batch_norm
         self.relu = nn.Softplus(beta=0.8)
+        self.rnn = nn.LSTM(input_size=total_num_features, hidden_size=self.hidden_size, num_layers=n_layers)
         if rnn_layer is not None:
-            self.rnn = rnn_layer
-            self.hidden_size = rnn_layer.hidden_size
-        else:
-            self.rnn = nn.LSTM(input=total_num_features, hidden_size=self.hidden_size, num_layers=n_layers)
-        self.factor = 2 if self.rnn.bidirectional else 1
-        self.out_sale = nn.Linear(self.hidden_size * self.factor + NUM_COUNTRIES + 1, num_output)
+            self.rnn.weight_ih_l0 = rnn_layer.weight_ih_l0
+            self.rnn.weight_hh_l0 = rnn_layer.weight_hh_l0
+            self.rnn.bias_ih_l0 = rnn_layer.bias_ih_l0
+            self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
+
+        self.out_sale = nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output)
 
     def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
                 ):

@@ -198,39 +198,40 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     bn=batch_num,
                     kpi=rounder(weekly_aggregated_kpi_per_country))
 
-            for i in range(OUTPUT_SIZE):
-                target_sales = targets_future[SALES_MATRIX][i, :, :]
-                target_global_sales = targets_future[GLOBAL_SALE][i, :]
-                kpi_sale[i].append(kpi_compute_per_country(sale_predictions[i],
-                                                           target_sales=target_sales,
-                                                           target_global_sales=target_global_sales,
-                                                           log_transform=IS_LOG_TRANSFORM,
-                                                           weight=black_price
-                                                           ))
-                predicted_country_sales[i] = predicted_country_sales[i] + torch.sum(
-                    exponential(sale_predictions[i], LOG_TRANSFORM), dim=0).data.cpu().numpy()
+            for ii in range(OUTPUT_SIZE):
+                target_sales = targets_future[SALES_MATRIX][ii, :, :]
+                target_global_sales = targets_future[GLOBAL_SALE][ii, :]
+                kpi_sale[ii].append(kpi_compute_per_country(sale_predictions[ii],
+                                                            target_sales=target_sales,
+                                                            target_global_sales=target_global_sales,
+                                                            log_transform=IS_LOG_TRANSFORM,
+                                                            weight=black_price
+                                                            ))
+                predicted_country_sales[ii] = predicted_country_sales[ii] + torch.sum(
+                    exponential(sale_predictions[ii], LOG_TRANSFORM), dim=0).data.cpu().numpy()
 
                 real_sales = exponential(target_sales, IS_LOG_TRANSFORM)
-                country_sales[i] = country_sales[i] + torch.sum(real_sales, dim=0).data.cpu().numpy()
+                country_sales[ii] = country_sales[ii] + torch.sum(real_sales, dim=0).data.cpu().numpy()
                 kpi_denominator = np.append(torch.sum(black_price * real_sales, dim=0).data.cpu().numpy(),
                                             torch.sum(real_sales * black_price).item())
 
-                kpi_sale_scale[i].append(kpi_denominator)
+                kpi_sale_scale[ii].append(kpi_denominator)
                 if batch_num % 1000 == 0 and train_mode:
-                    kpi_per_country = np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]),
-                                                                                     axis=0) * 100
+                    kpi_per_country = np.sum(np.array(kpi_sale[ii]), axis=0) / np.sum(np.array(kpi_sale_scale[ii]),
+                                                                                      axis=0) * 100
+
                     print "{i}ith week: National Train KPI at Batch number {bn} is {kpi}".format(
-                        i=i,
+                        i=ii,
                         bn=batch_num,
                         kpi=rounder(kpi_per_country))
                     print "{i}ith week Natioanl AVG Train KPI is {t_kpi}".format(
-                        i=i,
+                        i=ii,
                         t_kpi=np.sum(
-                            np.array(kpi_sale[i])[:, 0:-1]) / np.sum(
-                            np.array(kpi_sale_scale[i])[:,
+                            np.array(kpi_sale[ii])[:, 0:-1]) / np.sum(
+                            np.array(kpi_sale_scale[ii])[:,
                             0:-1]) * 100)
-                    print "{i}th week bias is {bias}".format(i=i,
-                                                             bias=predicted_country_sales[i] / country_sales[i]
+                    print "{i}th week bias is {bias}".format(i=ii,
+                                                             bias=predicted_country_sales[ii] / country_sales[ii]
                                                              )
 
             if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
