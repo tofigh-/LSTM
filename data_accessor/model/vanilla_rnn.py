@@ -87,7 +87,7 @@ class VanillaRNNModel(object):
         all_week_predictions = []
         global_sale_all_weeks = []
         aggregated_sale = 0
-        for future_week_idx in range(OUTPUT_SIZE):
+        for future_week_idx in range(-1, -OUTPUT_SIZE - 1, -1):
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \
@@ -106,21 +106,27 @@ class VanillaRNNModel(object):
                 print hidden_state
                 raise Exception
 
-            # loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
-            #                       exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
-            #                       sales_future[future_week_idx, :, 1:] + 1
-            #                       )
-            loss += loss_function2(exponential(out_sales_predictions[:, 4], loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 4], loss_in_normal_domain))
-            # loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
-            #                       exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-            #                       )
+            aggregated_sale = aggregated_sale + exponential(out_sales_predictions, IS_LOG_TRANSFORM)
+
+            loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
+                                  exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
+                                  sales_future[future_week_idx, :, 1:] + 1
+                                  )
+            loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
+                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
+                                   sales_future[future_week_idx, :, 0] + 1)
+            loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
+                                  exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+                                  )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
                 # without teacher forcing
                 future_unknown_estimates = out_sales_predictions
-
+        loss_over_time = OUTPUT_SIZE * loss_function(log(aggregated_sale, IS_LOG_TRANSFORM),
+                                                     log(torch.sum(exponential(sales_future, IS_LOG_TRANSFORM), dim=0),
+                                                         IS_LOG_TRANSFORM))
+        loss += loss_over_time
         if math.isnan(loss.item()):
             print "loss is ", loss
             print "sum input 0 ", torch.sum(inputs[0])
@@ -141,7 +147,8 @@ class VanillaRNNModel(object):
         self.encoder_optimizer.zero_grad()
         self.future_decoder_optimizer.step()
         self.future_decoder_optimizer.zero_grad()
-
+        global_sale_all_weeks.reverse()
+        all_week_predictions.reverse()
         return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions
 
     def encode_input(self, inputs):
