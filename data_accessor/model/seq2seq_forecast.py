@@ -53,7 +53,7 @@ train_transform = Transform(
     training_transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
-    stock_threshold=5,
+    stock_threshold=2,
     keep_zero_sale_filter=0.1,
     activate_filters=True)
 
