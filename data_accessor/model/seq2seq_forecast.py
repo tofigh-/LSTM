@@ -90,7 +90,7 @@ test_db = DatasetReader(
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=4)
-test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=2)
+test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               load_saved_model=False,
