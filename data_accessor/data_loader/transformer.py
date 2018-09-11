@@ -108,7 +108,6 @@ class Transform(object):
 
     def __call__(self, csku_object, *args, **kwargs):
         transformed_samples = []
-        csku_list = []
         for min_start_date, max_end_date in self.target_dates:
             idx_range, (start_period, end_period) = self.filter_week(csku_object, min_start_date, max_end_date)
 
