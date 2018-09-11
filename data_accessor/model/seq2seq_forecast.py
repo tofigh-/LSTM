@@ -35,7 +35,7 @@ else:
     num_csku_per_query_train = 10000
     num_csku_per_query_test = 10000
     max_num_queries_train = None
-    max_num_queries_test = 10
+    max_num_queries_test = 5
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
@@ -53,7 +53,7 @@ train_transform = Transform(
     training_transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
-    stock_threshold=2,
+    stock_threshold=5,
     keep_zero_sale_filter=0.1,
     activate_filters=True)
 
