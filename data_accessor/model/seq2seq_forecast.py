@@ -35,7 +35,7 @@ else:
     num_csku_per_query_train = 10000
     num_csku_per_query_test = 10000
     max_num_queries_train = None
-    max_num_queries_test = 10
+    max_num_queries_test = None
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
@@ -53,7 +53,7 @@ train_transform = Transform(
     training_transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
-    keep_zero_sale_filter=0.1,
+    keep_zero_sale_filter=1.0,
     activate_filters=True)
 
 if label_encoders is None:
@@ -88,7 +88,7 @@ test_db = DatasetReader(
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=4)
-test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
+test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=2)
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               load_saved_model=False,

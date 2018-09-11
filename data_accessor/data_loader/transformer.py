@@ -134,7 +134,7 @@ class Transform(object):
         samples = []
         for slide_i in range(num_window_shifts):
             first_target_week_idx = num_weeks - slide_i * WINDOW_SHIFT - 1
-            if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx, 5):
+            if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx, 2):
                 if np.random.rand() >= self.keep_zero_stock_filter:
                     continue
             if self.activate_filters and self.filter_out_low_sales(feature_dictionary, first_target_week_idx, 0):
