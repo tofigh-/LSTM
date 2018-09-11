@@ -21,6 +21,7 @@ class Transform(object):
                  training_transformation=True,
                  keep_zero_stock_filter=0.0,
                  keep_zero_sale_filter=1.0,
+                 stock_threshold=0,
                  keep_percentage_zero_price=0.0,
                  activate_filters=True):
         '''
@@ -36,7 +37,7 @@ class Transform(object):
         self.keep_zero_stock_filter = keep_zero_stock_filter
         self.keep_zero_sale_filter = keep_zero_sale_filter
         self.keep_zero_price_percentage = keep_percentage_zero_price
-
+        self.stock_threshold = stock_threshold
         self.feature_transforms = feature_transforms
         if label_encoders is None:
             assert db_file is not None, 'Path to DB to compute label encoder is not provided'
@@ -134,7 +135,8 @@ class Transform(object):
         samples = []
         for slide_i in range(num_window_shifts):
             first_target_week_idx = num_weeks - slide_i * WINDOW_SHIFT - 1
-            if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx, 2):
+            if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx,
+                                                                   self.stock_threshold):
                 if np.random.rand() >= self.keep_zero_stock_filter:
                     continue
             if self.activate_filters and self.filter_out_low_sales(feature_dictionary, first_target_week_idx, 0):
