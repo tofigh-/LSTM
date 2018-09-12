@@ -37,8 +37,7 @@ class VanillaRNNModel(object):
                                                                rnn_layer=self.encoder.rnn,
                                                                num_output=num_output))
         self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE, weight_decay=0.000001)
-        self.future_decoder_optimizer = optim.Adam(self.future_decoder.parameters(), lr=LEARNING_RATE,
-                                                   weight_decay=0.000001)
+        self.future_decoder_optimizer = optim.Adam(self.future_decoder.parameters(), lr=LEARNING_RATE)
 
         if load_saved_model:
             self.load_checkpoint(model_path_dict)
