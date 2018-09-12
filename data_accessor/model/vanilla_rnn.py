@@ -110,10 +110,10 @@ class VanillaRNNModel(object):
                                   exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain),
                                   sales_future[future_week_idx, :, 1:] + 1
                                   )
-            loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
+            loss += 0.01 * loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
                                    exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
                                    sales_future[future_week_idx, :, 0] + 1)
-            loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
+            loss += 0.1 * loss_function(exponential(output_global_sale, loss_in_normal_domain),
                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                   )
             if use_teacher_forcing:
