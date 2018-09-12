@@ -247,18 +247,19 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
+        loss_function = loss_function2 = msloss
         if n_iter <= 3:
-            teacher_forcing_ratio = 1.0
+            teacher_forcing_ratio = 7.0
             loss_in_normal_domain = False
         else:
-            teacher_forcing_ratio = 1.0
+            teacher_forcing_ratio = 3.0
             loss_in_normal_domain = False
-        if n_iter <= 4:
-            loss_function = msloss
-            loss_function2 = loss_function
-        else:
-            loss_function = l1loss
-            loss_function2 = msloss
+        # if n_iter <= 4:
+        #     loss_function = msloss
+        #     loss_function2 = loss_function
+        # else:
+        #     loss_function = msloss
+        #     loss_function2 = msloss
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
