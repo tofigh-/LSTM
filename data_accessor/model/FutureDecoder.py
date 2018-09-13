@@ -40,11 +40,11 @@ class FutureDecoder(nn.Module):
 
         self.out_sale_means = nn.Sequential(
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
-            Exp()
+            nn.Softplus()
         )
         self.out_sale_variances = nn.Sequential(
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
-            Exp()
+            nn.Softplus()
         )
 
     def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
