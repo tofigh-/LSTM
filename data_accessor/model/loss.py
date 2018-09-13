@@ -93,3 +93,16 @@ class L2_LOSS(nn.Module):
             if self.sum_weight:
                 out = out / (torch.sum(target) + 0.0001)
         return out
+
+
+class LogNormalLoss(nn.Module):
+    def __init__(self, size_average=True):
+        super(LogNormalLoss, self).__init__()
+        self.size_average = size_average
+
+    def forward(self, miu, variance, target):
+        _assert_no_grad(target)
+        if self.size_average:
+            return torch.mean(torch.log(variance) + (target - miu) ** 2 / variance)
+        else:
+            return torch.sum(torch.log(variance) + (target - miu) ** 2 / variance)

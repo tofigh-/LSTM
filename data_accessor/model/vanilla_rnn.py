@@ -91,13 +91,15 @@ class VanillaRNNModel(object):
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \
-            embedded_features = self.decode_output(inputs,
-                                                   future_week_idx,
-                                                   hidden_state,
-                                                   embedded_features,
-                                                   future_unknown_estimates,
-                                                   train=True
-                                                   )
+            embedded_features, \
+            out_sales_mean_predictions, \
+            out_sales_variance_predictions = self.decode_output(inputs,
+                                                                future_week_idx,
+                                                                hidden_state,
+                                                                embedded_features,
+                                                                future_unknown_estimates,
+                                                                train=True
+                                                                )
             all_week_predictions.append(out_sales_predictions)
             global_sale_all_weeks.append(output_global_sale)
             if out_sales_predictions.shape[0] == 0:
@@ -106,16 +108,12 @@ class VanillaRNNModel(object):
                 print hidden_state
                 raise Exception
 
-            loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
-                                  exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain)
+            loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
+                                  sales_future[future_week_idx])
 
-                                  )
-            loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
-                                  )
-            loss += loss_function(exponential(output_global_sale, loss_in_normal_domain),
-                                  exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-                                  )
+            loss += 0.1 * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+                                         exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+                                         )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
@@ -187,12 +185,21 @@ class VanillaRNNModel(object):
                 input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
 
         future_decoder_hidden = hidden_state
-        output_global_sale, out_sales_predictions, hidden = self.future_decoder(
+        out_global_sales, \
+        out_sales_predictions, \
+        out_sales_mean_predictions, \
+        out_sales_variance_predictions, \
+        hidden = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
             embedded_inputs=embedded_features,
             encoder_outputs=encoder_outputs)
-        return output_global_sale, out_sales_predictions, hidden, embedded_features
+        return out_global_sales, \
+               out_sales_predictions, \
+               hidden, \
+               embedded_features, \
+               out_sales_mean_predictions, \
+               out_sales_variance_predictions
 
     def predict_over_period(self, inputs,
                             hidden_state=None,
@@ -202,7 +209,11 @@ class VanillaRNNModel(object):
         all_week_predictions = []
         global_sale_all_weeks = []
         for week_idx in range(OUTPUT_SIZE):
-            global_sales_prediction, future_unknown_estimates, hidden_state, embedded_features = self.decode_output(
+            global_sales_prediction, \
+            future_unknown_estimates, \
+            hidden_state, \
+            embedded_features, \
+            _, _ = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,

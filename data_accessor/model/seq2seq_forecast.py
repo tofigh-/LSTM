@@ -8,7 +8,7 @@ from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
 from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
-from loss import L2_LOSS, L1_LOSS
+from loss import L2_LOSS, L1_LOSS, LogNormalLoss
 from model_utilities import kpi_compute, exponential, complete_embedding_description, cuda_converter, \
     kpi_compute_per_country, rounder
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
@@ -105,7 +105,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     vanilla_rnn.future_decoder_optimizer.zero_grad()
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     l1loss = L1_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
-    loss_function = msloss
+    lognormal_loss = LogNormalLoss(size_average=SIZE_AVERAGE)
     np.random.seed(0)
 
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
@@ -125,7 +125,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 country_sales_test, weekly_aggregated_kpi_test, weekly_aggregated_kpi_scale_test = data_iter(
                     data=test_dataloader,
                     train_mode=False,
-                    loss_func=loss_function,
+                    loss_func=loss_func,
                     loss_func2=loss_func2
                 )
                 vanilla_rnn.mode(train_mode=True)
@@ -247,19 +247,15 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
-        loss_function = loss_function2 = msloss
+        loss_function = lognormal_loss
+        loss_function2 = msloss
         if n_iter <= 1:
             teacher_forcing_ratio = 0.0
             loss_in_normal_domain = False
         else:
             teacher_forcing_ratio = 0.0
-            loss_in_normal_domain = True
-        # if n_iter <= 4:
-        #     loss_function = msloss
-        #     loss_function2 = loss_function
-        # else:
-        #     loss_function = msloss
-        #     loss_function2 = msloss
+            loss_in_normal_domain = False
+
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
