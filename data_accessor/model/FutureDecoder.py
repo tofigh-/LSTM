@@ -64,7 +64,7 @@ class FutureDecoder(nn.Module):
 
         # (BATCH_SIZE,NUM_OUTPUT)
         out_sales_prediction = self.out_sale(
-            torch.cat([self.out_sale_ch1(encoded_features), self.out_sale_ch2(encoded_features)])
+            torch.cat([self.out_sale_ch1(encoded_features), self.out_sale_ch2(encoded_features)],dim=1)
         ).squeeze()
         if len(out_sales_prediction.shape) == 1 and self.num_output > 1:
             out_sales_prediction = out_sales_prediction[None, :]
