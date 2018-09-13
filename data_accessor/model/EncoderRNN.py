@@ -35,7 +35,8 @@ class EncoderRNN(nn.Module):
         total_num_features = sum(self.embedding_sizes) + len(self.numeric_feature_indices)
 
         # It turns out I'm not normalizing, I'm transforming. That was a surprise. What happened to BatchNorm1d!?
-        self.batch_norm = nn.Linear(in_features=total_num_features, out_features=total_num_features)
+        self.batch_norm = nn.Sequential(nn.BatchNorm1d(total_num_features),
+                                        nn.Linear(in_features=total_num_features, out_features=total_num_features))
         self.time_dist_batch_norm = TimeDistributed(self.batch_norm)
 
         self.p = rnn_dropout
@@ -64,8 +65,8 @@ class EncoderRNN(nn.Module):
                            self.p)
         output, hidden = self.rnn(output, hidden)
         hidden_out = (
-            self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None,:,:],
-            self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None,:,:]
+            self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None, :, :],
+            self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None, :, :]
         )
         return output, hidden_out, [embedded_feature[0, :, :] for embedded_feature in embedded_input]
 
