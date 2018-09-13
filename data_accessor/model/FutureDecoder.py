@@ -63,7 +63,9 @@ class FutureDecoder(nn.Module):
              input[:, feature_indices[DISCOUNT_MATRIX]].float()
              ], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
-        out_sales_variance_predictions = self.out_sale_variances(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
+        out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
+                                                     min=1e-5,
+                                                     max=1e5)  # (BATCH_SIZE,NUM_OUTPUT)
         if len(out_sales_mean_predictions.shape) == 1 and self.num_output > 1:
             out_sales_mean_predictions = out_sales_mean_predictions[None, :]
             out_sales_variance_predictions = out_sales_variance_predictions[None, :]
