@@ -143,6 +143,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
             # time x Batch x num
+            if batch_data.shape[1] == 1 :
+                print "Warning; batch size is one"
+                continue
             x, y, z = np.where(np.isinf(batch_data))
             if len(z) > 0:
                 print "these feature indices are inf: ", z
