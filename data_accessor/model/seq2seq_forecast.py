@@ -184,13 +184,13 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 output_global_sale, sale_predictions, all_variances = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
             # Batch x Country
-            if not train_mode or batch_num % 100 == 0:
+            if not train_mode or batch_num % 1000 == 0:
                 all_mus = exponential(torch.stack(sale_predictions), IS_LOG_TRANSFORM)
                 target_values = exponential(targets_future[SALES_MATRIX], IS_LOG_TRANSFORM)
                 all_vars = exponential(torch.stack(all_variances) / 2, IS_LOG_TRANSFORM)
                 abs_err = torch.abs(all_mus - target_values)
                 idx = abs_err.view(-1).max(0)[1]
-                print "predicted, true value, vairance"
+                print "predicted, true value, variance"
                 print all_mus.view(-1)[idx], target_values.view(-1)[idx], all_vars.view(-1)[idx]
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
                                           dim=0)

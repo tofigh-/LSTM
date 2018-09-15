@@ -75,8 +75,11 @@ class FutureDecoder(nn.Module):
         out_global_sales = log(
             torch.sum(exponential(out_sales_mean_predictions, IS_LOG_TRANSFORM),
                       dim=1), IS_LOG_TRANSFORM)
+
+        output_predictions = (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions).clone()
+        output_predictions[:,0] = out_sales_mean_predictions[:,0]
         return out_global_sales, \
-               (out_sales_mean_predictions), \
+               output_predictions, \
                out_sales_mean_predictions, \
                out_sales_variance_predictions, \
                hidden

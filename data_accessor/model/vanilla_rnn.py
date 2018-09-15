@@ -111,9 +111,10 @@ class VanillaRNNModel(object):
                 print hidden_state
                 raise Exception
 
-            loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
-                                  sales_future[future_week_idx])
-
+            loss += loss_function(out_sales_mean_predictions[:, 1:], out_sales_variance_predictions[:, 1:],
+                                  sales_future[future_week_idx, :, 1:])
+            loss += loss_function2(out_sales_mean_predictions[:, 0],
+                                   sales_future[future_week_idx, :, 0])
             loss += 0.1 * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
                                          exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                          )
@@ -225,8 +226,6 @@ class VanillaRNNModel(object):
                 future_unknown_estimates,
                 train=False
             )
-            print "min & max mean: ", torch.min(m), torch.max(m)
-            print "min & max variance: ", torch.min(v), torch.max(v)
             all_week_predictions.append(future_unknown_estimates)
             all_variances.append(v)
             global_sale_all_weeks.append(global_sales_prediction)
