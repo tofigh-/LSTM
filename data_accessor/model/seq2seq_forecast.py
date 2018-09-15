@@ -25,7 +25,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -168,7 +168,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
             if train_mode:
-                loss, output_global_sale, sale_predictions, all_variances = vanilla_rnn.train(
+                loss, output_global_sale, sale_predictions = vanilla_rnn.train(
                     inputs=(input_encode, input_decode),
                     targets_future=targets_future,
                     loss_function=loss_func,
@@ -181,17 +181,16 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                                                       loss_value=loss)
             else:
                 # TODO to generalize KPI computation to many weeks this 0 should go away
-                output_global_sale, sale_predictions, all_variances = vanilla_rnn.predict_over_period(
+                output_global_sale, sale_predictions = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
             # Batch x Country
             if not train_mode or batch_num % 1000 == 0:
                 all_mus = exponential(torch.stack(sale_predictions), IS_LOG_TRANSFORM)
                 target_values = exponential(targets_future[SALES_MATRIX], IS_LOG_TRANSFORM)
-                all_vars = exponential(torch.stack(all_variances) / 2, IS_LOG_TRANSFORM)
                 abs_err = torch.abs(all_mus - target_values)
                 idx = abs_err.view(-1).max(0)[1]
-                print "predicted, true value, variance"
-                print all_mus.view(-1)[idx], target_values.view(-1)[idx], all_vars.view(-1)[idx]
+                print "predicted, true value"
+                print all_mus.view(-1)[idx], target_values.view(-1)[idx]
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
                                           dim=0)
             weekly_aggregated_predictions = torch.sum(exponential(torch.stack(sale_predictions), IS_LOG_TRANSFORM),

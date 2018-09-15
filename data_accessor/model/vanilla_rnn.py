@@ -88,14 +88,12 @@ class VanillaRNNModel(object):
         future_unknown_estimates = None
         all_week_predictions = []
         global_sale_all_weeks = []
-        all_variances = []
         for future_week_idx in range(OUTPUT_SIZE):
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \
             embedded_features, \
-            out_sales_mean_predictions, \
-            out_sales_variance_predictions = self.decode_output(inputs,
+            out_sales_mean_predictions = self.decode_output(inputs,
                                                                 future_week_idx,
                                                                 hidden_state,
                                                                 embedded_features,
@@ -104,17 +102,14 @@ class VanillaRNNModel(object):
                                                                 )
             all_week_predictions.append(out_sales_predictions)
             global_sale_all_weeks.append(output_global_sale)
-            all_variances.append(out_sales_variance_predictions)
             if out_sales_predictions.shape[0] == 0:
                 print ("output_prediction is empty", out_sales_predictions)
                 print inputs
                 print hidden_state
                 raise Exception
 
-            loss += loss_function(out_sales_mean_predictions[:, 1:], out_sales_variance_predictions[:, 1:],
-                                  sales_future[future_week_idx, :, 1:])
-            loss += loss_function2(out_sales_mean_predictions[:, 0],
-                                   sales_future[future_week_idx, :, 0])
+            loss += loss_function2(out_sales_mean_predictions,
+                                   sales_future[future_week_idx])
             loss += 0.1 * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
                                          exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                          )
@@ -145,7 +140,7 @@ class VanillaRNNModel(object):
         self.future_decoder_optimizer.step()
         self.future_decoder_optimizer.zero_grad()
 
-        return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions, all_variances
+        return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions
 
     def encode_input(self, inputs):
         input_seq = inputs[0]  # PAST_KNOWN_LENGTH * BATCH * TOTAL_NUM_FEAT
@@ -192,7 +187,6 @@ class VanillaRNNModel(object):
         out_global_sales, \
         out_sales_predictions, \
         out_sales_mean_predictions, \
-        out_sales_variance_predictions, \
         hidden = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
@@ -202,8 +196,7 @@ class VanillaRNNModel(object):
                out_sales_predictions, \
                hidden, \
                embedded_features, \
-               out_sales_mean_predictions, \
-               out_sales_variance_predictions
+               out_sales_mean_predictions
 
     def predict_over_period(self, inputs,
                             hidden_state=None,
@@ -212,13 +205,12 @@ class VanillaRNNModel(object):
                             ):
         all_week_predictions = []
         global_sale_all_weeks = []
-        all_variances = []
         for week_idx in range(OUTPUT_SIZE):
             global_sales_prediction, \
             future_unknown_estimates, \
             hidden_state, \
             embedded_features, \
-            m, v = self.decode_output(
+            m = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,
@@ -227,6 +219,5 @@ class VanillaRNNModel(object):
                 train=False
             )
             all_week_predictions.append(future_unknown_estimates)
-            all_variances.append(v)
             global_sale_all_weeks.append(global_sales_prediction)
-        return global_sale_all_weeks, all_week_predictions, all_variances
+        return global_sale_all_weeks, all_week_predictions
