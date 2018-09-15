@@ -88,6 +88,7 @@ class VanillaRNNModel(object):
         future_unknown_estimates = None
         all_week_predictions = []
         global_sale_all_weeks = []
+        all_variances = []
         for future_week_idx in range(OUTPUT_SIZE):
             output_global_sale, \
             out_sales_predictions, \
@@ -103,6 +104,7 @@ class VanillaRNNModel(object):
                                                                 )
             all_week_predictions.append(out_sales_predictions)
             global_sale_all_weeks.append(output_global_sale)
+            all_variances.append(out_sales_variance_predictions)
             if out_sales_predictions.shape[0] == 0:
                 print ("output_prediction is empty", out_sales_predictions)
                 print inputs
@@ -142,7 +144,7 @@ class VanillaRNNModel(object):
         self.future_decoder_optimizer.step()
         self.future_decoder_optimizer.zero_grad()
 
-        return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions
+        return loss.item() / (OUTPUT_SIZE), global_sale_all_weeks, all_week_predictions, all_variances
 
     def encode_input(self, inputs):
         input_seq = inputs[0]  # PAST_KNOWN_LENGTH * BATCH * TOTAL_NUM_FEAT
@@ -228,4 +230,4 @@ class VanillaRNNModel(object):
             all_week_predictions.append(future_unknown_estimates)
             all_variances.append(v)
             global_sale_all_weeks.append(global_sales_prediction)
-        return global_sale_all_weeks, all_week_predictions,all_variances
+        return global_sale_all_weeks, all_week_predictions, all_variances
