@@ -181,9 +181,15 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                                                       loss_value=loss)
             else:
                 # TODO to generalize KPI computation to many weeks this 0 should go away
-                output_global_sale, sale_predictions = vanilla_rnn.predict_over_period(
+                output_global_sale, sale_predictions,all_variances = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
             # Batch x Country
+            if not train_mode:
+                all_mus = torch.stack(sale_predictions)
+                all_vars = torch.stack(all_variances)
+                abs_err=torch.abs(exponential(all_mus, IS_LOG_TRANSFORM) - exponential(targets_future[SALES_MATRIX], IS_LOG_TRANSFORM))
+                idx = abs_err.view(-1).max(0)[1]
+                print all_mus.view(-1)[idx],all_vars.view(-1)[idx]
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
                                           dim=0)
             weekly_aggregated_predictions = torch.sum(exponential(torch.stack(sale_predictions), IS_LOG_TRANSFORM),

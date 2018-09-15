@@ -209,6 +209,7 @@ class VanillaRNNModel(object):
                             ):
         all_week_predictions = []
         global_sale_all_weeks = []
+        all_variances = []
         for week_idx in range(OUTPUT_SIZE):
             global_sales_prediction, \
             future_unknown_estimates, \
@@ -225,5 +226,6 @@ class VanillaRNNModel(object):
             print "min & max mean: ", torch.min(m), torch.max(m)
             print "min & max variance: ", torch.min(v), torch.max(v)
             all_week_predictions.append(future_unknown_estimates)
+            all_variances.append(v)
             global_sale_all_weeks.append(global_sales_prediction)
-        return global_sale_all_weeks, all_week_predictions
+        return global_sale_all_weeks, all_week_predictions,all_variances
