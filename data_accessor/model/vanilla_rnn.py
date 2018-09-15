@@ -36,7 +36,8 @@ class VanillaRNNModel(object):
                                                                hidden_size=HIDDEN_SIZE,
                                                                rnn_layer=self.encoder.rnn,
                                                                num_output=num_output))
-        self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE, weight_decay=ENCODER_WEIGHT_DECAY)
+        self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE,
+                                            weight_decay=ENCODER_WEIGHT_DECAY)
         self.future_decoder_optimizer = optim.Adam(self.future_decoder.parameters(), lr=LEARNING_RATE)
 
         if load_saved_model:
@@ -111,7 +112,7 @@ class VanillaRNNModel(object):
             loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
                                   sales_future[future_week_idx])
 
-            loss +=  0.1*loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+            loss += 0.1 * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
                                          exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                          )
             if use_teacher_forcing:
@@ -213,7 +214,7 @@ class VanillaRNNModel(object):
             future_unknown_estimates, \
             hidden_state, \
             embedded_features, \
-            _, _ = self.decode_output(
+            m, v = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,
@@ -221,6 +222,8 @@ class VanillaRNNModel(object):
                 future_unknown_estimates,
                 train=False
             )
+            print "min & max mean: ", torch.min(m), torch.max(m)
+            print "min & max variance: ", torch.min(v), torch.max(v)
             all_week_predictions.append(future_unknown_estimates)
             global_sale_all_weeks.append(global_sales_prediction)
         return global_sale_all_weeks, all_week_predictions
