@@ -108,7 +108,7 @@ class VanillaRNNModel(object):
                 print hidden_state
                 raise Exception
 
-            loss += loss_function(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
+            loss += loss_function2(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
                                   exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain)
                                   )
             loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
