@@ -44,7 +44,6 @@ class FutureDecoder(nn.Module):
             nn.Softplus()
         )
         self.out_sale_variances = nn.Sequential(
-            nn.BatchNorm1d(self.hidden_size + NUM_COUNTRIES + 1),
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
             nn.Softplus()
         )

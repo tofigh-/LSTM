@@ -107,13 +107,13 @@ class VanillaRNNModel(object):
                 print inputs
                 print hidden_state
                 raise Exception
+            if future_week_idx == OUTPUT_SIZE - 1:
+                loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
+                                      sales_future[future_week_idx])
 
-            loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
-                                  sales_future[future_week_idx])
-
-            loss +=  loss_function2(exponential(output_global_sale, loss_in_normal_domain),
-                                         exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-                                         )
+                loss +=  loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+                                             exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+                                             )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
