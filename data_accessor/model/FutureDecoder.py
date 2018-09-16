@@ -39,7 +39,6 @@ class FutureDecoder(nn.Module):
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
 
         self.out_sale_means = nn.Sequential(
-            nn.BatchNorm1d(self.hidden_size + NUM_COUNTRIES + 1),
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
             nn.Softplus()
         )
