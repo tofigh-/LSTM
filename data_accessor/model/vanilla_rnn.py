@@ -36,7 +36,8 @@ class VanillaRNNModel(object):
                                                                hidden_size=HIDDEN_SIZE,
                                                                rnn_layer=self.encoder.rnn,
                                                                num_output=num_output))
-        self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE, weight_decay=ENCODER_WEIGHT_DECAY)
+        self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE,
+                                            weight_decay=ENCODER_WEIGHT_DECAY)
         self.future_decoder_optimizer = optim.Adam(self.future_decoder.parameters(), lr=LEARNING_RATE)
 
         if load_saved_model:
@@ -107,13 +108,13 @@ class VanillaRNNModel(object):
                 print inputs
                 print hidden_state
                 raise Exception
-            if future_week_idx == OUTPUT_SIZE - 1:
-                loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
-                                      sales_future[future_week_idx])
+            # if future_week_idx == OUTPUT_SIZE - 1:
+            loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
+                                  sales_future[future_week_idx])
 
-                loss +=  loss_function2(exponential(output_global_sale, loss_in_normal_domain),
-                                             exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-                                             )
+            loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+                                   )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:

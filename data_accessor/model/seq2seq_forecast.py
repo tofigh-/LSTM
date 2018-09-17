@@ -43,7 +43,7 @@ else:
     label_encoders = None
 my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, low_sale_percentage=1.0)
 max_end_date = datetime.strptime('2016-12-28', '%Y-%m-%d').date()
-target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 1)
+target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 6)
 train_transform = Transform(
     feature_transforms=my_feature_class_train,
     label_encoders=label_encoders,
@@ -143,7 +143,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
             # time x Batch x num
-            if batch_data.shape[1] == 1 :
+            if batch_data.shape[1] == 1:
                 print "Warning; batch size is one"
                 continue
             x, y, z = np.where(np.isinf(batch_data))
