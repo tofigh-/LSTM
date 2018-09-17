@@ -88,8 +88,6 @@ class VanillaRNNModel(object):
         future_unknown_estimates = None
         all_week_predictions = []
         global_sale_all_weeks = []
-        l2_factor = 0.01
-
         for future_week_idx in range(OUTPUT_SIZE):
             output_global_sale, \
             out_sales_predictions, \
@@ -119,6 +117,7 @@ class VanillaRNNModel(object):
             loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
                                    exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                    )
+            l2_factor = 0.01
             for param1, param2 in zip(self.future_decoder._modules['out_sale_means'].parameters(),
                                       self.future_decoder._modules['out_sale_variances'].parameters()):
                 loss += torch.norm(param1) * l2_factor
