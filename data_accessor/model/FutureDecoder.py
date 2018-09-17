@@ -37,18 +37,18 @@ class FutureDecoder(nn.Module):
             self.rnn.weight_hh_l0 = rnn_layer.weight_hh_l0
             self.rnn.bias_ih_l0 = rnn_layer.bias_ih_l0
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
-
+        self.p = 0.5
         self.out_sale_means = nn.Sequential(
             nn.BatchNorm1d(self.hidden_size + NUM_COUNTRIES + 1),
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, (self.hidden_size + NUM_COUNTRIES + 1)/2),
-            nn.Dropout(0.75),
+            nn.Dropout(self.p),
             nn.Linear((self.hidden_size + NUM_COUNTRIES + 1)/2, num_output),
             nn.Softplus()
         )
         self.out_sale_variances = nn.Sequential(
             self.out_sale_means._modules['0'],
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, (self.hidden_size + NUM_COUNTRIES + 1) / 2),
-            nn.Dropout(0.75),
+            nn.Dropout(self.p),
             nn.Linear((self.hidden_size + NUM_COUNTRIES + 1)/2, num_output),
             nn.Softplus()
         )
