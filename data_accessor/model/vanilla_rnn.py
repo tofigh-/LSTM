@@ -110,13 +110,6 @@ class VanillaRNNModel(object):
                 raise Exception
             if future_week_idx == OUTPUT_SIZE - 1:
                 # loss + = self.future_decoder.mo
-                l2_factor = 0.0001
-                l2_reg = 0
-                for param1, param2 in zip(self.future_decoder._modules['out_sale_means'].parameters(),
-                                          self.future_decoder._modules['out_sale_variances'].parameters()):
-                    l2_reg += torch.norm(param1)
-                    l2_reg += torch.norm(param2)
-                loss += l2_factor * l2_reg
 
                 loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
                                       sales_future[future_week_idx])
@@ -141,6 +134,11 @@ class VanillaRNNModel(object):
             print "sum rnn: ", sum_rnn
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
+        l2_factor = 0.01
+        for param1, param2 in zip(self.future_decoder._modules['out_sale_means'].parameters(),
+                                  self.future_decoder._modules['out_sale_variances'].parameters()):
+            loss += torch.norm(param1) * l2_factor
+            loss += torch.norm(param2) * l2_factor
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
