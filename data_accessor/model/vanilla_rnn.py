@@ -110,8 +110,8 @@ class VanillaRNNModel(object):
                 raise Exception
             if future_week_idx == OUTPUT_SIZE - 1:
                 # loss + = self.future_decoder.mo
-                l2_factor = torch.tensor(0.0001)
-                l2_reg = torch.tensor(0.)
+                l2_factor = 0.0001
+                l2_reg = 0
                 for param1, param2 in zip(self.future_decoder._modules['out_sale_means'].parameters(),
                                           self.future_decoder._modules['out_sale_variances'].parameters()):
                     l2_reg += torch.norm(param1)
