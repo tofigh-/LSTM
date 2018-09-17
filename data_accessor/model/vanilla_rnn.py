@@ -98,7 +98,7 @@ class VanillaRNNModel(object):
                                                                 future_week_idx,
                                                                 hidden_state,
                                                                 embedded_features,
-                                                                future_unknown_estimates,
+                                                                future_unknown_estimates=None,
                                                                 train=True
                                                                 )
             all_week_predictions.append(out_sales_predictions)
@@ -134,7 +134,7 @@ class VanillaRNNModel(object):
             print "sum rnn: ", sum_rnn
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
-        l2_factor = 0.1
+        l2_factor = 0.01
         for param1, param2 in zip(self.future_decoder._modules['out_sale_means'].parameters(),
                                   self.future_decoder._modules['out_sale_variances'].parameters()):
             loss += torch.norm(param1) * l2_factor
