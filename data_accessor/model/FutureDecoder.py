@@ -40,10 +40,15 @@ class FutureDecoder(nn.Module):
 
         self.out_sale_means = nn.Sequential(
             nn.BatchNorm1d(self.hidden_size + NUM_COUNTRIES + 1),
+            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, (self.hidden_size + NUM_COUNTRIES + 1)/2),
+            nn.Dropout(0.75),
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
             nn.Softplus()
         )
         self.out_sale_variances = nn.Sequential(
+            self.out_sale_means._modules['0'],
+            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, (self.hidden_size + NUM_COUNTRIES + 1) / 2),
+            nn.Dropout(0.75),
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
             nn.Softplus()
         )
