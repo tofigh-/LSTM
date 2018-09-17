@@ -98,7 +98,7 @@ class VanillaRNNModel(object):
                                                                 future_week_idx,
                                                                 hidden_state,
                                                                 embedded_features,
-                                                                future_unknown_estimates=None,
+                                                                future_unknown_estimates,
                                                                 train=True
                                                                 )
             all_week_predictions.append(out_sales_predictions)
@@ -121,7 +121,7 @@ class VanillaRNNModel(object):
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
                 # without teacher forcing
-                future_unknown_estimates = out_sales_predictions
+                future_unknown_estimates = out_sales_predictions.detach()
 
         if math.isnan(loss.item()):
             print "loss is ", loss
