@@ -25,7 +25,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -250,7 +250,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
-        loss_function = lognormal_loss
+        loss_function = msloss
         loss_function2 = msloss
         if n_iter <= 1:
             teacher_forcing_ratio = 0.0

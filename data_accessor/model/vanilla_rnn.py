@@ -111,7 +111,7 @@ class VanillaRNNModel(object):
             # if future_week_idx == OUTPUT_SIZE - 1:
             # loss + = self.future_decoder.mo
 
-            loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
+            loss += loss_function(out_sales_predictions,
                                   sales_future[future_week_idx])
 
             loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
