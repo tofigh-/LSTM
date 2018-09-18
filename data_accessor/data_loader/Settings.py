@@ -83,6 +83,8 @@ NUM_BATCH_SAVING_MODEL = 10000
 BI_DIRECTIONAL = True
 RNN_DROPOUT = 0.5
 ENCODER_WEIGHT_DECAY = 0.00001
+DECODER_WEIGHT_DECAY = 0
+
 # Note that Country is a Static international feature
 static_global_features = [BRAND, HDG_INDEX, CG1, CG2, CG3, CG4, CG5, SEASON_TYPE, CATEGORY]
 

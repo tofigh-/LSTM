@@ -136,7 +136,7 @@ class VanillaRNNModel(object):
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
 
-        l2_factor = 0.01
+        l2_factor = DECODER_WEIGHT_DECAY
         for param1, param2 in zip(
                 self.future_decoder._modules['out_sale_means'].parameters(),
                 self.future_decoder._modules['out_sale_variances'].parameters()
