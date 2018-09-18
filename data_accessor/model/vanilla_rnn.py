@@ -110,17 +110,19 @@ class VanillaRNNModel(object):
                 raise Exception
             # if future_week_idx == OUTPUT_SIZE - 1:
             # loss + = self.future_decoder.mo
+            lambda_factor = 0.7 ** future_week_idx
+            loss += lambda_factor * loss_function(out_sales_mean_predictions[:, 1:],
+                                                  out_sales_variance_predictions[:, 1:],
+                                                  sales_future[future_week_idx, :, 1:])
 
-            loss += loss_function(out_sales_mean_predictions[:, 1:], out_sales_variance_predictions[:, 1:],
-                                  sales_future[future_week_idx, :, 1:])
+            loss += lambda_factor * loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
+                                                   exponential(sales_future[future_week_idx, :, 0],
+                                                               loss_in_normal_domain),
+                                                   )
 
-            loss += loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
-                                   )
-
-            loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
-                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-                                   )
+            loss += lambda_factor * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+                                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+                                                   )
 
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
