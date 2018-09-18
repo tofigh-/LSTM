@@ -35,10 +35,11 @@ class EncoderRNN(nn.Module):
         total_num_features = sum(self.embedding_sizes) + len(self.numeric_feature_indices)
 
         # It turns out I'm not normalizing, I'm transforming. That was a surprise. What happened to BatchNorm1d!?
-        self.batch_norm = nn.Sequential(nn.BatchNorm1d(total_num_features),
-                                        nn.Linear(in_features=total_num_features, out_features=total_num_features),
-                                        nn.Dropout(rnn_dropout)
-                                        )
+        self.batch_norm = nn.Sequential(
+            # nn.BatchNorm1d(total_num_features),
+            nn.Linear(in_features=total_num_features, out_features=total_num_features),
+            nn.Dropout(rnn_dropout)
+        )
         self.time_dist_batch_norm = TimeDistributed(self.batch_norm)
 
         self.rnn = nn.LSTM(input_size=total_num_features, hidden_size=hidden_size, num_layers=n_layers,
