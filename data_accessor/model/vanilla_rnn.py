@@ -122,7 +122,7 @@ class VanillaRNNModel(object):
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
                 # without teacher forcing
-                future_unknown_estimates = out_sales_predictions.detach()
+                future_unknown_estimates = out_sales_predictions
 
         if math.isnan(loss.item()):
             print "loss is ", loss
@@ -137,8 +137,10 @@ class VanillaRNNModel(object):
             sys.exit()
 
         l2_factor = 0.01
-        for param1, param2 in zip(self.future_decoder._modules['out_sale_means'].parameters(),
-                                  self.future_decoder._modules['out_sale_variances'].parameters()):
+        for param1, param2 in zip(
+                self.future_decoder._modules['out_sale_means'].parameters(),
+                self.future_decoder._modules['out_sale_variances'].parameters()
+        ):
             loss += torch.norm(param1) * l2_factor
             loss += torch.norm(param2) * l2_factor
         loss.backward()
