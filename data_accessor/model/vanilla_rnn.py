@@ -110,7 +110,7 @@ class VanillaRNNModel(object):
                 raise Exception
             # if future_week_idx == OUTPUT_SIZE - 1:
             # loss + = self.future_decoder.mo
-            lambda_factor = 0.7 ** future_week_idx
+            lambda_factor = WEEK_DECAY ** future_week_idx
             loss += lambda_factor * loss_function(out_sales_mean_predictions[:, 1:],
                                                   out_sales_variance_predictions[:, 1:],
                                                   sales_future[future_week_idx, :, 1:])
