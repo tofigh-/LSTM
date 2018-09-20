@@ -115,14 +115,13 @@ class VanillaRNNModel(object):
             # if future_week_idx == OUTPUT_SIZE - 1:
             # loss + = self.future_decoder.mo
             lambda_factor = WEEK_DECAY ** future_week_idx
-            loss += lambda_factor * loss_function(out_sales_mean_predictions[:, 1:],
-                                                  out_sales_variance_predictions[:, 1:],
-                                                  sales_future[future_week_idx, :, 1:])
+            loss += lambda_factor * loss_function2(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
+                                  exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain)
+                                                   )
 
             loss += lambda_factor * loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
-                                                   exponential(sales_future[future_week_idx, :, 0],
-                                                               loss_in_normal_domain),
-                                                   )
+                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
+                                   )
 
             loss += lambda_factor * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
                                                    exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
@@ -146,13 +145,13 @@ class VanillaRNNModel(object):
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
 
-        l2_factor = DECODER_WEIGHT_DECAY
-        for param1, param2 in zip(
-                self.future_decoder._modules['out_sale_means'].parameters(),
-                self.future_decoder._modules['out_sale_variances'].parameters()
-        ):
-            loss += torch.norm(param1) * l2_factor
-            loss += torch.norm(param2) * l2_factor
+        # l2_factor = DECODER_WEIGHT_DECAY
+        # for param1, param2 in zip(
+        #         self.future_decoder._modules['out_sale_means'].parameters(),
+        #         self.future_decoder._modules['out_sale_variances'].parameters()
+        # ):
+        #     loss += torch.norm(param1) * l2_factor
+        #     loss += torch.norm(param2) * l2_factor
         loss.backward()
 
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
