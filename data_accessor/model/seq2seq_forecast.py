@@ -16,11 +16,13 @@ from vanilla_rnn import VanillaRNNModel
 import os
 import sys
 import os
+from data_accessor.data_loader import Settings as settings
 from datetime import datetime
 from datetime import timedelta
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-
+for variable in to_print_variables:
+    print (variable,settings.__dict__[variable])
 dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
