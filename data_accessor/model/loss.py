@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.modules.loss import _assert_no_grad
-
+from data_accessor.data_loader.Settings import PIN_LOSS_FACTOR
 from model_utilities import cuda_converter
 
 
