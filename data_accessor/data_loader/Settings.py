@@ -86,7 +86,7 @@ FF_DROPOUT = 0.0
 ENCODER_WEIGHT_DECAY = 0.00001
 DECODER_WEIGHT_DECAY = 0.0
 WEEK_DECAY = 0.000001
-use_future_unknown_estimates = True
+use_future_unknown_estimates = False
 to_print_variables = ['use_future_unknown_estimates', 'RESUME', 'SIZE_AVERAGE', 'FF_DROPOUT', 'WEEK_DECAY',
                       'SUM_WEIGHT', 'DECODER_WEIGHT_DECAY',
                       'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL', 'NUM_LAYER',
