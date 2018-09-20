@@ -8,7 +8,7 @@ from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
 from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
-from loss import L2_LOSS, L1_LOSS, LogNormalLoss,L2PinLoss
+from loss import L2_LOSS, L1_LOSS, LogNormalLoss, L2PinLoss
 from model_utilities import kpi_compute, exponential, complete_embedding_description, cuda_converter, \
     kpi_compute_per_country, rounder
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
@@ -22,7 +22,7 @@ from datetime import timedelta
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
-    print (variable,settings.__dict__[variable])
+    print (variable, settings.__dict__[variable])
 dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
@@ -30,7 +30,7 @@ validation_db = join(dir_path, file_name)
 debug_mode = False
 if debug_mode:
     num_csku_per_query_train = 500
-    num_csku_per_query_test = 100
+    num_csku_per_query_test = 10
     max_num_queries_train = 1
     max_num_queries_test = 1
 else:
@@ -100,6 +100,9 @@ vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               num_output=NUM_COUNTRIES)
 
 
+def fit_least_square(x, a, b):
+    return np.maximum(a * x + b, 0)
+
 def train(vanilla_rnn, n_iters, resume=RESUME):
     if resume:
         vanilla_rnn.load_checkpoint({FUTURE_DECODER_CHECKPOINT: 'decoder.gz', ENCODER_CHECKPOINT: 'encoder.gz'})
@@ -153,7 +156,18 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 print "these feature indices are inf: ", z
                 print feature_indices
                 sys.exit()
+            past_history = TOTAL_INPUT
+            t = np.arange(1, past_history + 1)
+            from time import time
+            ys = batch_data[TOTAL_INPUT - past_history:TOTAL_INPUT, :, feature_indices[SALES_MATRIX]].reshape([past_history, -1])
 
+
+
+            b, a = np.linalg.lstsq(np.vstack([np.ones(len(ys)), t]).T, ys)[
+                0]  # calculating fitting coefficients (a,m)
+            y_predict = fit_least_square(np.repeat(np.arange(past_history + 1, past_history + OUTPUT_SIZE + 1)[:, None], len(a), axis=1),a,
+                            b)  # prediction based of fitted model
+            y_predict = y_predict.reshape([OUTPUT_SIZE,-1,NUM_COUNTRIES])
             input_encode = cuda_converter(torch.from_numpy(batch_data[0:TOTAL_INPUT, :, :]).float()).contiguous()
             input_decode = cuda_converter(
                 torch.from_numpy(batch_data[TOTAL_INPUT:TOTAL_LENGTH, :, :]).float()).contiguous()
@@ -165,7 +179,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             targets_future[STOCK] = input_decode[:, :, feature_indices[STOCK][0]].clone()
 
-            input_decode[:, :, feature_indices[SALES_MATRIX]] = input_encode[-1, :, feature_indices[SALES_MATRIX]]
+            input_decode[:, :, feature_indices[SALES_MATRIX]] = cuda_converter(torch.from_numpy(y_predict).float()).contiguous()
             input_decode[:, :, feature_indices[GLOBAL_SALE][0]] = input_encode[-1, :, feature_indices[GLOBAL_SALE][0]]
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
