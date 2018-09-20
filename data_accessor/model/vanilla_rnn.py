@@ -144,9 +144,7 @@ class VanillaRNNModel(object):
             sys.exit()
 
         l2_factor = DECODER_WEIGHT_DECAY
-        for param1 in zip(
-                self.future_decoder._modules['out_sale_means'].parameters(),
-        ):
+        for param1 in self.future_decoder._modules['out_sale_predictions'].parameters():
             loss += torch.norm(param1) * l2_factor
         loss.backward()
 
