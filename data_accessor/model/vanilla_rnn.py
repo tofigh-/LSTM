@@ -96,15 +96,13 @@ class VanillaRNNModel(object):
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \
-            embedded_features, \
-            out_sales_mean_predictions, \
-            out_sales_variance_predictions = self.decode_output(inputs,
-                                                                future_week_idx,
-                                                                hidden_state,
-                                                                embedded_features,
-                                                                future_unknown_estimates=temp_ff,
-                                                                train=True
-                                                                )
+            embedded_features = self.decode_output(inputs,
+                                                   future_week_idx,
+                                                   hidden_state,
+                                                   embedded_features,
+                                                   future_unknown_estimates=temp_ff,
+                                                   train=True
+                                                   )
             all_week_predictions.append(out_sales_predictions)
             global_sale_all_weeks.append(output_global_sale)
             if out_sales_predictions.shape[0] == 0:
@@ -112,16 +110,16 @@ class VanillaRNNModel(object):
                 print inputs
                 print hidden_state
                 raise Exception
-            # if future_week_idx == OUTPUT_SIZE - 1:
-            # loss + = self.future_decoder.mo
             lambda_factor = WEEK_DECAY ** future_week_idx
             loss += lambda_factor * loss_function2(exponential(out_sales_predictions[:, 1:], loss_in_normal_domain),
-                                  exponential(sales_future[future_week_idx, :, 1:], loss_in_normal_domain)
+                                                   exponential(sales_future[future_week_idx, :, 1:],
+                                                               loss_in_normal_domain)
                                                    )
 
             loss += lambda_factor * loss_function2(exponential(out_sales_predictions[:, 0], loss_in_normal_domain),
-                                   exponential(sales_future[future_week_idx, :, 0], loss_in_normal_domain),
-                                   )
+                                                   exponential(sales_future[future_week_idx, :, 0],
+                                                               loss_in_normal_domain),
+                                                   )
 
             loss += lambda_factor * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
                                                    exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
@@ -145,13 +143,11 @@ class VanillaRNNModel(object):
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
 
-        # l2_factor = DECODER_WEIGHT_DECAY
-        # for param1, param2 in zip(
-        #         self.future_decoder._modules['out_sale_means'].parameters(),
-        #         self.future_decoder._modules['out_sale_variances'].parameters()
-        # ):
-        #     loss += torch.norm(param1) * l2_factor
-        #     loss += torch.norm(param2) * l2_factor
+        l2_factor = DECODER_WEIGHT_DECAY
+        for param1 in zip(
+                self.future_decoder._modules['out_sale_means'].parameters(),
+        ):
+            loss += torch.norm(param1) * l2_factor
         loss.backward()
 
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
@@ -208,8 +204,6 @@ class VanillaRNNModel(object):
         future_decoder_hidden = hidden_state
         out_global_sales, \
         out_sales_predictions, \
-        out_sales_mean_predictions, \
-        out_sales_variance_predictions, \
         hidden = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
@@ -218,9 +212,7 @@ class VanillaRNNModel(object):
         return out_global_sales, \
                out_sales_predictions, \
                hidden, \
-               embedded_features, \
-               out_sales_mean_predictions, \
-               out_sales_variance_predictions
+               embedded_features
 
     def predict_over_period(self, inputs,
                             hidden_state=None,
@@ -233,8 +225,7 @@ class VanillaRNNModel(object):
             global_sales_prediction, \
             future_unknown_estimates, \
             hidden_state, \
-            embedded_features, \
-            _, _ = self.decode_output(
+            embedded_features = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,

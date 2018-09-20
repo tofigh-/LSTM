@@ -39,19 +39,13 @@ class FutureDecoder(nn.Module):
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
         self.p = FF_DROPOUT
         self.out_sale_means = nn.Sequential(
-            # nn.LayerNorm(self.hidden_size * 2 + NUM_COUNTRIES + 1),
+            nn.LayerNorm(self.hidden_size * 2 + NUM_COUNTRIES + 1),
             nn.Linear(self.hidden_size * 2 + NUM_COUNTRIES + 1, (self.hidden_size + NUM_COUNTRIES) / 2),
             nn.Dropout(self.p),
             nn.Linear((self.hidden_size + NUM_COUNTRIES) / 2, num_output),
             nn.Softplus()
         )
-        # self.out_sale_variances = nn.Sequential(
-        #     # self.out_sale_means._modules['0'],
-        #     nn.Linear(self.hidden_size * 2 + NUM_COUNTRIES + 1, (self.hidden_size + NUM_COUNTRIES) / 2),
-        #     nn.Dropout(self.p),
-        #     nn.Linear((self.hidden_size + NUM_COUNTRIES) / 2, num_output),
-        #     nn.Softplus()
-        # )
+
 
     def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
                 ):
@@ -69,20 +63,15 @@ class FutureDecoder(nn.Module):
              input[:, feature_indices[DISCOUNT_MATRIX]].float()
              ], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
-        # out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
-        #                                              min=1e-5,
-        #                                              max=1e5)  # (BATCH_SIZE,NUM_OUTPUT)
+
         if len(out_sales_mean_predictions.shape) == 1 and self.num_output > 1:
             out_sales_mean_predictions = out_sales_mean_predictions[None, :]
-            # out_sales_variance_predictions = out_sales_variance_predictions[None, :]
 
         out_global_sales = log(
             torch.sum(exponential(out_sales_mean_predictions, IS_LOG_TRANSFORM),
                       dim=1), IS_LOG_TRANSFORM)
         out_sales_predictions = out_sales_mean_predictions
         return out_global_sales, \
-               out_sales_predictions, \
-               out_sales_mean_predictions, \
                out_sales_predictions, \
                hidden
 

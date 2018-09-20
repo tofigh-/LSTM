@@ -94,6 +94,26 @@ class L2_LOSS(nn.Module):
                 out = out / (torch.sum(target) + 0.0001)
         return out
 
+class L2PinLoss(nn.Module):
+    def __init__(self, size_average=True, sum_weight=False):
+        super(L2PinLoss, self).__init__()
+        self.size_average = size_average
+        self.sum_weight = sum_weight
+        if self.sum_weight:
+            self.size_average = False
+
+    def forward(self, input, target, weights=None):
+        _assert_no_grad(target)
+
+        out = F.mse_loss(input, target, reduce=False,size_average=False)
+        out[input<target] = out[input<target] * PIN_LOSS_FACTOR
+        out[input>target] = out[input>target] * (1-PIN_LOSS_FACTOR)
+        if self.sum_weight:
+            out = torch.sum(out) / (torch.sum(target) + 0.0001)
+        if self.size_average:
+            out = torch.mean(out)
+        return out
+
 
 class LogNormalLoss(nn.Module):
     def __init__(self, size_average=True):
