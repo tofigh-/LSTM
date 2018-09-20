@@ -36,7 +36,7 @@ class EncoderRNN(nn.Module):
 
         # It turns out I'm not normalizing, I'm transforming. That was a surprise. What happened to BatchNorm1d!?
         self.batch_norm = nn.Sequential(
-            nn.LayerNorm(total_num_features),
+            # nn.LayerNorm(total_num_features),
             nn.Linear(in_features=total_num_features, out_features=total_num_features),
             nn.Dropout(rnn_dropout)
         )
