@@ -89,6 +89,10 @@ class VanillaRNNModel(object):
         all_week_predictions = []
         global_sale_all_weeks = []
         for future_week_idx in range(OUTPUT_SIZE):
+            if use_future_unknown_estimates:
+                temp_ff = future_unknown_estimates
+            else:
+                temp_ff = None
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \
@@ -98,7 +102,7 @@ class VanillaRNNModel(object):
                                                                 future_week_idx,
                                                                 hidden_state,
                                                                 embedded_features,
-                                                                future_unknown_estimates,
+                                                                future_unknown_estimates=temp_ff,
                                                                 train=True
                                                                 )
             all_week_predictions.append(out_sales_predictions)

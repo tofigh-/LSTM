@@ -85,8 +85,10 @@ RNN_DROPOUT = 0.5
 FF_DROPOUT = 0.5
 ENCODER_WEIGHT_DECAY = 0.00001
 DECODER_WEIGHT_DECAY = 0.0
-WEEK_DECAY = 0.00001
-to_print_variables = ['RESUME', 'SIZE_AVERAGE', 'FF_DROPOUT', 'WEEK_DECAY', 'SUM_WEIGHT', 'DECODER_WEIGHT_DECAY',
+WEEK_DECAY = 1
+use_future_unknown_estimates = False
+to_print_variables = ['use_future_unknown_estimates', 'RESUME', 'SIZE_AVERAGE', 'FF_DROPOUT', 'WEEK_DECAY',
+                      'SUM_WEIGHT', 'DECODER_WEIGHT_DECAY',
                       'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL', 'NUM_LAYER',
                       'HIDDEN_SIZE', 'LEARNING_RATE', 'GRADIENT_CLIP', 'BATCH_SIZE', 'TEST_BATCH_SIZE',
                       'TOTAL_INPUT', 'TOTAL_LENGTH', 'PAST_KNOWN_LENGTH', 'OUTPUT_SIZE']
