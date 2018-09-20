@@ -108,10 +108,11 @@ class L2PinLoss(nn.Module):
         out = F.mse_loss(input, target, reduce=False,size_average=False)
         out[input<target] = out[input<target] * PIN_LOSS_FACTOR
         out[input>target] = out[input>target] * (1-PIN_LOSS_FACTOR)
+        out = torch.sum(out)
         if self.sum_weight:
-            out = torch.sum(out) / (torch.sum(target) + 0.0001)
+            out = out / (torch.sum(target) + 0.0001)
         if self.size_average:
-            out = torch.mean(out)
+            out = out / np.array(input.shape).prod()
         return out
 
 

@@ -57,7 +57,7 @@ FILTER_LOW_STOCK = True
 FILTER_ZERO_PRICE = True
 FILTER_LOW_SALE = True
 SUM_WEIGHT = False
-SIZE_AVERAGE = True
+SIZE_AVERAGE = False
 RESUME = False
 ## Variables
 ENCODER_CHECKPOINT = u'Encoder Checkpoint'
