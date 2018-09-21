@@ -8,7 +8,7 @@ from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
 from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
-from loss import L2_LOSS, L1_LOSS, LogNormalLoss, L2PinLoss
+from loss import L2_LOSS, L1_LOSS, LogNormalLoss, L2PinLoss,L1PinLoss
 from model_utilities import kpi_compute, exponential, complete_embedding_description, cuda_converter, \
     kpi_compute_per_country, rounder
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
@@ -111,6 +111,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     l1loss = L1_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     l2pinloss = L2PinLoss(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
+    l1pinloss = L1PinLoss(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     np.random.seed(0)
 
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):

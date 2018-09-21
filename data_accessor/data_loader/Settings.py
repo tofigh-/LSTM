@@ -86,7 +86,7 @@ FF_DROPOUT = 0.5
 ENCODER_WEIGHT_DECAY = 0.00001
 DECODER_WEIGHT_DECAY = 0.00001
 WEEK_DECAY = 1
-PIN_LOSS_FACTOR = 0.65
+PIN_LOSS_FACTOR = 0.55
 use_future_unknown_estimates = False
 to_print_variables = ['PIN_LOSS_FACTOR', 'use_future_unknown_estimates', 'RESUME', 'SIZE_AVERAGE', 'FF_DROPOUT',
                       'WEEK_DECAY',
