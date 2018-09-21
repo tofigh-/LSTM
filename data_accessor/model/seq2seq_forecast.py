@@ -57,6 +57,7 @@ train_transform = Transform(
     keep_percentage_zero_price=0.0,
     stock_threshold=2,
     keep_zero_sale_filter=0.1,
+    random_transform_percentage=1.0,
     activate_filters=True)
 
 if label_encoders is None:
@@ -75,6 +76,7 @@ test_transform = Transform(
     keep_percentage_zero_price=0.0,
     stock_threshold=1,
     keep_zero_sale_filter=1.0,
+    random_transform_percentage=0.0,
     activate_filters=True)
 
 train_db = DatasetReader(

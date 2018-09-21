@@ -8,8 +8,7 @@ import types
 from Settings import *
 import codecs
 import json
-
-
+from data_accessor.model.model_utilities import exponential,log
 def zero_padder(x, num_zeros, global_or_international, **kwargs):
     if num_zeros == 0: return x
     size = x.shape

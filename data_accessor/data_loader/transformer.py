@@ -7,6 +7,7 @@ from isoweek import Week
 
 from Settings import *
 from utilities import compute_label_encoders
+from data_accessor.model.model_utilities import exponential, log
 
 
 class Transform(object):
@@ -23,6 +24,7 @@ class Transform(object):
                  keep_zero_sale_filter=1.0,
                  stock_threshold=0,
                  keep_percentage_zero_price=0.0,
+                 random_transform_percentage=0.0,
                  activate_filters=True):
         '''
 
@@ -37,6 +39,7 @@ class Transform(object):
         self.keep_zero_stock_filter = keep_zero_stock_filter
         self.keep_zero_sale_filter = keep_zero_sale_filter
         self.keep_zero_price_percentage = keep_percentage_zero_price
+        self.random_transform_percentage = random_transform_percentage
         self.stock_threshold = stock_threshold
         self.feature_transforms = feature_transforms
         if label_encoders is None:
@@ -128,6 +131,24 @@ class Transform(object):
                 transformed_samples.extend(self.feature_transforms.to_final_format_prediction(feature_dictionary))
         return transformed_samples
 
+    def additive_noise_transform(self, sample, additive_noise, real_sale, real_stock):
+        s1 = sample
+        s1[feature_indices[SALES_MATRIX]] = np.maximum(additive_noise + real_sale, 0)
+        s1[feature_indices[GLOBAL_SALE]] = log(np.sum(s1[feature_indices[SALES_MATRIX]], 0), IS_LOG_TRANSFORM)
+        s1[feature_indices[STOCK]] = log(np.maximum(real_stock + np.sum(additive_noise, 0), 0), IS_LOG_TRANSFORM)
+        s1[feature_indices[SALES_MATRIX]] = log(s1[feature_indices[SALES_MATRIX]], IS_LOG_TRANSFORM)
+        return s1
+
+    def multiplicative_noise_transform(self, sample, multiplicative_noise, real_sale, real_global_sale):
+        s2 = sample
+        s2[feature_indices[SALES_MATRIX]] = np.maximum(multiplicative_noise * real_sale, 0)
+        s2[feature_indices[GLOBAL_SALE]] = log(np.sum(s2[feature_indices[SALES_MATRIX]], 0), IS_LOG_TRANSFORM)
+        s2[feature_indices[STOCK]] = log(
+            np.maximum(s2[feature_indices[STOCK]] + np.sum(s2[feature_indices[SALES_MATRIX]], 0) - real_global_sale, 0),
+            IS_LOG_TRANSFORM)
+        s2[feature_indices[SALES_MATRIX]] = log(s2[feature_indices[SALES_MATRIX]], IS_LOG_TRANSFORM)
+        return s2
+
     def create_chunk_of_samples(self, feature_dictionary):
         num_countries, num_weeks = feature_dictionary[SALES_MATRIX].shape
         num_window_shifts = int(np.floor((num_weeks - TOTAL_LENGTH) / float(WINDOW_SHIFT))) + 1
@@ -149,5 +170,22 @@ class Transform(object):
             selected_range = range(first_target_week_idx - TOTAL_LENGTH + 1, first_target_week_idx + 1)
             sample = self.feature_transforms.to_final_format_training(feature_dictionary, selected_range,
                                                                       self.activate_filters)
+            if np.random.rand() <= self.random_transform_percentage and sample != []:
+                real_sale = exponential(sample[0].T[feature_indices[SALES_MATRIX]], IS_LOG_TRANSFORM)
+                real_stock = exponential(sample[0].T[feature_indices[STOCK]], IS_LOG_TRANSFORM)
+                real_global_sale = np.sum(real_sale, 0)
+                max_value = np.max(real_sale)
+                additive_noise = (np.random.rand() * max_value / 10) * np.random.randn(*real_sale.shape) * (real_sale>0)
+                s1 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
+                samples.extend([s1.T])
+                multiplicative_noise = (np.random.rand() * max_value / 10) * np.random.randn(*real_sale.shape)
+                s2 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale, real_global_sale)
+                samples.extend([s2.T])
+                additive_noise = np.ones(real_sale.shape) * np.random.randint(0, int(max_value / 10) + 1) * (real_sale>0)
+                s3 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
+                samples.extend([s3.T])
+                multiplicative_noise = np.random.rand() * 2 * np.ones(real_sale.shape)
+                s4 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale, real_global_sale)
+                samples.extend([s4.T])
             samples.extend(sample)  # NUM_SAMPLES x TOTAL_LENGTH x NUM_FEAT
         return samples
