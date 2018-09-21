@@ -170,7 +170,7 @@ class Transform(object):
             selected_range = range(first_target_week_idx - TOTAL_LENGTH + 1, first_target_week_idx + 1)
             sample = self.feature_transforms.to_final_format_training(feature_dictionary, selected_range,
                                                                       self.activate_filters)
-            if np.random.rand() <= self.random_transform_percentage and sample != []:
+            if np.random.rand() < self.random_transform_percentage and sample != []:
                 real_sale = exponential(sample[0].T[feature_indices[SALES_MATRIX]], IS_LOG_TRANSFORM)
                 real_stock = exponential(sample[0].T[feature_indices[STOCK]], IS_LOG_TRANSFORM)
                 real_global_sale = np.sum(real_sale, 0)
