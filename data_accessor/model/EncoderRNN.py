@@ -35,7 +35,7 @@ class EncoderRNN(nn.Module):
         total_num_features = sum(self.embedding_sizes) + len(self.numeric_feature_indices)
 
         self.batch_norm = nn.Sequential(
-            # nn.LayerNorm(total_num_features),
+            nn.LayerNorm(total_num_features),
             nn.Linear(in_features=total_num_features, out_features=total_num_features),
             # nn.Dropout(rnn_dropout)
         )
