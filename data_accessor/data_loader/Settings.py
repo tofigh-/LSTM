@@ -88,7 +88,8 @@ DECODER_WEIGHT_DECAY = 0.00001
 WEEK_DECAY = 1
 PIN_LOSS_FACTOR = 0.55
 use_future_unknown_estimates = False
-to_print_variables = ['PIN_LOSS_FACTOR', 'use_future_unknown_estimates', 'RESUME', 'SIZE_AVERAGE', 'FF_DROPOUT',
+RANDOM_TRANSFORM_FACTOR = 0.3
+to_print_variables = ['RANDOM_TRANSFORM_FACTOR','PIN_LOSS_FACTOR', 'use_future_unknown_estimates', 'RESUME', 'SIZE_AVERAGE', 'FF_DROPOUT',
                       'WEEK_DECAY',
                       'SUM_WEIGHT', 'DECODER_WEIGHT_DECAY',
                       'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL', 'NUM_LAYER',

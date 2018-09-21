@@ -175,13 +175,16 @@ class Transform(object):
                 real_stock = exponential(sample[0].T[feature_indices[STOCK]], IS_LOG_TRANSFORM)
                 real_global_sale = np.sum(real_sale, 0)
                 max_value = np.max(real_sale)
-                additive_noise = (np.random.rand() * max_value / 10) * np.random.randn(*real_sale.shape) * (real_sale>0)
+                additive_noise = (np.random.rand() * max_value * RANDOM_TRANSFORM_FACTOR) * np.random.randn(
+                    *real_sale.shape) * (real_sale > 0)
                 s1 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
                 samples.extend([s1.T])
-                multiplicative_noise = (np.random.rand() * max_value / 10) * np.random.randn(*real_sale.shape)
+                multiplicative_noise = (np.random.rand() * max_value / RANDOM_TRANSFORM_FACTOR) * np.random.randn(
+                    *real_sale.shape)
                 s2 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale, real_global_sale)
                 samples.extend([s2.T])
-                additive_noise = np.ones(real_sale.shape) * np.random.randint(0, int(max_value / 10) + 1) * (real_sale>0)
+                additive_noise = np.ones(real_sale.shape) * np.random.randint(0, int(
+                    max_value * RANDOM_TRANSFORM_FACTOR) + 1) * (real_sale > 0)
                 s3 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
                 samples.extend([s3.T])
                 multiplicative_noise = np.random.rand() * 2 * np.ones(real_sale.shape)
