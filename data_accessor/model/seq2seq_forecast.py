@@ -267,8 +267,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
-        loss_function = l2pinloss
-        loss_function2 = l2pinloss
+        loss_function = l1pinloss
+        loss_function2 = l1pinloss
         if n_iter <= 1:
             teacher_forcing_ratio = 0.0
             loss_in_normal_domain = False
