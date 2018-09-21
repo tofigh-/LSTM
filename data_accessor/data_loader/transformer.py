@@ -171,24 +171,32 @@ class Transform(object):
             sample = self.feature_transforms.to_final_format_training(feature_dictionary, selected_range,
                                                                       self.activate_filters)
             if np.random.rand() < self.random_transform_percentage and sample != []:
+                transformation_selection = np.random.randint(0, 4)
                 real_sale = exponential(sample[0].T[feature_indices[SALES_MATRIX]], IS_LOG_TRANSFORM)
                 real_stock = exponential(sample[0].T[feature_indices[STOCK]], IS_LOG_TRANSFORM)
                 real_global_sale = np.sum(real_sale, 0)
                 max_value = np.max(real_sale)
-                additive_noise = (np.random.rand() * max_value * RANDOM_TRANSFORM_FACTOR) * np.random.randn(
-                    *real_sale.shape) * (real_sale > 0)
-                s1 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
-                samples.extend([s1.T])
-                multiplicative_noise = (np.random.rand() * max_value / RANDOM_TRANSFORM_FACTOR) * np.random.randn(
-                    *real_sale.shape)
-                s2 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale, real_global_sale)
-                samples.extend([s2.T])
-                additive_noise = np.ones(real_sale.shape) * np.random.randint(0, int(
-                    max_value * RANDOM_TRANSFORM_FACTOR) + 1) * (real_sale > 0)
-                s3 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
-                samples.extend([s3.T])
-                multiplicative_noise = np.random.rand() * 2 * np.ones(real_sale.shape)
-                s4 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale, real_global_sale)
-                samples.extend([s4.T])
-            samples.extend(sample)  # NUM_SAMPLES x TOTAL_LENGTH x NUM_FEAT
+                if transformation_selection == 0:
+                    additive_noise = (np.random.rand() * max_value * RANDOM_TRANSFORM_FACTOR) * np.random.randn(
+                        *real_sale.shape) * (real_sale > 0)
+                    s1 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
+                    samples.extend([s1.T])
+                if transformation_selection == 1:
+                    multiplicative_noise = (np.random.rand() * max_value / RANDOM_TRANSFORM_FACTOR) * np.random.randn(
+                        *real_sale.shape)
+                    s2 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale,
+                                                             real_global_sale)
+                    samples.extend([s2.T])
+                if transformation_selection == 2:
+                    additive_noise = np.ones(real_sale.shape) * np.random.randint(0, int(
+                        max_value * RANDOM_TRANSFORM_FACTOR) + 1) * (real_sale > 0)
+                    s3 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
+                    samples.extend([s3.T])
+                if transformation_selection == 3:
+                    multiplicative_noise = np.random.rand() * 2 * np.ones(real_sale.shape)
+                    s4 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale,
+                                                             real_global_sale)
+                    samples.extend([s4.T])
+            else:
+                samples.extend(sample)  # NUM_SAMPLES x TOTAL_LENGTH x NUM_FEAT
         return samples
