@@ -27,14 +27,16 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 10
+    train_workers = 0
     max_num_queries_train = 1
     max_num_queries_test = 1
 else:
-    num_csku_per_query_train = 3500
+    num_csku_per_query_train = 5000
+    train_workers = 4
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 5
@@ -93,7 +95,7 @@ test_db = DatasetReader(
     max_num_queries=max_num_queries_test,
     shuffle_dataset=True,
     seed=42)
-train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=6)
+train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
 test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 vanilla_rnn = VanillaRNNModel(embedding_descripts,

@@ -197,5 +197,5 @@ class Transform(object):
                     s4 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale,
                                                              real_global_sale)
                     samples.extend([s4.T])
-                samples.extend(sample)  # NUM_SAMPLES x TOTAL_LENGTH x NUM_FEAT
+            samples.extend(sample)  # NUM_SAMPLES x TOTAL_LENGTH x NUM_FEAT
         return samples
