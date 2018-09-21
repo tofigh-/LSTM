@@ -182,11 +182,11 @@ class Transform(object):
                     s1 = self.additive_noise_transform(sample[0].T, additive_noise, real_sale, real_stock)
                     samples.extend([s1.T])
                 if transformation_selection == 1:
-                    multiplicative_noise = (np.random.rand() * max_value / RANDOM_TRANSFORM_FACTOR) * np.random.randn(
-                        *real_sale.shape)
+                    multiplicative_noise = 1 + RANDOM_TRANSFORM_FACTOR * (np.random.rand(*real_sale.shape) - 0.5)
                     s2 = self.multiplicative_noise_transform(sample[0].T, multiplicative_noise, real_sale,
                                                              real_global_sale)
                     samples.extend([s2.T])
+
                 if transformation_selection == 2:
                     additive_noise = np.ones(real_sale.shape) * np.random.randint(0, int(
                         max_value * RANDOM_TRANSFORM_FACTOR) + 1) * (real_sale > 0)
