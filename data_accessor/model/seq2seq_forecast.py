@@ -59,7 +59,7 @@ train_transform = Transform(
     keep_percentage_zero_price=0.0,
     stock_threshold=2,
     keep_zero_sale_filter=0.1,
-    random_transform_percentage=1.0,
+    random_transform_percentage=0.75,
     activate_filters=True)
 
 if label_encoders is None:
@@ -274,10 +274,10 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         loss_function = l2pinloss
         loss_function2 = l2pinloss
         if n_iter <= 1:
-            teacher_forcing_ratio = 0.5
+            teacher_forcing_ratio = 0.0
             loss_in_normal_domain = False
         else:
-            teacher_forcing_ratio = 0.3
+            teacher_forcing_ratio = 0.0
             loss_in_normal_domain = False
 
         _, _, \
