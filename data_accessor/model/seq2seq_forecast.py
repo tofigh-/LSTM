@@ -161,18 +161,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 print "these feature indices are inf: ", z
                 print feature_indices
                 sys.exit()
-            past_history = TOTAL_INPUT
-            t = np.arange(1, past_history + 1)
-            from time import time
-            ys = batch_data[TOTAL_INPUT - past_history:TOTAL_INPUT, :, feature_indices[SALES_MATRIX]].reshape([past_history, -1])
 
-
-
-            b, a = np.linalg.lstsq(np.vstack([np.ones(len(ys)), t]).T, ys)[
-                0]  # calculating fitting coefficients (a,m)
-            y_predict = fit_least_square(np.repeat(np.arange(past_history + 1, past_history + OUTPUT_SIZE + 1)[:, None], len(a), axis=1),a,
-                            b)  # prediction based of fitted model
-            y_predict = y_predict.reshape([OUTPUT_SIZE,-1,NUM_COUNTRIES])
             input_encode = cuda_converter(torch.from_numpy(batch_data[0:TOTAL_INPUT, :, :]).float()).contiguous()
             input_decode = cuda_converter(
                 torch.from_numpy(batch_data[TOTAL_INPUT:TOTAL_LENGTH, :, :]).float()).contiguous()
@@ -184,7 +173,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             targets_future[STOCK] = input_decode[:, :, feature_indices[STOCK][0]].clone()
 
-            input_decode[:, :, feature_indices[SALES_MATRIX]] = cuda_converter(torch.from_numpy(y_predict).float()).contiguous()
+            input_decode[:, :, feature_indices[SALES_MATRIX]] =  input_encode[-1, :, feature_indices[SALES_MATRIX]]
             input_decode[:, :, feature_indices[GLOBAL_SALE][0]] = input_encode[-1, :, feature_indices[GLOBAL_SALE][0]]
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
