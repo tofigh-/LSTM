@@ -19,10 +19,17 @@ import os
 from data_accessor.data_loader import Settings as settings
 from datetime import datetime
 from datetime import timedelta
+import git
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
     print (variable, settings.__dict__[variable])
+repo = git.Repo(search_parent_directories=True)
+commit_hash = repo.head.object.hexsha
+branch_name = repo.active_branch
+print "commit_hash: " + commit_hash
+print "branch_name: " + branch_name
+
 dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
@@ -122,7 +129,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         if train_mode: vanilla_rnn.mode(train_mode=True)
         for batch_num, batch_data in enumerate(data):
 
-            if batch_num % 3001 == 0 and train_mode:
+            if batch_num % 5001 == 0 and train_mode:
                 vanilla_rnn.mode(train_mode=False)
                 k1, k2, test_sale_kpi, \
                 predicted_country_sales_test, \

@@ -187,13 +187,7 @@ class VanillaRNNModel(object):
             input_seq_decoder[future_week_index, :, self.sales_col] = inputs[0].data[TOTAL_INPUT - 1, :,
                                                                       self.sales_col]
         else:
-            if train:
-                # To make sure gradients flow over time
-                temp_input = input_seq_decoder.clone()
-                temp_input[future_week_index, :, self.sales_col] = future_unknown_estimates
-                input_seq_decoder = temp_input
-            else:
-                input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
+            input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
 
         future_decoder_hidden = hidden_state
         out_global_sales, \
@@ -233,7 +227,7 @@ class VanillaRNNModel(object):
                 week_idx,
                 hidden_state,
                 embedded_features,
-                temp_ff,
+                future_unknown_estimates=temp_ff,
                 train=False
             )
             all_week_predictions.append(future_unknown_estimates)
