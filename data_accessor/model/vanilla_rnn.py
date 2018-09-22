@@ -117,9 +117,9 @@ class VanillaRNNModel(object):
             loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
                                   sales_future[future_week_idx])
 
-            loss += 0.1* loss_function2(exponential(output_global_sale, loss_in_normal_domain),
-                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-                                   )
+            loss += 0.1 * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+                                         exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+                                         )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
@@ -137,11 +137,6 @@ class VanillaRNNModel(object):
             print "sum rnn: ", sum_rnn
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
-        l2_factor = DECODER_WEIGHT_DECAY
-        for param1, param2 in zip(self.future_decoder._modules['out_sale_means'].parameters(),
-                                  self.future_decoder._modules['out_sale_variances'].parameters()):
-            loss += torch.norm(param1) * l2_factor
-            loss += torch.norm(param2) * l2_factor
 
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
@@ -199,7 +194,7 @@ class VanillaRNNModel(object):
             hidden=future_decoder_hidden,
             embedded_inputs=embedded_features,
             encoder_outputs=encoder_outputs,
-            stochastic_output= train)
+            stochastic_output=train)
         return out_global_sales, \
                out_sales_predictions, \
                hidden, \
