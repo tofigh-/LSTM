@@ -19,10 +19,17 @@ import os
 from data_accessor.data_loader import Settings as settings
 from datetime import datetime
 from datetime import timedelta
+import git
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
-    print (variable,settings.__dict__[variable])
+    print (variable, settings.__dict__[variable])
+repo = git.Repo(search_parent_directories=True)
+commit_hash = repo.head.object.hexsha
+branch_name = repo.active_branch.path
+print "commit_hash: " + commit_hash
+print "branch_name: " + branch_name
+
 dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
@@ -31,10 +38,12 @@ debug_mode = False
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
+    train_workers = 0
     max_num_queries_train = 1
     max_num_queries_test = 1
 else:
     num_csku_per_query_train = 10000
+    train_workers = 4
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 5
@@ -55,7 +64,7 @@ train_transform = Transform(
     training_transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
-    stock_threshold=2,
+    stock_threshold=TRAIN_STOCK_THRESHOLD,
     keep_zero_sale_filter=0.1,
     activate_filters=True)
 
@@ -73,7 +82,7 @@ test_transform = Transform(
     training_transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
-    stock_threshold=5,
+    stock_threshold=TEST_STOCK_THRESHOLD,
     keep_zero_sale_filter=1.0,
     activate_filters=True)
 
@@ -91,7 +100,7 @@ test_db = DatasetReader(
     max_num_queries=max_num_queries_test,
     shuffle_dataset=True,
     seed=42)
-train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=4)
+train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
 test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 vanilla_rnn = VanillaRNNModel(embedding_descripts,

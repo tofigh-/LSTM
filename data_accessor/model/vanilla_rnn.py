@@ -144,16 +144,11 @@ class VanillaRNNModel(object):
             print "sum rnn: ", sum_rnn
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
+        l2_factor = DECODER_WEIGHT_DECAY
+        for param1 in self.future_decoder._modules['out_sale_means'].parameters():
+            loss += torch.norm(param1) * l2_factor
 
-        # l2_factor = DECODER_WEIGHT_DECAY
-        # for param1, param2 in zip(
-        #         self.future_decoder._modules['out_sale_means'].parameters(),
-        #         self.future_decoder._modules['out_sale_variances'].parameters()
-        # ):
-        #     loss += torch.norm(param1) * l2_factor
-        #     loss += torch.norm(param2) * l2_factor
         loss.backward()
-
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
         torch.nn.utils.clip_grad_norm_(self.future_decoder.parameters(), GRADIENT_CLIP)
 
@@ -197,13 +192,7 @@ class VanillaRNNModel(object):
             input_seq_decoder[future_week_index, :, self.sales_col] = inputs[0].data[TOTAL_INPUT - 1, :,
                                                                       self.sales_col]
         else:
-            if train:
-                # To make sure gradients flow over time
-                temp_input = input_seq_decoder.clone()
-                temp_input[future_week_index, :, self.sales_col] = future_unknown_estimates
-                input_seq_decoder = temp_input
-            else:
-                input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
+            input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
 
         future_decoder_hidden = hidden_state
         out_global_sales, \
@@ -230,6 +219,10 @@ class VanillaRNNModel(object):
         all_week_predictions = []
         global_sale_all_weeks = []
         for week_idx in range(OUTPUT_SIZE):
+            if use_future_unknown_estimates:
+                temp_ff = future_unknown_estimates
+            else:
+                temp_ff = None
             global_sales_prediction, \
             future_unknown_estimates, \
             hidden_state, \
@@ -239,7 +232,7 @@ class VanillaRNNModel(object):
                 week_idx,
                 hidden_state,
                 embedded_features,
-                future_unknown_estimates,
+                future_unknown_estimates=temp_ff,
                 train=False
             )
             all_week_predictions.append(future_unknown_estimates)

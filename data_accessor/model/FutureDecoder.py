@@ -39,7 +39,7 @@ class FutureDecoder(nn.Module):
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
         self.p = FF_DROPOUT
         self.out_sale_means = nn.Sequential(
-            # nn.LayerNorm(self.hidden_size * 2 + NUM_COUNTRIES + 1),
+            nn.LayerNorm(self.hidden_size * 2 + NUM_COUNTRIES + 1),
             nn.Linear(self.hidden_size * 2 + NUM_COUNTRIES + 1, (self.hidden_size + NUM_COUNTRIES) / 2),
             nn.Dropout(self.p),
             nn.Linear((self.hidden_size + NUM_COUNTRIES) / 2, num_output),
@@ -53,8 +53,7 @@ class FutureDecoder(nn.Module):
         #     nn.Softplus()
         # )
 
-    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
-                ):
+    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
         # INPUT SIZE: BATCH x TOTAL_FEATURE_NUM
         numeric_features = [input[:, self.numeric_feature_indices].float()]  # BATCH x NUM_NUMERIC_FEATURES
