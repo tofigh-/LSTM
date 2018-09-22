@@ -26,7 +26,7 @@ for variable in to_print_variables:
     print (variable, settings.__dict__[variable])
 repo = git.Repo(search_parent_directories=True)
 commit_hash = repo.head.object.hexsha
-branch_name = repo.active_branch
+branch_name = repo.active_branch.path
 print "commit_hash: " + commit_hash
 print "branch_name: " + branch_name
 
