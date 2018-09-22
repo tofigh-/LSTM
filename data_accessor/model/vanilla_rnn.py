@@ -89,6 +89,10 @@ class VanillaRNNModel(object):
         all_week_predictions = []
         global_sale_all_weeks = []
         for future_week_idx in range(OUTPUT_SIZE):
+            if use_future_unknown_estimates:
+                temp_ff = future_unknown_estimates
+            else:
+                temp_ff = None
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \
@@ -98,7 +102,7 @@ class VanillaRNNModel(object):
                                                                 future_week_idx,
                                                                 hidden_state,
                                                                 embedded_features,
-                                                                future_unknown_estimates,
+                                                                future_unknown_estimates=temp_ff,
                                                                 train=True
                                                                 )
             all_week_predictions.append(out_sales_predictions)
@@ -108,20 +112,19 @@ class VanillaRNNModel(object):
                 print inputs
                 print hidden_state
                 raise Exception
-            if future_week_idx == OUTPUT_SIZE - 1:
                 # loss + = self.future_decoder.mo
 
-                loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
-                                      sales_future[future_week_idx])
+            loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
+                                  sales_future[future_week_idx])
 
-                loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
-                                       exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-                                       )
+            loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+                                   )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
                 # without teacher forcing
-                future_unknown_estimates = out_sales_predictions
+                future_unknown_estimates = out_sales_predictions.detach()
 
         if math.isnan(loss.item()):
             print "loss is ", loss
@@ -134,7 +137,7 @@ class VanillaRNNModel(object):
             print "sum rnn: ", sum_rnn
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
-        l2_factor = 0.1
+        l2_factor = DECODER_WEIGHT_DECAY
         for param1, param2 in zip(self.future_decoder._modules['out_sale_means'].parameters(),
                                   self.future_decoder._modules['out_sale_variances'].parameters()):
             loss += torch.norm(param1) * l2_factor
@@ -217,6 +220,10 @@ class VanillaRNNModel(object):
         all_week_predictions = []
         global_sale_all_weeks = []
         for week_idx in range(OUTPUT_SIZE):
+            if use_future_unknown_estimates:
+                temp_ff = future_unknown_estimates
+            else:
+                temp_ff = None
             global_sales_prediction, \
             future_unknown_estimates, \
             hidden_state, \
@@ -226,7 +233,7 @@ class VanillaRNNModel(object):
                 week_idx,
                 hidden_state,
                 embedded_features,
-                future_unknown_estimates,
+                temp_ff,
                 train=False
             )
             all_week_predictions.append(future_unknown_estimates)
