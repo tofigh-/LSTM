@@ -122,7 +122,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         if train_mode: vanilla_rnn.mode(train_mode=True)
         for batch_num, batch_data in enumerate(data):
 
-            if batch_num % 10001 == 0 and train_mode:
+            if batch_num % 3001 == 0 and train_mode:
                 vanilla_rnn.mode(train_mode=False)
                 k1, k2, test_sale_kpi, \
                 predicted_country_sales_test, \
