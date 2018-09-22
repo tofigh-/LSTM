@@ -19,10 +19,17 @@ import os
 from data_accessor.data_loader import Settings as settings
 from datetime import datetime
 from datetime import timedelta
+import git
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
     print (variable, settings.__dict__[variable])
+repo = git.Repo(search_parent_directories=True)
+commit_hash = repo.head.object.hexsha
+branch_name = repo.active_branch.path
+print "commit_hash: " + commit_hash
+print "branch_name: " + branch_name
+
 dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
@@ -122,7 +129,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         if train_mode: vanilla_rnn.mode(train_mode=True)
         for batch_num, batch_data in enumerate(data):
 
-            if batch_num % 10001 == 0 and train_mode:
+            if batch_num % 5001 == 0 and train_mode:
                 vanilla_rnn.mode(train_mode=False)
                 k1, k2, test_sale_kpi, \
                 predicted_country_sales_test, \
@@ -201,6 +208,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             weekly_aggregated_kpi.append(aggregated_err)
             weekly_aggregated_kpi_scale.append(aggregated_sale)
             if batch_num % 1000 == 0 and train_mode:
+                print "max and min stochastic_sales_prediction:{max}, {min} " \
+                    .format(
+                    max=torch.max(torch.stack(sale_predictions)),
+                    min=torch.min(torch.stack(sale_predictions))
+                )
                 weekly_aggregated_kpi_per_country = np.sum(np.array(weekly_aggregated_kpi), axis=0) / np.sum(
                     np.array(weekly_aggregated_kpi_scale), axis=0) * 100
                 print "Weekly Aggregated Train KPI at Batch number {bn} is {kpi}".format(
@@ -257,10 +269,10 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         loss_function = lognormal_loss
         loss_function2 = msloss
         if n_iter <= 1:
-            teacher_forcing_ratio = 0.0
+            teacher_forcing_ratio = 0.3
             loss_in_normal_domain = False
         else:
-            teacher_forcing_ratio = 0.0
+            teacher_forcing_ratio = 0.3
             loss_in_normal_domain = False
 
         _, _, \

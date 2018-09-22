@@ -117,7 +117,7 @@ class VanillaRNNModel(object):
             loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
                                   sales_future[future_week_idx])
 
-            loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+            loss += 0.1* loss_function2(exponential(output_global_sale, loss_in_normal_domain),
                                    exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                    )
             if use_teacher_forcing:
@@ -187,13 +187,7 @@ class VanillaRNNModel(object):
             input_seq_decoder[future_week_index, :, self.sales_col] = inputs[0].data[TOTAL_INPUT - 1, :,
                                                                       self.sales_col]
         else:
-            if train:
-                # To make sure gradients flow over time
-                temp_input = input_seq_decoder.clone()
-                temp_input[future_week_index, :, self.sales_col] = future_unknown_estimates
-                input_seq_decoder = temp_input
-            else:
-                input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
+            input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
 
         future_decoder_hidden = hidden_state
         out_global_sales, \
@@ -234,7 +228,7 @@ class VanillaRNNModel(object):
                 week_idx,
                 hidden_state,
                 embedded_features,
-                temp_ff,
+                future_unknown_estimates=temp_ff,
                 train=False
             )
             all_week_predictions.append(future_unknown_estimates)
