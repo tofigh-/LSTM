@@ -34,7 +34,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = True
+debug_mode = False
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -295,7 +295,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         loss_function2 = msloss
         # num_draw_samples = draw_sample_strategy(n_iter)
         num_draw_samples = 1
-        teacher_forcing_ratio = 0.95
+        teacher_forcing_ratio = 1
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
