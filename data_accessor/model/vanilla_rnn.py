@@ -249,10 +249,10 @@ class VanillaRNNModel(object):
             hidden_state, \
             embedded_features, \
             _, _, encoder_first_week_output, _, _ = self.decode_output(
-                inputs,
-                week_idx,
-                hidden_state,
-                embedded_features,
+                inputs=inputs,
+                future_week_index=week_idx,
+                hidden_state=hidden_state,
+                embedded_features=embedded_features,
                 future_unknown_estimates=temp_ff,
                 train=False
             )
