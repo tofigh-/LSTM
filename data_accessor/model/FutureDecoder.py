@@ -74,11 +74,13 @@ class FutureDecoder(nn.Module):
             torch.sum(exponential(out_sales_mean_predictions + 0.5 * out_sales_variance_predictions, IS_LOG_TRANSFORM),
                       dim=1), IS_LOG_TRANSFORM)
         if stochastic_output:
-            output_distribution = LogNormal(out_sales_mean_predictions.squeeze(),
-                                            (out_sales_variance_predictions.squeeze() ** 0.5))
+            output_distribution = out_sales_mean_predictions + 0.5 * out_sales_variance_predictions
 
-            output_sales_prediction = log(torch.mean(output_distribution.sample((num_draw_samples,)), dim=0),
-                                          IS_LOG_TRANSFORM)
+            output_distribution[:,0] = LogNormal(out_sales_mean_predictions.squeeze()[:,0],
+                                            (out_sales_variance_predictions.squeeze()[:,0] ** 0.5))
+
+            # output_sales_prediction = log(torch.mean(output_distribution.sample((num_draw_samples,)), dim=0),
+            #                               IS_LOG_TRANSFORM)
         else:
             output_sales_prediction = (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions)
 
