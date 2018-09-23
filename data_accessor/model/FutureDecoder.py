@@ -8,7 +8,8 @@ from data_accessor.data_loader.Settings import *
 from my_relu import MyReLU
 from model_utilities import log, exponential
 from torch.distributions.log_normal import LogNormal
-from model_utilities import  cuda_converter
+from model_utilities import cuda_converter
+
 
 class FutureDecoder(nn.Module):
     def __init__(self,
@@ -74,13 +75,13 @@ class FutureDecoder(nn.Module):
             torch.sum(exponential(out_sales_mean_predictions + 0.5 * out_sales_variance_predictions, IS_LOG_TRANSFORM),
                       dim=1), IS_LOG_TRANSFORM)
         if stochastic_output:
-            output_distribution = (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions)
+            output_sales_prediction = (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions)
 
-            output_distribution[:,0] = cuda_converter(LogNormal(out_sales_mean_predictions.squeeze()[:,0],
-                                            (out_sales_variance_predictions.squeeze()[:,0] ** 0.5)))
+            output_distribution = LogNormal(out_sales_mean_predictions.squeeze()[:, 0],
+                                            (out_sales_variance_predictions.squeeze()[:, 0] ** 0.5))
 
-            # output_sales_prediction = log(torch.mean(output_distribution.sample((num_draw_samples,)), dim=0),
-            #                               IS_LOG_TRANSFORM)
+            output_sales_prediction[:, 0] = log(torch.mean(output_distribution.sample((num_draw_samples,)), dim=0),
+                                                IS_LOG_TRANSFORM)
         else:
             output_sales_prediction = (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions)
 
