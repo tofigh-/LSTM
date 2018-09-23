@@ -121,7 +121,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
-        encoder_first_week_kpi = []
+        encoder_first_second_week_kpi = [[], []]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         weekly_aggregated_kpi = []
         weekly_aggregated_kpi_scale = []
@@ -237,19 +237,21 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                             torch.sum(real_sales * black_price).item())
 
                 kpi_sale_scale[week_idx].append(kpi_denominator)
-                if week_idx == 0:
-                    encoder_first_week_kpi.append(kpi_compute_per_country(encoder_predictions[0],
-                                                                          target_sales=target_sales,
-                                                                          target_global_sales=target_global_sales,
-                                                                          log_transform=IS_LOG_TRANSFORM,
-                                                                          weight=black_price
-                                                                          ))
+                if week_idx < 2:
+                    encoder_first_second_week_kpi[week_idx].append(
+                        kpi_compute_per_country(encoder_predictions[week_idx],
+                                                target_sales=target_sales,
+                                                target_global_sales=target_global_sales,
+                                                log_transform=IS_LOG_TRANSFORM,
+                                                weight=black_price
+                                                ))
                 if batch_num % 1000 == 0 and train_mode:
                     kpi_per_country = np.sum(np.array(kpi_sale[week_idx]), axis=0) / np.sum(
                         np.array(kpi_sale_scale[week_idx]),
                         axis=0) * 100
-                    if week_idx == 0:
-                        encoder_kpi_per_country = np.sum(np.array(encoder_first_week_kpi), axis=0) / np.sum(
+                    if week_idx < 2:
+                        encoder_kpi_per_country = np.sum(np.array(encoder_first_second_week_kpi[week_idx]),
+                                                         axis=0) / np.sum(
                             np.array(kpi_sale_scale[week_idx]),
                             axis=0) * 100
 
@@ -275,8 +277,10 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
                 vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
-        encoder_kpi_per_country_total = rounder(
-            100 * np.sum(np.array(encoder_first_week_kpi), axis=0) / np.sum(np.array(kpi_sale_scale[0]), axis=0))
+        encoder_kpi_per_country_total = [rounder(
+            100 * np.sum(np.array(encoder_first_second_week_kpi[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]),
+                                                                                      axis=0))
+            for i in range(2)]
         kpi_per_country_total = [rounder(
             100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
             for i in range(OUTPUT_SIZE)]
