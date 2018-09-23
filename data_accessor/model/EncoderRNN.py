@@ -47,11 +47,15 @@ class EncoderRNN(nn.Module):
             nn.Softplus()
         )
         self.first_week_sale_prediction = nn.Sequential(
+            nn.BatchNorm1d(hidden_size),
+            nn.Dropout(0.5),
             nn.Linear(hidden_size, 14),
             nn.Softplus()
         )
 
         self.second_week_sale_prediction = nn.Sequential(
+            nn.BatchNorm1d(hidden_size),
+            nn.Dropout(0.5),
             nn.Linear(hidden_size, 14),
             nn.Softplus()
         )
