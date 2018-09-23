@@ -295,7 +295,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         loss_function2 = msloss
         # num_draw_samples = draw_sample_strategy(n_iter)
         num_draw_samples = 1
-        teacher_forcing_ratio = 1
+        teacher_forcing_ratio = 0.9
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
