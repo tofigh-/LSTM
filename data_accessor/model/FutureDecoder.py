@@ -74,7 +74,7 @@ class FutureDecoder(nn.Module):
             torch.sum(exponential(out_sales_mean_predictions + 0.5 * out_sales_variance_predictions, IS_LOG_TRANSFORM),
                       dim=1), IS_LOG_TRANSFORM)
         if stochastic_output:
-            output_distribution = out_sales_mean_predictions + 0.5 * out_sales_variance_predictions
+            output_distribution = (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions).data.cpu()
 
             output_distribution[:,0] = LogNormal(out_sales_mean_predictions.squeeze()[:,0],
                                             (out_sales_variance_predictions.squeeze()[:,0] ** 0.5))
