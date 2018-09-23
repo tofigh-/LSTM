@@ -101,13 +101,13 @@ class VanillaRNNModel(object):
             out_sales_variance_predictions, \
             encoder_first_week_output, \
             encoder_mean_prediction, \
-            encoder_variance_prediction = self.decode_output(inputs,
-                                                             future_week_idx,
-                                                             hidden_state,
-                                                             embedded_features,
+            encoder_variance_prediction = self.decode_output(inputs=inputs,
+                                                             future_week_index=future_week_idx,
+                                                             hidden_state=hidden_state,
+                                                             embedded_features=embedded_features,
                                                              num_draw_samples=num_draw_samples,
                                                              future_unknown_estimates=temp_ff,
-                                                             train=True
+                                                             stochastic_draw=not use_teacher_forcing
                                                              )
             if encoder_first_week_output is not None:
                 encoder_predictions.append(encoder_first_week_output)
@@ -183,7 +183,7 @@ class VanillaRNNModel(object):
                       embedded_features=None,
                       num_draw_samples=1,
                       future_unknown_estimates=None,
-                      train=False
+                      stochastic_draw=False
                       ):
         '''
         :param inputs: # (TOTAL_INPUT x BATCH x TOTAL_FEAT, OUTPUT_SIZE * BATCH * TOTAL_FEAT)
@@ -204,7 +204,7 @@ class VanillaRNNModel(object):
             encoder_first_week_predictions, \
             encoder_mean_prediction, \
             encoder_variance_prediction = self.encode_input(inputs)
-            input_seq_decoder[future_week_index, :, self.sales_col] = encoder_first_week_predictions.detach()
+            input_seq_decoder[future_week_index, :, self.sales_col].data = encoder_first_week_predictions.detach()
 
         else:
             input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
@@ -220,7 +220,7 @@ class VanillaRNNModel(object):
             num_draw_samples=num_draw_samples,
             embedded_inputs=embedded_features,
             encoder_outputs=encoder_outputs,
-            stochastic_output=train)
+            stochastic_output=stochastic_draw)
         return out_global_sales, \
                out_sales_predictions, \
                hidden, \
@@ -254,7 +254,7 @@ class VanillaRNNModel(object):
                 hidden_state=hidden_state,
                 embedded_features=embedded_features,
                 future_unknown_estimates=temp_ff,
-                train=False
+                stochastic_draw=False
             )
             if encoder_first_week_output is not None:
                 encoder_predictions.append(encoder_first_week_output)
