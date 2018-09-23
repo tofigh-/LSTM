@@ -54,7 +54,7 @@ class EncoderRNN(nn.Module):
         )
 
         self.second_week_sale_prediction = nn.Sequential(
-            nn.BatchNorm1d(hidden_size),
+            self.first_week_sale_prediction._modules['0'],
             nn.Dropout(0.5),
             nn.Linear(hidden_size, 14),
             nn.Softplus()
@@ -81,8 +81,8 @@ class EncoderRNN(nn.Module):
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None, :, :],
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None, :, :]
         )
-        out_first_week_prediction = self.first_week_sale_prediction(hidden_out[0]).squeeze()
-        out_second_week_prediction = self.second_week_sale_prediction(hidden_out[0]).squeeze()
+        out_first_week_prediction = self.first_week_sale_prediction(hidden_out[0].squeeze()).squeeze()
+        out_second_week_prediction = self.second_week_sale_prediction(hidden_out[0].squeeze()).squeeze()
 
         return output, hidden_out, [embedded_feature[0, :, :] for embedded_feature in
                                     embedded_input], out_first_week_prediction,out_second_week_prediction
