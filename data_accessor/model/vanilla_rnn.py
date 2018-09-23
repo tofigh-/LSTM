@@ -201,7 +201,7 @@ class VanillaRNNModel(object):
             encoder_first_week_predictions, \
             encoder_mean_prediction, \
             encoder_variance_prediction = self.encode_input(inputs)
-            input_seq_decoder[future_week_index, :, self.sales_col] = encoder_first_week_predictions
+            input_seq_decoder[future_week_index, :, self.sales_col] = encoder_first_week_predictions.detach()
 
         else:
             input_seq_decoder[future_week_index, :, self.sales_col] = future_unknown_estimates.detach()
