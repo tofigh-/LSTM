@@ -75,8 +75,7 @@ class VanillaRNNModel(object):
         else:
             self.encoder.eval(), self.future_decoder.eval()
 
-    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio,
-              loss_in_normal_domain):
+    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio, num_draw_samples):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
@@ -106,6 +105,7 @@ class VanillaRNNModel(object):
                                                              future_week_idx,
                                                              hidden_state,
                                                              embedded_features,
+                                                             num_draw_samples=num_draw_samples,
                                                              future_unknown_estimates=temp_ff,
                                                              train=True
                                                              )
@@ -125,8 +125,8 @@ class VanillaRNNModel(object):
             loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
                                   sales_future[future_week_idx])
 
-            loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
-                                   exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
+            loss += loss_function2(exponential(output_global_sale, IS_LOG_TRANSFORM),
+                                   exponential(global_sales[future_week_idx, :], IS_LOG_TRANSFORM)
                                    )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
@@ -181,6 +181,7 @@ class VanillaRNNModel(object):
                       future_week_index,
                       hidden_state=None,
                       embedded_features=None,
+                      num_draw_samples=1,
                       future_unknown_estimates=None,
                       train=False
                       ):
@@ -216,8 +217,10 @@ class VanillaRNNModel(object):
         hidden = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
+            num_draw_samples=num_draw_samples,
             embedded_inputs=embedded_features,
-            encoder_outputs=encoder_outputs)
+            encoder_outputs=encoder_outputs,
+            stochastic_output=train)
         return out_global_sales, \
                out_sales_predictions, \
                hidden, \

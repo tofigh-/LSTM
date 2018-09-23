@@ -119,7 +119,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     lognormal_loss = LogNormalLoss(size_average=SIZE_AVERAGE)
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
+    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, num_draw_samples=1, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         encoder_first_week_kpi = []
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
@@ -190,7 +190,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     loss_function=loss_func,
                     loss_function2=loss_func2,
                     teacher_forcing_ratio=teacher_forcing_ratio,
-                    loss_in_normal_domain=loss_in_normal_domain
+                    num_draw_samples=num_draw_samples
                 )
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
@@ -213,6 +213,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             weekly_aggregated_kpi.append(aggregated_err)
             weekly_aggregated_kpi_scale.append(aggregated_sale)
             if batch_num % 1000 == 0 and train_mode:
+                print "max and min stochastic_sales_prediction:{max}, {min} " \
+                    .format(
+                    max=torch.max(torch.stack(sale_predictions)),
+                    min=torch.min(torch.stack(sale_predictions))
+                )
                 weekly_aggregated_kpi_per_country = np.sum(np.array(weekly_aggregated_kpi), axis=0) / np.sum(
                     np.array(weekly_aggregated_kpi_scale), axis=0) * 100
                 print "Weekly Aggregated Train KPI at Batch number {bn} is {kpi}".format(
@@ -288,13 +293,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         loss_function = lognormal_loss
         loss_function2 = msloss
-        if n_iter <= 1:
-            teacher_forcing_ratio = 0.0
-            loss_in_normal_domain = False
-        else:
-            teacher_forcing_ratio = 0.0
-            loss_in_normal_domain = False
-
+        # num_draw_samples = draw_sample_strategy(n_iter)
+        num_draw_samples = 1
+        teacher_forcing_ratio = 0.95
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
@@ -304,7 +305,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                   train_mode=True,
                                                   loss_func=loss_function,
                                                   loss_func2=loss_function2,
-                                                  loss_in_normal_domain=loss_in_normal_domain,
+                                                  num_draw_samples=num_draw_samples,
                                                   teacher_forcing_ratio=teacher_forcing_ratio)
         print "*Encoder First week* National Train Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)

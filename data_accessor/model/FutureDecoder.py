@@ -7,6 +7,8 @@ from time_distributed import TimeDistributed
 from data_accessor.data_loader.Settings import *
 from my_relu import MyReLU
 from model_utilities import log, exponential
+from torch.distributions.log_normal import LogNormal
+from model_utilities import cuda_converter
 
 
 class FutureDecoder(nn.Module):
@@ -47,8 +49,7 @@ class FutureDecoder(nn.Module):
             nn.Softplus()
         )
 
-    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
-                ):
+    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None, num_draw_samples=1, stochastic_output=True):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
         # INPUT SIZE: BATCH x TOTAL_FEATURE_NUM
         numeric_features = [input[:, self.numeric_feature_indices].float()]  # BATCH x NUM_NUMERIC_FEATURES
@@ -73,8 +74,19 @@ class FutureDecoder(nn.Module):
         out_global_sales = log(
             torch.sum(exponential(out_sales_mean_predictions + 0.5 * out_sales_variance_predictions, IS_LOG_TRANSFORM),
                       dim=1), IS_LOG_TRANSFORM)
+        if stochastic_output:
+            output_sales_prediction = (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions)
+
+            output_distribution = LogNormal(out_sales_mean_predictions.squeeze()[:, 0],
+                                            (out_sales_variance_predictions.squeeze()[:, 0] ** 0.5))
+
+            output_sales_prediction[:, 0] = log(torch.mean(output_distribution.sample((num_draw_samples,)), dim=0),
+                                                IS_LOG_TRANSFORM)
+        else:
+            output_sales_prediction = (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions)
+
         return out_global_sales, \
-               (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions), \
+               output_sales_prediction, \
                out_sales_mean_predictions, \
                out_sales_variance_predictions, \
                hidden
