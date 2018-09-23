@@ -34,7 +34,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -109,6 +109,10 @@ vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               num_output=NUM_COUNTRIES)
 
 
+def draw_sample_strategy(n_iter):
+    return int(2 * n_iter - 1)
+
+
 def train(vanilla_rnn, n_iters, resume=RESUME):
     if resume:
         vanilla_rnn.load_checkpoint({FUTURE_DECODER_CHECKPOINT: 'decoder.gz', ENCODER_CHECKPOINT: 'encoder.gz'})
@@ -119,7 +123,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     lognormal_loss = LogNormalLoss(size_average=SIZE_AVERAGE)
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
+    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, num_draw_samples=1, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         weekly_aggregated_kpi = []
@@ -185,7 +189,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     loss_function=loss_func,
                     loss_function2=loss_func2,
                     teacher_forcing_ratio=teacher_forcing_ratio,
-                    loss_in_normal_domain=loss_in_normal_domain
+                    num_draw_samples = num_draw_samples
                 )
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
@@ -268,13 +272,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         loss_function = lognormal_loss
         loss_function2 = msloss
-        if n_iter <= 1:
-            teacher_forcing_ratio = 0.75
-            loss_in_normal_domain = False
-        else:
-            teacher_forcing_ratio = 0.75
-            loss_in_normal_domain = False
-
+        num_draw_samples = draw_sample_strategy(n_iter)
+        teacher_forcing_ratio = 0.75
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
@@ -282,7 +281,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                                                       train_mode=True,
                                                                                       loss_func=loss_function,
                                                                                       loss_func2=loss_function2,
-                                                                                      loss_in_normal_domain=loss_in_normal_domain,
+                                                                                      num_draw_samples=num_draw_samples,
                                                                                       teacher_forcing_ratio=teacher_forcing_ratio)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
