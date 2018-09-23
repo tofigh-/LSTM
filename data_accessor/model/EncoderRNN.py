@@ -36,7 +36,7 @@ class EncoderRNN(nn.Module):
 
         # It turns out I'm not normalizing, I'm transforming. That was a surprise. What happened to BatchNorm1d!?
         self.batch_norm = nn.Sequential(
-                                        nn.Linear(in_features=total_num_features, out_features=total_num_features))
+            nn.Linear(in_features=total_num_features, out_features=total_num_features))
         self.time_dist_batch_norm = TimeDistributed(self.batch_norm)
 
         self.p = rnn_dropout
@@ -44,6 +44,10 @@ class EncoderRNN(nn.Module):
                            bidirectional=bidirectional)
         self.hidden_state_dimensionality_reduction = nn.Sequential(
             nn.Linear(in_features=2 * hidden_size, out_features=hidden_size),
+            nn.Softplus()
+        )
+        self.first_week_sale_prediction = nn.Sequential(
+            nn.Linear(hidden_size, 14),
             nn.Softplus()
         )
 
@@ -68,7 +72,9 @@ class EncoderRNN(nn.Module):
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None, :, :],
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None, :, :]
         )
-        return output, hidden_out, [embedded_feature[0, :, :] for embedded_feature in embedded_input]
+        out_first_week_prediction = self.first_week_sale_prediction(hidden_out[0]).squeeze()
+        return output, hidden_out, [embedded_feature[0, :, :] for embedded_feature in
+                                    embedded_input], out_first_week_prediction
 
     def initHidden(self, batch_size):
         factor = 2 if self.bidirectional else 1
