@@ -110,7 +110,7 @@ vanilla_rnn = VanillaRNNModel(embedding_descripts,
 
 
 def draw_sample_strategy(n_iter):
-    return int(2 * n_iter - 1)
+    return int(ALPHA_SAMPLING * n_iter - 1)
 
 
 def train(vanilla_rnn, n_iters, resume=RESUME):
