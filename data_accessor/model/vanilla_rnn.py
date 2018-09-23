@@ -207,7 +207,7 @@ class VanillaRNNModel(object):
             input_seq_decoder[future_week_index, :, self.sales_col].data = encoder_first_week_predictions.detach()
 
         else:
-            input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
+            input_seq_decoder[future_week_index, :, self.sales_col] = future_unknown_estimates.detach()
 
         future_decoder_hidden = hidden_state
         out_global_sales, \
