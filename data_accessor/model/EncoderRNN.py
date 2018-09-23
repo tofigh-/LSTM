@@ -83,7 +83,11 @@ class EncoderRNN(nn.Module):
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None, :, :]
         )
         out_first_week_mean_prediction = self.first_week_mean_sale(hidden_out[0]).squeeze()
-        out_first_week_variance_prediction = self.first_week_variance_sale(hidden_out[0]).squeeze()
+        out_first_week_variance_prediction = torch.clamp(
+            self.first_week_variance_sale(hidden_out[0]).squeeze(),
+            min=1e-5,
+            max=1e5
+        )
         out_first_week_prediction = out_first_week_mean_prediction + 0.5 * out_first_week_variance_prediction
         return output, \
                hidden_out, \
