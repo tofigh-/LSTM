@@ -35,6 +35,25 @@ file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
 debug_mode = False
+
+
+def adjust_lr(optimizer, epoch):
+    if epoch < 4:
+        return
+    if 4 <= epoch and epoch < 10:
+        lr = LEARNING_RATE * 10
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+    elif 10 <= epoch < 12:
+        lr = LEARNING_RATE
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+    else:
+        lr = LEARNING_RATE / 10.0
+        for param_group in optimizer.param_groups:
+            param_group['lr'] = lr
+
+
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -294,7 +313,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         else:
             teacher_forcing_ratio = 0.0
             loss_in_normal_domain = False
-
+        adjust_lr(vanilla_rnn.encoder_optimizer, n_iter)
+        adjust_lr(vanilla_rnn.future_decoder_optimizer, n_iter)
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
