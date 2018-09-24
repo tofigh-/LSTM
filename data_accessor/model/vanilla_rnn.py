@@ -33,6 +33,7 @@ class VanillaRNNModel(object):
             self.future_decoder = cuda_converter(FutureDecoder(self.encoder.batch_norm,
                                                                embedding_descripts,
                                                                n_layers=1,
+                                                               rnn_layer= self.encoder.rnn,
                                                                hidden_size=HIDDEN_SIZE,
                                                                num_output=num_output))
         self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE,
