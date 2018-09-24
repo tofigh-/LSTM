@@ -75,12 +75,13 @@ class VanillaRNNModel(object):
         else:
             self.encoder.eval(), self.future_decoder.eval()
 
-    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio, num_draw_samples):
+    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio, num_draw_samples,use_sample_ratio):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
         # Teacher forcing: Feed the target as the next input while not teacher forcing consume the last prediciton as the input
         use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
+        draw_sample_for_future = True if random.random() < use_sample_ratio else False
         loss = 0
         hidden_state = None
         embedded_features = None
@@ -107,7 +108,7 @@ class VanillaRNNModel(object):
                                                              embedded_features=embedded_features,
                                                              num_draw_samples=num_draw_samples,
                                                              future_unknown_estimates=temp_ff,
-                                                             stochastic_draw=not use_teacher_forcing
+                                                             stochastic_draw=(not use_teacher_forcing) and draw_sample_for_future
                                                              )
             if encoder_first_week_output is not None:
                 encoder_predictions.append(encoder_first_week_output)
@@ -201,7 +202,6 @@ class VanillaRNNModel(object):
             encoder_first_week_predictions, \
             encoder_mean_prediction, \
             encoder_variance_prediction = self.encode_input(inputs)
-            input_seq_decoder[future_week_index, :, self.sales_col] = encoder_first_week_predictions.detach()
         if future_unknown_estimates is None:
             if encoder_first_week_predictions is not None:
                 input_seq_decoder[future_week_index, :, self.sales_col] = encoder_first_week_predictions.detach()

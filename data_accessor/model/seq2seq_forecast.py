@@ -119,7 +119,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     lognormal_loss = LogNormalLoss(size_average=SIZE_AVERAGE)
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, num_draw_samples=1, train_mode=True):
+    def data_iter(data, loss_func, loss_func2,
+                  use_sample_ratio=0.1,
+                  teacher_forcing_ratio=1.0,
+                  num_draw_samples=1,
+                  train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         encoder_first_week_kpi = []
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
@@ -137,12 +141,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 country_sales_test, \
                 weekly_aggregated_kpi_test, \
                 weekly_aggregated_kpi_scale_test, \
-                encoder_kpi_per_country_total_test = data_iter(
-                    data=test_dataloader,
-                    train_mode=False,
-                    loss_func=loss_func,
-                    loss_func2=loss_func2
-                )
+                encoder_kpi_per_country_total_test = data_iter(data=test_dataloader, loss_func=loss_func,
+                                                               loss_func2=loss_func2,
+                                                               train_mode=False)
                 vanilla_rnn.mode(train_mode=True)
                 print "*Encoder First week* National Test Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total_test)
 
@@ -190,7 +191,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     loss_function=loss_func,
                     loss_function2=loss_func2,
                     teacher_forcing_ratio=teacher_forcing_ratio,
-                    num_draw_samples=num_draw_samples
+                    num_draw_samples=num_draw_samples,
+                    use_sample_ratio= use_sample_ratio
                 )
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
@@ -296,17 +298,16 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         # num_draw_samples = draw_sample_strategy(n_iter)
         num_draw_samples = 1
         teacher_forcing_ratio = 0.0
+        use_sample_ratio = USE_SAMPLE_RATIO
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
         country_sales, weekly_aggregated_kpi, \
         weekly_aggregated_kpi_scale, \
-        encoder_kpi_per_country_total = data_iter(data=train_dataloader,
-                                                  train_mode=True,
-                                                  loss_func=loss_function,
-                                                  loss_func2=loss_function2,
-                                                  num_draw_samples=num_draw_samples,
-                                                  teacher_forcing_ratio=teacher_forcing_ratio)
+        encoder_kpi_per_country_total = data_iter(data=train_dataloader, loss_func=loss_function,
+                                                  loss_func2=loss_function2, use_sample_ratio=use_sample_ratio,
+                                                  teacher_forcing_ratio=teacher_forcing_ratio,
+                                                  num_draw_samples=num_draw_samples, train_mode=True)
         print "*Encoder First week* National Train Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
@@ -322,9 +323,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     country_sales, \
     weekly_aggregated_kpi, \
     weekly_aggregated_kpi_scale, \
-    encoder_kpi_per_country_total = data_iter(test_dataloader, train_mode=False,
-                                              loss_func=loss_function,
-                                              loss_func2=loss_function2)
+    encoder_kpi_per_country_total = data_iter(test_dataloader, loss_func=loss_function, loss_func2=loss_function2,
+                                              train_mode=False)
     print "*Encoder First week* National Test Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
 
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
