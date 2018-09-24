@@ -34,7 +34,6 @@ class VanillaRNNModel(object):
                                                                embedding_descripts,
                                                                n_layers=1,
                                                                hidden_size=HIDDEN_SIZE,
-                                                               rnn_layer=self.encoder.rnn,
                                                                num_output=num_output))
         self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE,
                                             weight_decay=ENCODER_WEIGHT_DECAY)
