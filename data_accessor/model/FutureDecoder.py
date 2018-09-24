@@ -22,46 +22,32 @@ class FutureDecoder(nn.Module):
         self.n_layers = n_layers
         self.hidden_size = hidden_size
         self.num_output = num_output
-        self.embedding_sizes = [embedding_descriptions[feature][EMBEDDING_SIZE] for feature in embedded_features]
-        self.embedding_feature_indices = embedding_feature_indices
-        self.numeric_feature_indices = numeric_feature_indices
-        total_num_features = sum(self.embedding_sizes) + len(self.numeric_feature_indices)
 
         # It shares the batch_norm layer with encoder
         # (i.e., implicitly assumes encoder and decoder feature inputs have equal dimensions)
-        self.batch_norm = batch_norm
         self.relu = nn.Softplus(beta=0.8)
-        self.rnn = nn.LSTM(input_size=total_num_features, hidden_size=self.hidden_size, num_layers=n_layers)
-        if rnn_layer is not None:
-            self.rnn.weight_ih_l0 = rnn_layer.weight_ih_l0
-            self.rnn.weight_hh_l0 = rnn_layer.weight_hh_l0
-            self.rnn.bias_ih_l0 = rnn_layer.bias_ih_l0
-            self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
+        self.rnn = nn.LSTM(input_size=len(feature_indices[DISCOUNT_MATRIX]), hidden_size=self.hidden_size,
+                           num_layers=n_layers)
 
         self.out_sale_means = nn.Sequential(
-            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
+            nn.Linear(self.hidden_size + NUM_COUNTRIES, num_output),
             nn.Softplus()
         )
         self.out_sale_variances = nn.Sequential(
-            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
+            nn.Linear(self.hidden_size + NUM_COUNTRIES, num_output),
             nn.Softplus()
         )
 
-    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
+    def forward(self, input, hidden, encoder_outputs=None,
                 ):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
         # INPUT SIZE: BATCH x TOTAL_FEATURE_NUM
-        numeric_features = [input[:, self.numeric_feature_indices].float()]  # BATCH x NUM_NUMERIC_FEATURES
         # Assumption 2: embedded_inputs is a list where each element size: BATCH x EMBEDDING_SIZE
         #  The length of the list is equal to the number of embedded features
         # BATCH_SIZE x TOTAL_NUM_FEAT
-        features = self.batch_norm(torch.cat(numeric_features + embedded_inputs, dim=1))
+        features = input.float()
         output, hidden = self.rnn(features.unsqueeze(0), hidden)
-        encoded_features = torch.cat(
-            [output[0],
-             input[:, feature_indices[STOCK]].float(),
-             input[:, feature_indices[DISCOUNT_MATRIX]].float()
-             ], dim=1)
+        encoded_features = torch.cat([output[0], features], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
         out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
                                                      min=1e-5,

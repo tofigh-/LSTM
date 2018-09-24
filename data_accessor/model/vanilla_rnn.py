@@ -34,7 +34,6 @@ class VanillaRNNModel(object):
                                                                embedding_descripts,
                                                                n_layers=1,
                                                                hidden_size=HIDDEN_SIZE,
-                                                               rnn_layer=self.encoder.rnn,
                                                                num_output=num_output))
         self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE,
                                             weight_decay=ENCODER_WEIGHT_DECAY)
@@ -117,14 +116,9 @@ class VanillaRNNModel(object):
             loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
                                   sales_future[future_week_idx])
 
-            loss += loss_function2(exponential(output_global_sale, loss_in_normal_domain),
+            loss += 0.1 * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
                                    exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
                                    )
-            if use_teacher_forcing:
-                future_unknown_estimates = sales_future.data[future_week_idx, :, :]
-            else:
-                # without teacher forcing
-                future_unknown_estimates = out_sales_predictions.detach()
 
         if math.isnan(loss.item()):
             print "loss is ", loss
@@ -177,12 +171,7 @@ class VanillaRNNModel(object):
         input_seq_decoder = inputs[1]
         encoder_outputs = None
         if hidden_state is None:
-            hidden_state, embedded_features, encoder_outputs = self.encode_input(inputs)
-        if future_unknown_estimates is None:
-            input_seq_decoder[future_week_index, :, self.sales_col] = inputs[0].data[TOTAL_INPUT - 1, :,
-                                                                      self.sales_col]
-        else:
-            input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
+            hidden_state, _, encoder_outputs = self.encode_input(inputs)
 
         future_decoder_hidden = hidden_state
         out_global_sales, \
@@ -192,7 +181,6 @@ class VanillaRNNModel(object):
         hidden = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
-            embedded_inputs=embedded_features,
             encoder_outputs=encoder_outputs)
         return out_global_sales, \
                out_sales_predictions, \
@@ -209,10 +197,7 @@ class VanillaRNNModel(object):
         all_week_predictions = []
         global_sale_all_weeks = []
         for week_idx in range(OUTPUT_SIZE):
-            if use_future_unknown_estimates:
-                temp_ff = future_unknown_estimates
-            else:
-                temp_ff = None
+
             global_sales_prediction, \
             future_unknown_estimates, \
             hidden_state, \
@@ -222,7 +207,7 @@ class VanillaRNNModel(object):
                 week_idx,
                 hidden_state,
                 embedded_features,
-                future_unknown_estimates=temp_ff,
+                future_unknown_estimates=None,
                 train=False
             )
             all_week_predictions.append(future_unknown_estimates)
