@@ -189,7 +189,8 @@ class VanillaRNNModel(object):
         if future_week_index == 0:
             input_seq_decoder[future_week_index, :, self.sales_col] = encoder_first_week_predictions.detach()
         elif future_unknown_estimates is None:
-            input_seq_decoder[future_week_index, :, self.sales_col] = input_seq_decoder[0, :, self.sales_col]
+            input_seq_decoder[future_week_index, :, self.sales_col] = inputs[0].data[TOTAL_INPUT - 1, :,
+                                                                      self.sales_col]
         else:
             input_seq_decoder[future_week_index, :, self.sales_col] = future_unknown_estimates
 
