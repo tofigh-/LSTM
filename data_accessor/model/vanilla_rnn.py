@@ -75,7 +75,8 @@ class VanillaRNNModel(object):
         else:
             self.encoder.eval(), self.future_decoder.eval()
 
-    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio, num_draw_samples,use_sample_ratio):
+    def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio, num_draw_samples,
+              use_sample_ratio):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
@@ -108,11 +109,12 @@ class VanillaRNNModel(object):
                                                              embedded_features=embedded_features,
                                                              num_draw_samples=num_draw_samples,
                                                              future_unknown_estimates=temp_ff,
-                                                             stochastic_draw=(not use_teacher_forcing) and draw_sample_for_future
+                                                             stochastic_draw=(
+                                                                                 not use_teacher_forcing) and draw_sample_for_future
                                                              )
             if encoder_first_week_output is not None:
                 encoder_predictions.append(encoder_first_week_output)
-            all_week_predictions.append(out_sales_predictions)
+            all_week_predictions.append(out_sales_mean_predictions + 0.5 * out_sales_variance_predictions)
             global_sale_all_weeks.append(output_global_sale)
             if out_sales_predictions.shape[0] == 0:
                 print ("output_prediction is empty", out_sales_predictions)
