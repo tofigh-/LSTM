@@ -7,6 +7,7 @@ from time_distributed import TimeDistributed
 from data_accessor.data_loader.Settings import *
 from my_relu import MyReLU
 from model_utilities import log, exponential
+from model_utilities import cuda_converter
 
 
 class FutureDecoder(nn.Module):
@@ -37,13 +38,15 @@ class FutureDecoder(nn.Module):
             self.rnn.weight_hh_l0 = rnn_layer.weight_hh_l0
             self.rnn.bias_ih_l0 = rnn_layer.bias_ih_l0
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
+        self.z_mean = nn.Sequential(
+            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, self.hidden_size)
+        )
 
-        self.out_mean_mean = nn.Sequential(
-            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
+        self.z_std = nn.Sequential(
+            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, self.hidden_size),
+            nn.Softplus()
         )
-        self.out_mean_variance = nn.Sequential(
-            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output)
-        )
+
         self.out_sale_means = nn.Sequential(
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
             nn.Softplus()
@@ -53,8 +56,7 @@ class FutureDecoder(nn.Module):
             nn.Softplus()
         )
 
-    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
-                ):
+    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None, train=True):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
         # INPUT SIZE: BATCH x TOTAL_FEATURE_NUM
         numeric_features = [input[:, self.numeric_feature_indices].float()]  # BATCH x NUM_NUMERIC_FEATURES
@@ -68,8 +70,16 @@ class FutureDecoder(nn.Module):
              input[:, feature_indices[STOCK]].float(),
              input[:, feature_indices[DISCOUNT_MATRIX]].float()
              ], dim=1)
-        out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
-        out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
+        out_z_mean = self.z_mean(encoded_features)
+        out_z_std = self.z_std(encoded_features)
+        latent_vector = out_z_mean + out_z_std * cuda_converter(torch.randn(out_z_std.shape)) * train
+        latent_enriched_input = torch.cat([
+            latent_vector,
+            input[:, feature_indices[STOCK]].float(),
+            input[:, feature_indices[DISCOUNT_MATRIX]].float()
+        ], dim=1)
+        out_sales_mean_predictions = self.out_sale_means(latent_enriched_input).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
+        out_sales_variance_predictions = torch.clamp(self.out_sale_variances(latent_enriched_input).squeeze(),
                                                      min=1e-5,
                                                      max=1e5)  # (BATCH_SIZE,NUM_OUTPUT)
         if len(out_sales_mean_predictions.shape) == 1 and self.num_output > 1:
@@ -77,9 +87,6 @@ class FutureDecoder(nn.Module):
             out_sales_variance_predictions = out_sales_variance_predictions[None, :]
 
         output_sales = out_sales_mean_predictions + 0.5 * out_sales_variance_predictions
-        threshold = np.log(L2_LOSS_SALES_THRESHOLD + 1) if IS_LOG_TRANSFORM else L2_LOSS_SALES_THRESHOLD
-
-        output_sales[out_sales_mean_predictions < threshold] = out_sales_mean_predictions[out_sales_mean_predictions < threshold]
         out_global_sales = log(
             torch.sum(exponential(out_sales_mean_predictions + 0.5 * out_sales_variance_predictions, IS_LOG_TRANSFORM),
                       dim=1), IS_LOG_TRANSFORM)
@@ -87,6 +94,8 @@ class FutureDecoder(nn.Module):
                output_sales, \
                out_sales_mean_predictions, \
                out_sales_variance_predictions, \
+               out_z_mean, \
+               out_z_std, \
                hidden
 
 

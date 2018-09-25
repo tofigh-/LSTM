@@ -99,13 +99,14 @@ class VanillaRNNModel(object):
             hidden_state, \
             embedded_features, \
             out_sales_mean_predictions, \
-            out_sales_variance_predictions, encoder_first_week_output = self.decode_output(inputs,
-                                                                                           future_week_idx,
-                                                                                           hidden_state,
-                                                                                           embedded_features,
-                                                                                           future_unknown_estimates=temp_ff,
-                                                                                           train=True
-                                                                                           )
+            out_sales_variance_predictions, encoder_first_week_output, out_z_mean, out_z_std = self.decode_output(
+                inputs,
+                future_week_idx,
+                hidden_state,
+                embedded_features,
+                future_unknown_estimates=temp_ff,
+                train=True
+                )
             if encoder_first_week_output is not None:
                 encoder_predictions.append(encoder_first_week_output)
             all_week_predictions.append(out_sales_predictions)
@@ -118,6 +119,8 @@ class VanillaRNNModel(object):
                 # loss + = self.future_decoder.mo
             if future_week_idx == 0:
                 loss += loss_function2(encoder_first_week_output, sales_future[future_week_idx])
+            loss +=  -0.5 * torch.mean(1 + torch.log(out_z_std ** 2) - out_z_mean ** 2 - out_z_std ** 2)
+
             loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
                                   sales_future[future_week_idx])
             if use_teacher_forcing:
@@ -190,18 +193,24 @@ class VanillaRNNModel(object):
         out_sales_predictions, \
         out_sales_mean_predictions, \
         out_sales_variance_predictions, \
+        out_z_mean, \
+        out_z_std, \
         hidden = self.future_decoder(
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
             embedded_inputs=embedded_features,
-            encoder_outputs=encoder_outputs)
+            encoder_outputs=encoder_outputs,
+            train=train)
         return out_global_sales, \
                out_sales_predictions, \
                hidden, \
                embedded_features, \
                out_sales_mean_predictions, \
                out_sales_variance_predictions, \
-               encoder_first_week_predictions
+               encoder_first_week_predictions, \
+               out_z_mean, \
+               out_z_std
+
 
     def predict_over_period(self, inputs,
                             hidden_state=None,
@@ -220,7 +229,7 @@ class VanillaRNNModel(object):
             future_unknown_estimates, \
             hidden_state, \
             embedded_features, \
-            _, _, encoder_first_week_output = self.decode_output(
+            _, _, encoder_first_week_output,_,_ = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,
