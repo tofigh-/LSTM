@@ -122,7 +122,9 @@ class MixedL2LogNormalLoss(nn.Module):
     def forward(self, miu, variance, target):
         _assert_no_grad(target)
         mask = target < self.threshold
-        out = mask.float() * self.l2_loss(miu, target) + (1 - mask.float()) * self.lognormal_loss(miu, variance, target)
+        out = cuda_converter(torch.empty(target.shape))
+        out[mask] = self.l2_loss(miu, target)
+        out[1 - mask] = self.lognormal_loss(miu, variance, target)
         if self.size_average:
             return torch.mean(out)
         else:
