@@ -38,6 +38,12 @@ class FutureDecoder(nn.Module):
             self.rnn.bias_ih_l0 = rnn_layer.bias_ih_l0
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
 
+        self.out_mean_mean = nn.Sequential(
+            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
+        )
+        self.out_mean_variance = nn.Sequential(
+            nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output)
+        )
         self.out_sale_means = nn.Sequential(
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, num_output),
             nn.Softplus()
