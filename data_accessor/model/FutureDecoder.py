@@ -71,7 +71,7 @@ class FutureDecoder(nn.Module):
              input[:, feature_indices[DISCOUNT_MATRIX]].float()
              ], dim=1)
         out_z_mean = self.z_mean(encoded_features)
-        out_z_std = self.z_std(encoded_features)
+        out_z_std = torch.clamp(self.z_std(encoded_features), min=1e-5, max=1e-5)
         latent_vector = out_z_mean + out_z_std * cuda_converter(torch.randn(out_z_std.shape)) * train
         latent_enriched_input = torch.cat([
             latent_vector,
