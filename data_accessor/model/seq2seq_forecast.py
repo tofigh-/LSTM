@@ -8,7 +8,7 @@ from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
 from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
-from loss import L2_LOSS, L1_LOSS, LogNormalLoss
+from loss import L2_LOSS, L1_LOSS, LogNormalLoss,MixedL2LogNormalLoss
 from model_utilities import kpi_compute, exponential, complete_embedding_description, cuda_converter, \
     kpi_compute_per_country, rounder
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
@@ -35,25 +35,6 @@ file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
 debug_mode = False
-
-
-def adjust_lr(optimizer, epoch):
-    if epoch < 4:
-        return
-    if 4 <= epoch and epoch < 10:
-        lr = LEARNING_RATE * 10
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-    elif 10 <= epoch < 12:
-        lr = LEARNING_RATE
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-    else:
-        lr = LEARNING_RATE / 10.0
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-
-
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -136,6 +117,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     l1loss = L1_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     lognormal_loss = LogNormalLoss(size_average=SIZE_AVERAGE)
+    mixed_loss = MixedL2LogNormalLoss(size_average=SIZE_AVERAGE,l2_upper_threshold= L2_LOSS_SALES_THRESHOLD)
+
     np.random.seed(0)
 
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
@@ -305,7 +288,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
-        loss_function = lognormal_loss
+        loss_function = mixed_loss
         loss_function2 = msloss
         if n_iter <= 1:
             teacher_forcing_ratio = 0.0
@@ -313,8 +296,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         else:
             teacher_forcing_ratio = 0.0
             loss_in_normal_domain = False
-        adjust_lr(vanilla_rnn.encoder_optimizer, n_iter)
-        adjust_lr(vanilla_rnn.future_decoder_optimizer, n_iter)
+
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
@@ -357,4 +339,4 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     print "Bias Test per country per week {bias}".format(bias=bias)
 
 
-train(vanilla_rnn, n_iters=30)
+train(vanilla_rnn, n_iters=10)

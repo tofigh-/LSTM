@@ -5,7 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
 from torch.nn.modules.loss import _assert_no_grad
-
+from data_accessor.data_loader.Settings import IS_LOG_TRANSFORM
 from model_utilities import cuda_converter
 
 
@@ -96,13 +96,34 @@ class L2_LOSS(nn.Module):
 
 
 class LogNormalLoss(nn.Module):
-    def __init__(self, size_average=True):
+    def __init__(self, size_average=True, reduce=True):
         super(LogNormalLoss, self).__init__()
         self.size_average = size_average
+        self.reduce = reduce
 
     def forward(self, miu, variance, target):
         _assert_no_grad(target)
         if self.size_average:
             return torch.mean(torch.log(variance) + (target - miu) ** 2 / variance)
-        else:
+        elif self.reduce:
             return torch.sum(torch.log(variance) + (target - miu) ** 2 / variance)
+        else:
+            return torch.log(variance) + (target - miu) ** 2 / variance
+
+
+class MixedL2LogNormalLoss(nn.Module):
+    def __init__(self, size_average=True, l2_upper_threshold=10):
+        super(MixedL2LogNormalLoss, self).__init__()
+        self.size_average = size_average
+        self.threshold = np.log(l2_upper_threshold) if IS_LOG_TRANSFORM else l2_upper_threshold
+        self.lognormal_loss = LogNormalLoss(size_average=False, reduce=False)
+        self.l2_loss = nn.MSELoss(size_average=False, reduce=False)
+
+    def forward(self, miu, variance, target):
+        _assert_no_grad(target)
+        mask = target < self.threshold
+        out = mask * self.l2_loss(miu, target) + (1 - mask) * self.lognormal_loss(miu, variance, target)
+        if self.size_average:
+            return torch.mean(out)
+        else:
+            return torch.sum(out)

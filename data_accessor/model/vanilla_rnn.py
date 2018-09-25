@@ -33,8 +33,8 @@ class VanillaRNNModel(object):
             self.future_decoder = cuda_converter(FutureDecoder(self.encoder.batch_norm,
                                                                embedding_descripts,
                                                                n_layers=1,
-                                                               rnn_layer= self.encoder.rnn,
                                                                hidden_size=HIDDEN_SIZE,
+                                                               rnn_layer=self.encoder.rnn,
                                                                num_output=num_output))
         self.encoder_optimizer = optim.Adam(self.encoder.parameters(), lr=LEARNING_RATE,
                                             weight_decay=ENCODER_WEIGHT_DECAY)
@@ -120,10 +120,6 @@ class VanillaRNNModel(object):
                 loss += loss_function2(encoder_first_week_output, sales_future[future_week_idx])
             loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
                                   sales_future[future_week_idx])
-
-            loss += 0.1 * loss_function2(exponential(output_global_sale, loss_in_normal_domain),
-                                         exponential(global_sales[future_week_idx, :], loss_in_normal_domain)
-                                         )
             if use_teacher_forcing:
                 future_unknown_estimates = sales_future.data[future_week_idx, :, :]
             else:
@@ -142,9 +138,6 @@ class VanillaRNNModel(object):
             print "sum decoder output: ", torch.sum(self.future_decoder.out_sale.weight).item()
             sys.exit()
 
-        l2_factor = DECODER_WEIGHT_DECAY
-        for param1 in self.future_decoder._modules['rnn'].parameters():
-            loss += torch.norm(param1) * l2_factor
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.encoder.parameters(), GRADIENT_CLIP)
         torch.nn.utils.clip_grad_norm_(self.future_decoder.parameters(), GRADIENT_CLIP)
@@ -185,15 +178,12 @@ class VanillaRNNModel(object):
         input_seq_decoder = inputs[1]
         encoder_first_week_predictions = None
         encoder_outputs = None
-        if hidden_state is None:
+        if hidden_state is None or future_unknown_estimates is None:
             hidden_state, embedded_features, encoder_outputs, encoder_first_week_predictions = self.encode_input(inputs)
-        if future_week_index == 0:
             input_seq_decoder[future_week_index, :, self.sales_col] = encoder_first_week_predictions.detach()
-        elif future_unknown_estimates is None:
-            input_seq_decoder[future_week_index, :, self.sales_col] = inputs[0].data[TOTAL_INPUT - 1, :,
-                                                                      self.sales_col]
+
         else:
-            input_seq_decoder[future_week_index, :, self.sales_col] = future_unknown_estimates
+            input_seq_decoder[future_week_index, :, self.sales_col].data = future_unknown_estimates
 
         future_decoder_hidden = hidden_state
         out_global_sales, \
