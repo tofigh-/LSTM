@@ -115,7 +115,7 @@ class MixedL2LogNormalLoss(nn.Module):
     def __init__(self, size_average=True, l2_upper_threshold=10):
         super(MixedL2LogNormalLoss, self).__init__()
         self.size_average = size_average
-        self.threshold = np.log(l2_upper_threshold) if IS_LOG_TRANSFORM else l2_upper_threshold
+        self.threshold = np.log(l2_upper_threshold + 1) if IS_LOG_TRANSFORM else l2_upper_threshold
         self.lognormal_loss = LogNormalLoss(size_average=False, reduce=False)
         self.l2_loss = nn.MSELoss(size_average=False, reduce=False)
 

@@ -71,7 +71,7 @@ class FutureDecoder(nn.Module):
             out_sales_variance_predictions = out_sales_variance_predictions[None, :]
 
         output_sales = out_sales_mean_predictions + 0.5 * out_sales_variance_predictions
-        threshold = np.log(L2_LOSS_SALES_THRESHOLD) if IS_LOG_TRANSFORM else L2_LOSS_SALES_THRESHOLD
+        threshold = np.log(L2_LOSS_SALES_THRESHOLD + 1) if IS_LOG_TRANSFORM else L2_LOSS_SALES_THRESHOLD
 
         output_sales[out_sales_mean_predictions < threshold] = out_sales_mean_predictions[out_sales_mean_predictions < threshold]
         out_global_sales = log(
