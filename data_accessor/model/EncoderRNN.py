@@ -51,7 +51,7 @@ class EncoderRNN(nn.Module):
             nn.Softplus()
         )
 
-    def forward(self, input, hidden,train,noise_std=0):
+    def forward(self, input, hidden, train, noise_std=0):
         batch_size = input.size()[1]
         numeric_features = [input[:, :, self.numeric_feature_indices].float()]
         # Each embedding is computed for the first time-step and replicated 52 times (.expand does exactly that)
@@ -69,8 +69,8 @@ class EncoderRNN(nn.Module):
                            self.p)
         output, hidden = self.rnn(output, hidden)
         if train:
-            hidden[0][0] = hidden[0][0] * cuda_converter(1 + noise_std * torch.randn(hidden[0][0].shape))
-            hidden[0][1] = hidden[0][1] * cuda_converter(1 + noise_std * torch.randn(hidden[0][1].shape))
+            hidden[0][0] *= cuda_converter(1 + noise_std * torch.randn(hidden[0][0].shape))
+            hidden[0][1] *= cuda_converter(1 + noise_std * torch.randn(hidden[0][1].shape))
 
         hidden_out = (
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None, :, :],
