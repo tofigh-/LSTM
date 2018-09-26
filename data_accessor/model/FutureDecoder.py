@@ -8,6 +8,7 @@ from data_accessor.data_loader.Settings import *
 from my_relu import MyReLU
 from model_utilities import log, exponential
 from model_utilities import cuda_converter
+from time_distributed import TimeDistributed
 
 
 class FutureDecoder(nn.Module):
@@ -47,15 +48,17 @@ class FutureDecoder(nn.Module):
             nn.Linear(self.hidden_size + NUM_COUNTRIES + 1, hh),
             nn.Softplus()
         )
-
         self.out_sale_means = nn.Sequential(
             nn.Linear(hh + NUM_COUNTRIES + 1, num_output),
             nn.Softplus()
         )
+        self.multi_sample_sales_mean = TimeDistributed(self.out_sale_means)
+
         self.out_sale_variances = nn.Sequential(
             nn.Linear(hh + NUM_COUNTRIES + 1, num_output),
             nn.Softplus()
         )
+        self.multi_sample_sales_variance = TimeDistributed(self.out_sale_variances)
 
     def forward(self, input, hidden, embedded_inputs, encoder_outputs=None, train=True):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
@@ -73,16 +76,31 @@ class FutureDecoder(nn.Module):
              ], dim=1)
         out_z_mean = self.z_mean(encoded_features)
         out_z_std = torch.clamp(self.z_std(encoded_features), min=1e-5, max=1e+5)
-        latent_vector = out_z_mean + out_z_std * cuda_converter(torch.randn(out_z_std.shape)) * train
-        latent_enriched_input = torch.cat([
-            latent_vector,
-            input[:, feature_indices[STOCK]].float(),
-            input[:, feature_indices[DISCOUNT_MATRIX]].float()
-        ], dim=1)
-        out_sales_mean_predictions = self.out_sale_means(latent_enriched_input).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
-        out_sales_variance_predictions = torch.clamp(self.out_sale_variances(latent_enriched_input).squeeze(),
-                                                     min=1e-5,
-                                                     max=1e5)  # (BATCH_SIZE,NUM_OUTPUT)
+        if train:
+            latent_vector = out_z_mean + out_z_std * cuda_converter(torch.randn(out_z_std.shape))
+            latent_enriched_input = torch.cat([
+                latent_vector,
+                input[:, feature_indices[STOCK]].float(),
+                input[:, feature_indices[DISCOUNT_MATRIX]].float()
+            ], dim=1)
+            out_sales_mean_predictions = self.out_sale_means(latent_enriched_input).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
+            out_sales_variance_predictions = torch.clamp(self.out_sale_variances(latent_enriched_input).squeeze(),
+                                                         min=1e-5,
+                                                         max=1e5)  # (BATCH_SIZE,NUM_OUTPUT)
+        else:
+            num_samples = 100
+            latent_vector = out_z_mean.unsqueeze(0).repeat(num_samples, 1, 1) + out_z_std.unsqueeze(0).repeat(
+                num_samples, 1, 1) * cuda_converter(torch.randn(num_samples, *out_z_std.shape))
+            latent_enriched_input = torch.cat([
+                latent_vector,
+                input[:, feature_indices[STOCK]].float().unsqueeze(0).repeat(num_samples, 1, 1),
+                input[:, feature_indices[DISCOUNT_MATRIX]].float().unsqueeze(0).repeat(num_samples, 1, 1)
+            ], dim=2)
+            out_sales_mean_predictions = torch.mean(self.multi_sample_sales_mean(latent_enriched_input), dim=0)
+            out_sales_variance_predictions = torch.clamp(
+                torch.mean(self.multi_sample_sales_variance(latent_enriched_input), dim=0),
+                min=1e-5,
+                max=1e5)
         if len(out_sales_mean_predictions.shape) == 1 and self.num_output > 1:
             out_sales_mean_predictions = out_sales_mean_predictions[None, :]
             out_sales_variance_predictions = out_sales_variance_predictions[None, :]
