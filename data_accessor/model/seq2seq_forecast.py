@@ -34,7 +34,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = True
+debug_mode = False
 
 
 def adjust_lr(optimizer, epoch):
