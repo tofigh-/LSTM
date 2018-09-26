@@ -7,6 +7,7 @@ from time_distributed import TimeDistributed
 from data_accessor.data_loader.Settings import *
 from my_relu import MyReLU
 from model_utilities import log, exponential
+from model_utilities import cuda_converter
 
 
 class FutureDecoder(nn.Module):
@@ -47,8 +48,7 @@ class FutureDecoder(nn.Module):
             nn.Softplus()
         )
 
-    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
-                ):
+    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,train=False,noise_std=0):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
         # INPUT SIZE: BATCH x TOTAL_FEATURE_NUM
         numeric_features = [input[:, self.numeric_feature_indices].float()]  # BATCH x NUM_NUMERIC_FEATURES
@@ -56,7 +56,11 @@ class FutureDecoder(nn.Module):
         #  The length of the list is equal to the number of embedded features
         # BATCH_SIZE x TOTAL_NUM_FEAT
         features = self.batch_norm(torch.cat(numeric_features + embedded_inputs, dim=1))
-        output, hidden = self.rnn(features.unsqueeze(0), hidden)
+        output, (h,c) = self.rnn(features.unsqueeze(0), hidden)
+
+        if train:
+            h[0] = h[0] * cuda_converter(1 + noise_std * torch.randn(h[0].shape))
+
         encoded_features = torch.cat(
             [output[0],
              input[:, feature_indices[STOCK]].float(),
@@ -77,7 +81,7 @@ class FutureDecoder(nn.Module):
                (out_sales_mean_predictions + 0.5 * out_sales_variance_predictions), \
                out_sales_mean_predictions, \
                out_sales_variance_predictions, \
-               hidden
+               (h,c)
 
 
 class Exp(nn.Module):
