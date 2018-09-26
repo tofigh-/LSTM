@@ -59,7 +59,9 @@ class FutureDecoder(nn.Module):
         output, (h, c) = self.rnn(features.unsqueeze(0), hidden)
 
         if train:
-            h[0] *= cuda_converter(1 + noise_std * torch.randn(h[0].shape))
+            multi_noise = cuda_converter(1 + noise_std * torch.randn(h[0].shape))
+            h[0] *= multi_noise
+            output[0] *= multi_noise
 
         encoded_features = torch.cat(
             [output[0],
