@@ -90,7 +90,8 @@ TRAIN_STOCK_THRESHOLD = 2
 use_future_unknown_estimates = False
 NOISE_STD_ENCODER = 1
 NOISE_STD_DECODER = np.ones(OUTPUT_SIZE) + np.arange(0.05, OUTPUT_SIZE * 0.05, 0.05)
-to_print_variables = ['TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
+to_print_variables = ['NOISE_STD_ENCODER', 'NOISE_STD_DECODER',
+                      'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'SIZE_AVERAGE',
                       'SUM_WEIGHT', 'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',
                       'NUM_LAYER',
