@@ -76,7 +76,7 @@ class VanillaRNNModel(object):
             self.encoder.eval(), self.future_decoder.eval()
 
     def train(self, inputs, targets_future, loss_function, loss_function2, teacher_forcing_ratio,
-              loss_in_normal_domain):
+              loss_in_normal_domain, noise_std_encoder_per_epoch, noise_std_decoder_per_epoch):
 
         sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
         global_sales = targets_future[GLOBAL_SALE]
@@ -94,8 +94,8 @@ class VanillaRNNModel(object):
                 temp_ff = future_unknown_estimates
             else:
                 temp_ff = None
-            noise_std_encoder = NOISE_STD_ENCODER
-            noise_std_decoder = NOISE_STD_DECODER[future_week_idx]
+            noise_std_encoder = noise_std_encoder_per_epoch
+            noise_std_decoder = noise_std_decoder_per_epoch[future_week_idx]
             output_global_sale, \
             out_sales_predictions, \
             hidden_state, \

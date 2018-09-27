@@ -138,7 +138,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     lognormal_loss = LogNormalLoss(size_average=SIZE_AVERAGE)
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
+    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True,
+                  decay_factor=0.0):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         encoder_first_week_kpi = []
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
@@ -203,13 +204,16 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
             if train_mode:
+
                 loss, output_global_sale, sale_predictions, encoder_predictions = vanilla_rnn.train(
                     inputs=(input_encode, input_decode),
                     targets_future=targets_future,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
                     teacher_forcing_ratio=teacher_forcing_ratio,
-                    loss_in_normal_domain=loss_in_normal_domain
+                    loss_in_normal_domain=loss_in_normal_domain,
+                    noise_std_encoder_per_epoch=NOISE_STD_ENCODER * decay_factor,
+                    noise_std_decoder_per_epoch=NOISE_STD_DECODER * decay_factor
                 )
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
@@ -325,7 +329,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                   loss_func=loss_function,
                                                   loss_func2=loss_function2,
                                                   loss_in_normal_domain=loss_in_normal_domain,
-                                                  teacher_forcing_ratio=teacher_forcing_ratio)
+                                                  teacher_forcing_ratio=teacher_forcing_ratio,
+                                                  decay_factor=0.5 ** (n_iter - 1))
         print "*Encoder First week* National Train Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
