@@ -330,7 +330,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                   loss_func2=loss_function2,
                                                   loss_in_normal_domain=loss_in_normal_domain,
                                                   teacher_forcing_ratio=teacher_forcing_ratio,
-                                                  decay_factor=0.5 ** (n_iter - 1))
+                                                  decay_factor=0.8 ** (n_iter - 1))
         print "*Encoder First week* National Train Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
