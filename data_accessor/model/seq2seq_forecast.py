@@ -357,4 +357,4 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     print "Bias Test per country per week {bias}".format(bias=bias)
 
 
-train(vanilla_rnn, n_iters=30)
+train(vanilla_rnn, n_iters=50)
