@@ -62,6 +62,7 @@ SIZE_AVERAGE = True
 RESUME = False
 ## Variables
 ENCODER_CHECKPOINT = u'Encoder Checkpoint'
+ENCODER_DECODER_CHECKPOINT = u'Encoder Decoder Checkpoint'
 OPTIMIZER = u'Optimizer'
 STATE_DICT = u'State Dict'
 FUTURE_DECODER_CHECKPOINT = u'Future Decoder Checkpoint'

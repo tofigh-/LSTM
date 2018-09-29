@@ -20,6 +20,7 @@ from data_accessor.data_loader import Settings as settings
 from datetime import datetime
 from datetime import timedelta
 import git
+from attention_transformer.attention_transformer_model import make_model
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
@@ -34,7 +35,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 
 def adjust_lr(optimizer, epoch):
@@ -127,10 +128,22 @@ vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               is_attention=False,
                               num_output=NUM_COUNTRIES)
 
+attention_model = make_model(embedding_descripts,
+                             total_input=TOTAL_INPUT,
+                             forecast_length=OUTPUT_SIZE,
+                             N=6,
+                             d_model=105,
+                             d_ff=512,
+                             h=8,
+                             dropout_enc=0.1,
+                             dropout_dec=0.1)
+
+
+
 
 def train(vanilla_rnn, n_iters, resume=RESUME):
     if resume:
-        vanilla_rnn.load_checkpoint({FUTURE_DECODER_CHECKPOINT: 'decoder.gz', ENCODER_CHECKPOINT: 'encoder.gz'})
+        attention_model.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'})
     vanilla_rnn.encoder_optimizer.zero_grad()
     vanilla_rnn.future_decoder_optimizer.zero_grad()
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)

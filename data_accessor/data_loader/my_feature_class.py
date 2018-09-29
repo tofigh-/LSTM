@@ -34,7 +34,7 @@ class MyFeatureClass(FeaturesBase):
         csku_object = add_cgs(csku_object)
         csku_object[GLOBAL_SALE] = np.sum(csku_object[SALES_MATRIX], axis=0)
         csku_object = add_country(csku_object)
-        csku_object[STOCK_UPLIFT] = np.maximum(csku_object[STOCK_UPLIFT], 0)
+        csku_object[STOCK_UPLIFT] = np.append(0,np.maximum(csku_object[STOCK_UPLIFT], 0))
         csku_object[STOCK_UPLIFT][csku_object[STOCK_UPLIFT] == inf] = 0
         csku_object[STOCK_UPLIFT][csku_object[STOCK_UPLIFT] == -inf] = 0
         csku_object[STOCK][csku_object[STOCK] == inf] = 0
