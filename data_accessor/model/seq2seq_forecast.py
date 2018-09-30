@@ -38,14 +38,14 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = True
+debug_mode = False
 
 
 if debug_mode:
-    num_csku_per_query_train = 5000
-    num_csku_per_query_test = 1000
+    num_csku_per_query_train = 500
+    num_csku_per_query_test = 100
     train_workers = 0
-    max_num_queries_train = 10
+    max_num_queries_train = 1
     max_num_queries_test = 1
 else:
     num_csku_per_query_train = 10000
