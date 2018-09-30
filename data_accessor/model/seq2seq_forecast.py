@@ -38,24 +38,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = True
-
-
-def adjust_lr(optimizer, epoch):
-    if epoch < 4:
-        return
-    if 4 <= epoch and epoch < 10:
-        lr = LEARNING_RATE * 10
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-    elif 10 <= epoch < 12:
-        lr = LEARNING_RATE
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
-    else:
-        lr = LEARNING_RATE / 10.0
-        for param_group in optimizer.param_groups:
-            param_group['lr'] = lr
+debug_mode = False
 
 
 if debug_mode:
@@ -144,7 +127,8 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
 
 def train(attention_model, n_iters, resume=RESUME):
     if resume:
-        attention_model.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'})
+        EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'}, attention_model,
+                                       attention_model.optimizer)
     attention_model.optimizer.zero_grad()
 
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
@@ -154,7 +138,6 @@ def train(attention_model, n_iters, resume=RESUME):
 
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
-        encoder_first_week_kpi = []
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         weekly_aggregated_kpi = []
         weekly_aggregated_kpi_scale = []
@@ -189,7 +172,6 @@ def train(attention_model, n_iters, resume=RESUME):
                 print "Natioanl Test KPI is {t_kpi}".format(t_kpi=global_kpi)
                 bias = [predicted_country_sales_test[i] / country_sales_test[i] for i in range(OUTPUT_SIZE)]
                 print "Bias Test per country per week {bias}".format(bias=bias)
-
 
             batch_data = np.array(batch_data)
             # Batch x time x num
@@ -268,16 +250,16 @@ def train(attention_model, n_iters, resume=RESUME):
                     kpi=rounder(weekly_aggregated_kpi_per_country))
 
             for week_idx in range(OUTPUT_SIZE):
-                target_sales = targets_future[SALES_MATRIX][ :,week_idx, :]
-                target_global_sales = targets_future[GLOBAL_SALE][ :,week_idx]
-                kpi_sale[week_idx].append(kpi_compute_per_country(sale_predictions[:,week_idx,:],
+                target_sales = targets_future[SALES_MATRIX][:, week_idx, :]
+                target_global_sales = targets_future[GLOBAL_SALE][:, week_idx]
+                kpi_sale[week_idx].append(kpi_compute_per_country(sale_predictions[:, week_idx, :],
                                                                   target_sales=target_sales,
                                                                   target_global_sales=target_global_sales,
                                                                   log_transform=IS_LOG_TRANSFORM,
                                                                   weight=black_price
                                                                   ))
                 predicted_country_sales[week_idx] = predicted_country_sales[week_idx] + torch.sum(
-                    exponential(sale_predictions[:,week_idx,:], LOG_TRANSFORM), dim=0).data.cpu().numpy()
+                    exponential(sale_predictions[:, week_idx, :], LOG_TRANSFORM), dim=0).data.cpu().numpy()
 
                 real_sales = exponential(target_sales, IS_LOG_TRANSFORM)
                 country_sales[week_idx] = country_sales[week_idx] + torch.sum(real_sales, dim=0).data.cpu().numpy()
@@ -289,10 +271,6 @@ def train(attention_model, n_iters, resume=RESUME):
                     kpi_per_country = np.sum(np.array(kpi_sale[week_idx]), axis=0) / np.sum(
                         np.array(kpi_sale_scale[week_idx]),
                         axis=0) * 100
-                    if week_idx == 0:
-                        encoder_kpi_per_country = np.sum(np.array(encoder_first_week_kpi), axis=0) / np.sum(
-                            np.array(kpi_sale_scale[week_idx]),
-                            axis=0) * 100
 
                     print "{i}ith week: National Train KPI at Batch number {bn} is {kpi}".format(
                         i=week_idx,
@@ -310,7 +288,7 @@ def train(attention_model, n_iters, resume=RESUME):
                                                              )
 
             if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
-                attention_model.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
+                EncoderDecoder.save_checkpoint(attention_model, 'attention_encoder_decoder.gz')
 
         kpi_per_country_total = [rounder(
             100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
@@ -342,7 +320,7 @@ def train(attention_model, n_iters, resume=RESUME):
         print "Weekly Aggregated KPI {kpi}".format(
             kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
         )
-        EncoderDecoder.save_checkpoint(attention_model,'attention_encoder_decoder.gz')
+        EncoderDecoder.save_checkpoint(attention_model, 'attention_encoder_decoder.gz')
 
         train_dataloader.reshuffle_dataset()
 
