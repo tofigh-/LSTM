@@ -21,6 +21,9 @@ from datetime import datetime
 from datetime import timedelta
 import git
 from attention_transformer.attention_transformer_model import make_model
+from attention_transformer.training import train_per_batch
+from attention_transformer.prediciton import predict
+from attention_transformer.encoder_decoder import EncoderDecoder
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
@@ -128,31 +131,28 @@ vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               is_attention=False,
                               num_output=NUM_COUNTRIES)
 
-attention_model = make_model(embedding_descripts,
-                             total_input=TOTAL_INPUT,
-                             forecast_length=OUTPUT_SIZE,
-                             N=6,
-                             d_model=105,
-                             d_ff=512,
-                             h=8,
-                             dropout_enc=0.1,
-                             dropout_dec=0.1)
+attention_model = cuda_converter(make_model(embedding_descriptions=embedding_descripts,
+                                            total_input=TOTAL_INPUT,
+                                            forecast_length=OUTPUT_SIZE,
+                                            N=6,
+                                            d_model=186,
+                                            d_ff=4 * 186,
+                                            h=6,
+                                            dropout_enc=0.1,
+                                            dropout_dec=0.1))
 
 
-
-
-def train(vanilla_rnn, n_iters, resume=RESUME):
+def train(attention_model, n_iters, resume=RESUME):
     if resume:
         attention_model.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'})
-    vanilla_rnn.encoder_optimizer.zero_grad()
-    vanilla_rnn.future_decoder_optimizer.zero_grad()
+    attention_model.optimizer.zero_grad()
+
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     l1loss = L1_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     lognormal_loss = LogNormalLoss(size_average=SIZE_AVERAGE)
     np.random.seed(0)
 
-    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True,
-                  decay_factor=0.0):
+    def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
         encoder_first_week_kpi = []
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
@@ -160,24 +160,24 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         weekly_aggregated_kpi_scale = []
         predicted_country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
         country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
-        if train_mode: vanilla_rnn.mode(train_mode=True)
+
+        if train_mode: attention_model.mode(train_mode=True)
+
         for batch_num, batch_data in enumerate(data):
 
             if batch_num % 10001 == 0 and train_mode:
-                vanilla_rnn.mode(train_mode=False)
+                attention_model.mode(train_mode=False)
                 k1, k2, test_sale_kpi, \
                 predicted_country_sales_test, \
                 country_sales_test, \
                 weekly_aggregated_kpi_test, \
-                weekly_aggregated_kpi_scale_test, \
-                encoder_kpi_per_country_total_test = data_iter(
+                weekly_aggregated_kpi_scale_test = data_iter(
                     data=test_dataloader,
                     train_mode=False,
                     loss_func=loss_func,
                     loss_func2=loss_func2
                 )
-                vanilla_rnn.mode(train_mode=True)
-                print "*Encoder First week* National Test Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total_test)
+                attention_model.mode(train_mode=True)
 
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
                 print "Weekly Test Aggregated KPI {kpi}".format(
@@ -190,9 +190,10 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 bias = [predicted_country_sales_test[i] / country_sales_test[i] for i in range(OUTPUT_SIZE)]
                 print "Bias Test per country per week {bias}".format(bias=bias)
 
-            batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
-            # time x Batch x num
-            if batch_data.shape[1] == 1:
+
+            batch_data = np.array(batch_data)
+            # Batch x time x num
+            if batch_data.shape[0] == 1:
                 print "Warning; batch size is one"
                 continue
             x, y, z = np.where(np.isinf(batch_data))
@@ -200,46 +201,57 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 print "these feature indices are inf: ", z
                 print feature_indices
                 sys.exit()
-
-            input_encode = cuda_converter(torch.from_numpy(batch_data[0:TOTAL_INPUT, :, :]).float()).contiguous()
-            input_decode = cuda_converter(
-                torch.from_numpy(batch_data[TOTAL_INPUT:TOTAL_LENGTH, :, :]).float()).contiguous()
             targets_future = dict()
 
-            # OUT_PUT x BATCH x NUM_COUNTRY
-            targets_future[SALES_MATRIX] = input_decode[:, :, feature_indices[SALES_MATRIX]].clone()
-            targets_future[GLOBAL_SALE] = input_decode[:, :, feature_indices[GLOBAL_SALE][0]].clone()
+            #  BATCH x OUTPUT x NUM_COUNTRY
+            targets_future[SALES_MATRIX] = cuda_converter(torch.from_numpy(
+                batch_data[:, TOTAL_INPUT:, feature_indices[SALES_MATRIX]].copy()
+            ).float())
 
-            targets_future[STOCK] = input_decode[:, :, feature_indices[STOCK][0]].clone()
+            targets_future[GLOBAL_SALE] = cuda_converter(torch.from_numpy(
+                batch_data[:, TOTAL_INPUT:, feature_indices[GLOBAL_SALE][0]].copy()
+            ).float())
 
-            input_decode[:, :, feature_indices[SALES_MATRIX]] = input_encode[-1, :, feature_indices[SALES_MATRIX]]
-            input_decode[:, :, feature_indices[GLOBAL_SALE][0]] = input_encode[-1, :, feature_indices[GLOBAL_SALE][0]]
-            input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
-            black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
+            targets_future[STOCK] = cuda_converter(torch.from_numpy(
+                batch_data[:, TOTAL_INPUT:, feature_indices[STOCK][0]].copy()
+            ).float())
+            batch_data[:, TOTAL_INPUT:, feature_indices[SALES_MATRIX]] = batch_data[:, TOTAL_INPUT - 1:TOTAL_INPUT,
+                                                                         feature_indices[SALES_MATRIX]]
+            batch_data[:, TOTAL_INPUT:, feature_indices[GLOBAL_SALE][0]] = batch_data[:, TOTAL_INPUT - 1:TOTAL_INPUT,
+                                                                           feature_indices[GLOBAL_SALE][0]]
+            batch_data[:, TOTAL_INPUT:, feature_indices[STOCK][0]] = batch_data[:, TOTAL_INPUT - 1:TOTAL_INPUT,
+                                                                     feature_indices[STOCK][0]]
+            black_price = exponential(
+                cuda_converter(
+                    torch.from_numpy(
+                        batch_data[:, TOTAL_INPUT - 1:TOTAL_INPUT, feature_indices[BLACK_PRICE_INT]]).float().squeeze()
+                ),
+                IS_LOG_TRANSFORM)
+
             if train_mode:
 
-                loss, output_global_sale, sale_predictions, encoder_predictions = vanilla_rnn.train(
-                    inputs=(input_encode, input_decode),
+                loss, sale_predictions = train_per_batch(
+                    model=attention_model,
+                    inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous(),
                     targets_future=targets_future,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
-                    teacher_forcing_ratio=teacher_forcing_ratio,
-                    loss_in_normal_domain=loss_in_normal_domain,
-                    noise_std_encoder_per_epoch=NOISE_STD_ENCODER * decay_factor,
-                    noise_std_decoder_per_epoch=NOISE_STD_DECODER * decay_factor
+                    teacher_forcing_ratio=teacher_forcing_ratio
                 )
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
             else:
                 # TODO to generalize KPI computation to many weeks this 0 should go away
-                output_global_sale, sale_predictions, encoder_predictions = vanilla_rnn.predict_over_period(
-                    inputs=(input_encode, input_decode))
+                sale_predictions = predict(
+                    model=attention_model,
+                    inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous()
+                )
             # Batch x Country
-            weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
-                                          dim=0)
-            weekly_aggregated_predictions = torch.sum(exponential(torch.stack(sale_predictions), IS_LOG_TRANSFORM),
-                                                      dim=0)
+            weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX], IS_LOG_TRANSFORM),
+                                          dim=1)
+            weekly_aggregated_predictions = torch.sum(exponential(sale_predictions, IS_LOG_TRANSFORM),
+                                                      dim=1)
 
             # size: (Country,)
             aggregated_err = torch.sum(torch.abs(weekly_aggregated - weekly_aggregated_predictions) * black_price,
@@ -256,16 +268,16 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     kpi=rounder(weekly_aggregated_kpi_per_country))
 
             for week_idx in range(OUTPUT_SIZE):
-                target_sales = targets_future[SALES_MATRIX][week_idx, :, :]
-                target_global_sales = targets_future[GLOBAL_SALE][week_idx, :]
-                kpi_sale[week_idx].append(kpi_compute_per_country(sale_predictions[week_idx],
+                target_sales = targets_future[SALES_MATRIX][ :,week_idx, :]
+                target_global_sales = targets_future[GLOBAL_SALE][ :,week_idx]
+                kpi_sale[week_idx].append(kpi_compute_per_country(sale_predictions[:,week_idx,:],
                                                                   target_sales=target_sales,
                                                                   target_global_sales=target_global_sales,
                                                                   log_transform=IS_LOG_TRANSFORM,
                                                                   weight=black_price
                                                                   ))
                 predicted_country_sales[week_idx] = predicted_country_sales[week_idx] + torch.sum(
-                    exponential(sale_predictions[week_idx], LOG_TRANSFORM), dim=0).data.cpu().numpy()
+                    exponential(sale_predictions[:,week_idx,:], LOG_TRANSFORM), dim=0).data.cpu().numpy()
 
                 real_sales = exponential(target_sales, IS_LOG_TRANSFORM)
                 country_sales[week_idx] = country_sales[week_idx] + torch.sum(real_sales, dim=0).data.cpu().numpy()
@@ -273,13 +285,6 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                             torch.sum(real_sales * black_price).item())
 
                 kpi_sale_scale[week_idx].append(kpi_denominator)
-                if week_idx == 0:
-                    encoder_first_week_kpi.append(kpi_compute_per_country(encoder_predictions[0],
-                                                                          target_sales=target_sales,
-                                                                          target_global_sales=target_global_sales,
-                                                                          log_transform=IS_LOG_TRANSFORM,
-                                                                          weight=black_price
-                                                                          ))
                 if batch_num % 1000 == 0 and train_mode:
                     kpi_per_country = np.sum(np.array(kpi_sale[week_idx]), axis=0) / np.sum(
                         np.array(kpi_sale_scale[week_idx]),
@@ -288,11 +293,6 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                         encoder_kpi_per_country = np.sum(np.array(encoder_first_week_kpi), axis=0) / np.sum(
                             np.array(kpi_sale_scale[week_idx]),
                             axis=0) * 100
-
-                        print "{i}ith week: *Encoder Prediction* National Train KPI at Batch number {bn} is {kpi}".format(
-                            i=week_idx,
-                            bn=batch_num,
-                            kpi=rounder(encoder_kpi_per_country))
 
                     print "{i}ith week: National Train KPI at Batch number {bn} is {kpi}".format(
                         i=week_idx,
@@ -310,15 +310,14 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                              )
 
             if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
-                vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
-        encoder_kpi_per_country_total = rounder(
-            100 * np.sum(np.array(encoder_first_week_kpi), axis=0) / np.sum(np.array(kpi_sale_scale[0]), axis=0))
+                attention_model.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
+
         kpi_per_country_total = [rounder(
             100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
             for i in range(OUTPUT_SIZE)]
         return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total, \
                predicted_country_sales, country_sales, np.array(weekly_aggregated_kpi), np.array(
-            weekly_aggregated_kpi_scale), encoder_kpi_per_country_total
+            weekly_aggregated_kpi_scale)
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
@@ -326,43 +325,35 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         loss_function2 = msloss
         if n_iter <= 1:
             teacher_forcing_ratio = 0.0
-            loss_in_normal_domain = False
         else:
             teacher_forcing_ratio = 0.0
-            loss_in_normal_domain = False
-        adjust_lr(vanilla_rnn.encoder_optimizer, n_iter)
-        adjust_lr(vanilla_rnn.future_decoder_optimizer, n_iter)
+
         _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
         country_sales, weekly_aggregated_kpi, \
-        weekly_aggregated_kpi_scale, \
-        encoder_kpi_per_country_total = data_iter(data=train_dataloader,
-                                                  train_mode=True,
-                                                  loss_func=loss_function,
-                                                  loss_func2=loss_function2,
-                                                  loss_in_normal_domain=loss_in_normal_domain,
-                                                  teacher_forcing_ratio=teacher_forcing_ratio,
-                                                  decay_factor=0.8 ** (n_iter - 1))
-        print "*Encoder First week* National Train Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
+        weekly_aggregated_kpi_scale = data_iter(data=train_dataloader,
+                                                train_mode=True,
+                                                loss_func=loss_function,
+                                                loss_func2=loss_function2,
+                                                teacher_forcing_ratio=teacher_forcing_ratio,
+                                                )
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
             kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
         )
-        vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
+        EncoderDecoder.save_checkpoint(attention_model,'attention_encoder_decoder.gz')
 
         train_dataloader.reshuffle_dataset()
 
-    vanilla_rnn.mode(train_mode=False)
+    attention_model.mode(train_mode=False)
     k1, k2, test_sale_kpi, \
     predicted_country_sales, \
     country_sales, \
     weekly_aggregated_kpi, \
-    weekly_aggregated_kpi_scale, \
-    encoder_kpi_per_country_total = data_iter(test_dataloader, train_mode=False,
-                                              loss_func=loss_function,
-                                              loss_func2=loss_function2)
-    print "*Encoder First week* National Test Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
+    weekly_aggregated_kpi_scale = data_iter(test_dataloader, train_mode=False,
+                                            loss_func=loss_function,
+                                            loss_func2=loss_function2)
 
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
 
@@ -375,4 +366,4 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     print "Bias Test per country per week {bias}".format(bias=bias)
 
 
-train(vanilla_rnn, n_iters=50)
+train(attention_model, n_iters=50)

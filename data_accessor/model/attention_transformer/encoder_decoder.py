@@ -2,6 +2,8 @@ import torch
 from torch import nn
 from data_accessor.data_loader.Settings import *
 from noam_optimizer import NoamOpt
+import numpy as np
+
 
 class EncoderDecoder(nn.Module):
     """
@@ -16,6 +18,7 @@ class EncoderDecoder(nn.Module):
         self.generator = generator
         self.embeddings = embeddings
         self.model_size = model_size
+        self.optimizer = self.get_std_optimizer()
 
     def forward(self, input_output_seq, input_mask, output_mask):
         "Take in and process masked src and target sequences."
@@ -26,11 +29,14 @@ class EncoderDecoder(nn.Module):
     def embed(self, input_output_seq):
         return self.embeddings(input_output_seq)
 
-    def encode(self, input_seq, src_mask):
-        return self.encoder(self.src_embed(input_seq), src_mask)
+    def encode(self, input_seq, encoder_input_mask):
+        return self.encoder(input_seq, encoder_input_mask)
 
-    def decode(self, hidden_state, input_mask, output_seq, output_mask):
-        return self.decoder(output_seq, hidden_state, input_mask, output_mask)
+    def decode(self, hidden_state, encoder_input_mask, decoder_input, input_decoder_mask):
+        return self.decoder(decoder_input, hidden_state, encoder_input_mask, input_decoder_mask)
+
+    def generate_mu_sigma(self, input):
+        return self.generator(input)
 
     @staticmethod
     def load_checkpoint(model_path_dict, model, model_optimizer):
@@ -40,21 +46,27 @@ class EncoderDecoder(nn.Module):
         model_optimizer.load_state_dict(encoder_decoder_checkpoint[OPTIMIZER])
 
     @staticmethod
-    def save_checkpoint(model, optimizer, model_file_name):
+    def save_checkpoint(model, model_file_name):
         encoder_decoder_state = {
             STATE_DICT: model.state_dict(),
-            OPTIMIZER: optimizer.state_dict()
+            OPTIMIZER: model.optimizer.state_dict()
         }
 
         torch.save(encoder_decoder_state, model_file_name)
 
-    @staticmethod
-    def mode(model, train_mode=True):
+    def mode(self, train_mode=True):
         if train_mode:
-            model.train(True)
+            self.train(True)
         else:
-            model.eval()
+            self.eval()
 
     def get_std_optimizer(self):
-        return NoamOpt(model_size=self.model_size, factor=2, warmup=4000,
+        return NoamOpt(model_size=self.model_size, factor=2, warmup=10,
                        optimizer=torch.optim.Adam(self.parameters(), lr=0, betas=(0.9, 0.98), eps=1e-9))
+
+
+def subsequent_mask(size):
+    "Mask out subsequent positions."
+    attn_shape = (1, size, size)
+    subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
+    return torch.from_numpy(subsequent_mask) == 0

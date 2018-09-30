@@ -12,7 +12,7 @@ class Decoder(nn.Module):
         self.layers = clones(layer, N)
         self.norm = LayerNorm(layer.size)
 
-    def forward(self, x, memory, src_mask, tgt_mask):
+    def forward(self, x, memory, encoder_input_mask, decoder_input_mask):
         for layer in self.layers:
-            x = layer(x, memory, src_mask, tgt_mask)
+            x = layer(x, memory, encoder_input_mask, decoder_input_mask)
         return self.norm(x)
