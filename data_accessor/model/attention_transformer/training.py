@@ -18,7 +18,7 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
     all_weeks = []
     for week_idx in range(input_decoder.shape[1]):
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=None,
-                                       decoder_input=input_decoder[:,0:week_idx + 1,:],
+                                       decoder_input=input_decoder[:, 0:week_idx + 1, :],
                                        input_decoder_mask=
                                        subsequent_mask(week_idx + 1))
         sales_mean, sales_variance, sales_predictions = model.generate_mu_sigma(output_prefinal)
@@ -26,17 +26,16 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
             sales_predictions = sales_predictions.unsqueeze(1)
             sales_mean = sales_mean.unsqueeze(-1)
             sales_variance = sales_variance.unsqueeze(-1)
-        loss += loss_function(sales_mean[:,-1,:], sales_variance[:,-1,:], sales_future[:, week_idx, :])
-
+        loss += loss_function(sales_mean[:, -1, :], sales_variance[:, -1, :], sales_future[:, week_idx, :])
 
         if use_teacher_forcing:
-            input_decoder[ :,week_idx, feature_indices[SALES_MATRIX]] = sales_future[:, week_idx, :].data
+            input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = sales_future[:, week_idx, :].data
 
         else:
             # without teacher forcing
             future_unknown_estimates = sales_predictions.detach()
             # Batch x time x num_feature
-            input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates[:,-1,:]
+            input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates[:, -1, :]
         all_weeks.append(sales_predictions.squeeze())
 
     sales_predictions = torch.stack(all_weeks).transpose(1, 0)
