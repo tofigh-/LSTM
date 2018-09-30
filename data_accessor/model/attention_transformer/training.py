@@ -15,7 +15,7 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
     input_encoder, input_decoder = model.embed(inputs)
     encoder_state = model.encode(input_encoder, encoder_input_mask=None)
     loss = 0
-    sales_predictions = None
+    all_weeks = []
     for week_idx in range(input_decoder.shape[1]):
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=None,
                                        decoder_input=input_decoder[:,0:week_idx + 1,:],
@@ -37,7 +37,9 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
             future_unknown_estimates = sales_predictions.detach()
             # Batch x time x num_feature
             input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates[:,-1,:]
+        all_weeks.append(sales_predictions.squeeze())
 
+    sales_predictions = torch.stack(all_weeks).transpose(1, 0)
     if math.isnan(loss.item()):
         print "loss is ", loss
         print "sum input 0 ", torch.sum(inputs[0])
