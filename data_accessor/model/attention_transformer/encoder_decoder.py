@@ -3,6 +3,7 @@ from torch import nn
 from data_accessor.data_loader.Settings import *
 from noam_optimizer import NoamOpt
 import numpy as np
+from model_utilities import cuda_converter
 
 
 class EncoderDecoder(nn.Module):
@@ -69,4 +70,4 @@ def subsequent_mask(size):
     "Mask out subsequent positions."
     attn_shape = (1, size, size)
     subsequent_mask = np.triu(np.ones(attn_shape), k=1).astype('uint8')
-    return torch.from_numpy(subsequent_mask) == 0
+    return cuda_converter(torch.from_numpy(subsequent_mask) == 0)
