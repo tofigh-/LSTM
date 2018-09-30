@@ -118,8 +118,8 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
                                             total_input=TOTAL_INPUT,
                                             forecast_length=OUTPUT_SIZE,
                                             N=6,
-                                            d_model=186,
-                                            d_ff=4 * 186,
+                                            d_model=96,
+                                            d_ff=4 * 96,
                                             h=6,
                                             dropout_enc=0.1,
                                             dropout_dec=0.1))
