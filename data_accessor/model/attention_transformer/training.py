@@ -29,7 +29,7 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
 
         else:
             # without teacher forcing
-            future_unknown_estimates = sales_predictions.detach()
+            future_unknown_estimates = sales_predictions
             # Batch x time x num_feature
             input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_predictions.squeeze())

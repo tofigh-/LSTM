@@ -14,7 +14,7 @@ def predict(model, inputs):
         sales_mean, sales_variance, sales_predictions = model.generate_mu_sigma(output_prefinal)
 
         # without teacher forcing
-        future_unknown_estimates = sales_predictions.detach()
+        future_unknown_estimates = sales_predictions
 
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_predictions.squeeze())
