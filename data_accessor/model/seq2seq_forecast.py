@@ -42,10 +42,10 @@ debug_mode = True
 
 
 if debug_mode:
-    num_csku_per_query_train = 500
-    num_csku_per_query_test = 100
+    num_csku_per_query_train = 5000
+    num_csku_per_query_test = 1000
     train_workers = 0
-    max_num_queries_train = 1
+    max_num_queries_train = 10
     max_num_queries_test = 1
 else:
     num_csku_per_query_train = 10000
