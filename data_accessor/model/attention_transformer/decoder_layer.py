@@ -12,11 +12,10 @@ class DecoderLayer(nn.Module):
         self.self_attn = self_attn
         self.src_attn = src_attn
         self.feed_forward = feed_forward
-        self.sublayer = clones(SublayerConnection(size, dropout), 3)
+        self.sublayer = clones(SublayerConnection(size, dropout), 2)
 
-    def forward(self, decoder_input, hidden_state, encoder_mask, decoder_mask):
+    def forward(self, decoder_input, hidden_state, encoder_mask):
         "Follow Figure 1 (right) for connections."
         m = hidden_state
-        decoder_input = self.sublayer[0](decoder_input, lambda x: self.self_attn(x, x, x, decoder_mask))
-        decoder_input = self.sublayer[1](decoder_input, lambda x: self.src_attn(x, m, m, encoder_mask))
-        return self.sublayer[2](decoder_input, self.feed_forward)
+        decoder_input = self.sublayer[0](decoder_input, lambda x: self.src_attn(x, m, m, encoder_mask))
+        return self.sublayer[1](decoder_input, self.feed_forward)

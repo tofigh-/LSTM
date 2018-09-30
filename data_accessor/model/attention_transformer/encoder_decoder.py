@@ -24,8 +24,7 @@ class EncoderDecoder(nn.Module):
     def forward(self, input_output_seq, input_mask, output_mask):
         "Take in and process masked src and target sequences."
         input_seq, output_seq = self.embed(input_output_seq)
-        return self.decode(self.encode(input_seq, input_mask), input_mask,
-                           output_seq, output_mask)
+        return self.decode(self.encode(input_seq, input_mask), input_mask, output_seq)
 
     def embed(self, input_output_seq):
         return self.embeddings(input_output_seq)
@@ -33,8 +32,8 @@ class EncoderDecoder(nn.Module):
     def encode(self, input_seq, encoder_input_mask):
         return self.encoder(input_seq, encoder_input_mask)
 
-    def decode(self, hidden_state, encoder_input_mask, decoder_input, input_decoder_mask):
-        return self.decoder(decoder_input, hidden_state, encoder_input_mask, input_decoder_mask)
+    def decode(self, hidden_state, encoder_input_mask, decoder_input):
+        return self.decoder(decoder_input, hidden_state, encoder_input_mask)
 
     def generate_mu_sigma(self, input):
         return self.generator(input)

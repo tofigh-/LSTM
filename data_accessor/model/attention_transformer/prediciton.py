@@ -9,8 +9,7 @@ def predict(model, inputs):
     all_weeks = []
     for week_idx in range(input_decoder.shape[1]):
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=None,
-                                       decoder_input=input_decoder[:, 0: week_idx + 1, :],
-                                       input_decoder_mask=subsequent_mask(week_idx + 1))
+                                       decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
         sales_mean, sales_variance, sales_predictions = model.generate_mu_sigma(output_prefinal)
 
         # without teacher forcing
