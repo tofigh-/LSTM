@@ -4,6 +4,7 @@ from torch.nn import functional as F
 import torch.nn as nn
 from encoder import clones
 
+
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
         "Take in model size and number of heads."
@@ -11,7 +12,7 @@ class MultiHeadedAttention(nn.Module):
         assert d_model % h == 0
         # We assume d_v always equals d_k
         self.d_k = d_model // h
-        self.h = h
+        self.num_attention_head = h
         self.linears = clones(nn.Linear(d_model, d_model), 4)
         self.attn = None
         self.dropout = nn.Dropout(p=dropout)
@@ -20,23 +21,23 @@ class MultiHeadedAttention(nn.Module):
         if mask is not None:
             # Same mask applied to all h heads.
             mask = mask.unsqueeze(1)
-        nbatches = query.size(0)
+        batch_size = query.shape[0]
 
         # 1) Do all the linear projections in batch from d_model => h x d_k
         query, key, value = \
-            [l(x).view(nbatches, -1, self.h, self.d_k).transpose(1, 2) for l, x in zip(self.linears[0:3], (query, key, value))]
+            [layer(x).view(batch_size, -1, self.num_attention_head, self.d_k).transpose(1, 2) for layer, x in
+             zip(self.linears[0:3], (query, key, value))]
 
         # 2) Apply attention on all the projected vectors in batch.
-        x, self.attn = self.attention(query, key, value, mask=mask,
-                                 dropout=self.dropout)
+        value_weighted_sum, self.attn = self.attention(query, key, value, mask=mask, dropout=self.dropout)
 
         # 3) "Concat" using a view and apply a final linear.
-        x = x.transpose(1, 2).contiguous() \
-            .view(nbatches, -1, self.h * self.d_k)
-        return self.linears[-1](x)
+        value_weighted_sum = value_weighted_sum.transpose(1, 2).contiguous() \
+            .view(batch_size, -1, self.num_attention_head * self.d_k)
+        out = self.linears[-1](value_weighted_sum)
+        return out
 
-
-    def attention(self,query, key, value, mask=None, dropout=None):
+    def attention(self, query, key, value, mask=None, dropout=None):
         "Compute 'Scaled Dot Product Attention'"
         d_k = query.size(-1)
         scores = torch.matmul(query, key.transpose(-2, -1)) \
