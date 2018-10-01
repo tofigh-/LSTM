@@ -12,7 +12,7 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
     sales_future = targets_future[SALES_MATRIX]
-    input_encoder, input_decoder, embedded_features,encoded_mask = model.embed(inputs)
+    input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs)
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     loss = 0
     all_weeks = []
