@@ -129,8 +129,8 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
 
 def train(attention_model, n_iters, resume=RESUME):
     if resume:
-        EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'}, attention_model,
-                                       attention_model.optimizer)
+        EncoderDecoder.load_checkpoint(model_path_dict={ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'},model= attention_model,
+                                       model_optimizer=attention_model.optimizer)
     attention_model.optimizer.zero_grad()
 
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)

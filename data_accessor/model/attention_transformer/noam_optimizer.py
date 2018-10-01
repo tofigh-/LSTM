@@ -35,8 +35,8 @@ class NoamOpt:
     def state_dict(self):
         self.optimizer.state_dict()
 
-    def load_state_dict(self):
-        self.optimizer.load_state_dict()
+    def load_state_dict(self,state):
+        self.optimizer.load_state_dict(state)
 
     def zero_grad(self):
         self.optimizer.zero_grad()
