@@ -38,7 +38,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 
 if debug_mode:
@@ -114,11 +114,12 @@ vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               is_attention=False,
                               num_output=NUM_COUNTRIES)
 
+d_model = len(numeric_feature_indices)
 attention_model = cuda_converter(make_model(embedding_descriptions=embedding_descripts,
                                             total_input=TOTAL_INPUT,
                                             forecast_length=OUTPUT_SIZE,
-                                            N=6,
-                                            d_model=96,
+                                            N=3,
+                                            d_model=d_model,
                                             d_ff=4 * 96,
                                             h=6,
                                             dropout_enc=0.1,
@@ -224,7 +225,6 @@ def train(attention_model, n_iters, resume=RESUME):
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
             else:
-                # TODO to generalize KPI computation to many weeks this 0 should go away
                 sale_predictions = predict(
                     model=attention_model,
                     inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous()
