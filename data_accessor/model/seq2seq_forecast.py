@@ -120,7 +120,7 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
                                             N=3,
                                             d_model=d_model,
                                             d_ff=4 * 96,
-                                            h=28,
+                                            h=14,
                                             dropout_enc=0.1,
                                             dropout_dec=0.1))
 
