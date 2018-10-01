@@ -12,12 +12,12 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
     sales_future = targets_future[SALES_MATRIX]
-    input_encoder, input_decoder, embedded_features = model.embed(inputs)
-    encoder_state = model.encode(input_encoder, encoder_input_mask=None)
+    input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs)
+    encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     loss = 0
     all_weeks = []
-    for week_idx in range(input_decoder.shape[1]):
-        output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=None,
+    for week_idx in range(OUTPUT_SIZE):
+        output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
         features = torch.cat([output_prefinal.squeeze(), embedded_features, input_decoder[:, week_idx, :]], dim=1)
         sales_mean, sales_variance, sales_predictions = model.generate_mu_sigma(features)
@@ -33,7 +33,7 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
             input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_predictions.squeeze())
 
-    sales_predictions = torch.stack(all_weeks).transpose(1, 0)
+    sales_predictions = torch.stack(all_weeks).transpose(0, 1)
     if math.isnan(loss.item()):
         print "loss is ", loss
         print "sum input 0 ", torch.sum(inputs[0])

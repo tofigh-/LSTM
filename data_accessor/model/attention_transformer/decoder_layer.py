@@ -17,5 +17,6 @@ class DecoderLayer(nn.Module):
     def forward(self, decoder_input, hidden_state, encoder_mask):
         "Follow Figure 1 (right) for connections."
         m = hidden_state
-        decoder_input = self.sublayer[0](decoder_input, lambda x: self.src_attn(x, m, m, encoder_mask))
+        decoder_input = self.sublayer[0](decoder_input,
+                                         lambda x: self.src_attn(x, m, m, encoder_mask, self_attention=False))
         return self.sublayer[1](decoder_input, self.feed_forward)

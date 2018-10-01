@@ -4,11 +4,11 @@ import torch
 
 
 def predict(model, inputs):
-    input_encoder, input_decoder, embedded_features = model.embed(inputs)
-    encoder_state = model.encode(input_encoder, encoder_input_mask=None)
+    input_encoder, input_decoder, embedded_features,encoded_mask = model.embed(inputs)
+    encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     all_weeks = []
-    for week_idx in range(input_decoder.shape[1]):
-        output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=None,
+    for week_idx in range(OUTPUT_SIZE):
+        output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
         features = torch.cat([output_prefinal.squeeze(), embedded_features, input_decoder[:, week_idx, :]], dim=1)
         sales_mean, sales_variance, sales_predictions = model.generate_mu_sigma(features)

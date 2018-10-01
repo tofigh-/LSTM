@@ -1,4 +1,5 @@
 import torch
+from data_accessor.data_loader.Settings import *
 
 
 class NoamOpt:
@@ -25,9 +26,11 @@ class NoamOpt:
         "Implement `lrate` above"
         if step is None:
             step = self._step
-        return self.factor * \
-               (self.model_size ** (-0.5) *
-                min(step ** (-0.5), step * self.warmup ** (-1.5)))
+            original_rate  = self.factor * \
+            (self.model_size ** (-0.5) *
+             min(step ** (-0.5), step * self.warmup ** (-1.5)))
+            default_lr = LEARNING_RATE
+        return default_lr
 
     def state_dict(self):
         self.optimizer.state_dict()

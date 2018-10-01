@@ -1,6 +1,5 @@
 from os.path import join
 
-import numpy as np
 import torch
 
 from data_accessor.data_loader.Settings import *
@@ -9,21 +8,20 @@ from data_accessor.data_loader.my_dataset import DatasetReader
 from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
 from loss import L2_LOSS, L1_LOSS, LogNormalLoss
-from model_utilities import kpi_compute, exponential, complete_embedding_description, cuda_converter, \
+from model_utilities import exponential, complete_embedding_description, cuda_converter, \
     kpi_compute_per_country, rounder
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
 from vanilla_rnn import VanillaRNNModel
-import os
 import sys
 import os
 from data_accessor.data_loader import Settings as settings
 from datetime import datetime
 from datetime import timedelta
 import git
-from attention_transformer.attention_transformer_model import make_model
-from attention_transformer.training import train_per_batch
-from attention_transformer.prediciton import predict
-from attention_transformer.encoder_decoder import EncoderDecoder
+from data_accessor.model.attention_transformer.attention_transformer_model import make_model
+from data_accessor.model.attention_transformer.training import train_per_batch
+from data_accessor.model.attention_transformer.prediciton import predict
+from data_accessor.model.attention_transformer.encoder_decoder import EncoderDecoder
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
@@ -38,7 +36,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 
 if debug_mode:
