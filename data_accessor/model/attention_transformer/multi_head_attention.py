@@ -3,7 +3,7 @@ import math
 from torch.nn import functional as F
 import torch.nn as nn
 from encoder import clones
-
+from time_distributed import TimeDistributed
 
 class MultiHeadedAttention(nn.Module):
     def __init__(self, h, d_model, dropout=0.1):
@@ -16,7 +16,10 @@ class MultiHeadedAttention(nn.Module):
         self.linears = clones(nn.Linear(d_model, d_model), 4)
         self.attn = None
         self.dropout = nn.Dropout(p=dropout)
-
+        # self.attn_sibr = TimeDistributed(nn.Linear(self.hidden_size * self.factor +
+        #                                            self.hidden_size * self.factor,
+        #                                            1),
+        #                                  nonlinearity=nn.Sigmoid())
     def forward(self, query, key, value, mask=None):
         if mask is not None:
             # Same mask applied to all h heads.
