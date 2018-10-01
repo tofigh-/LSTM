@@ -115,13 +115,14 @@ vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               num_output=NUM_COUNTRIES)
 
 d_model = len(numeric_feature_indices)
+print "d_model is: " + str(d_model)
 attention_model = cuda_converter(make_model(embedding_descriptions=embedding_descripts,
                                             total_input=TOTAL_INPUT,
                                             forecast_length=OUTPUT_SIZE,
                                             N=3,
                                             d_model=d_model,
                                             d_ff=4 * 96,
-                                            h=6,
+                                            h=8,
                                             dropout_enc=0.1,
                                             dropout_dec=0.1))
 
