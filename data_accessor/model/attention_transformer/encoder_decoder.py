@@ -3,7 +3,7 @@ from torch import nn
 from data_accessor.data_loader.Settings import *
 from noam_optimizer import NoamOpt
 import numpy as np
-from model_utilities import cuda_converter
+from data_accessor.model.model_utilities import cuda_converter
 
 
 class EncoderDecoder(nn.Module):
@@ -39,7 +39,7 @@ class EncoderDecoder(nn.Module):
         return self.generator(input)
 
     @staticmethod
-    def load_checkpoint(model_path_dict, model, model_optimizer):
+    def load_checkpoint(model_path_dict, model):
         encoder_decoder_checkpoint = torch.load(model_path_dict[ENCODER_DECODER_CHECKPOINT])
 
         model.load_state_dict(encoder_decoder_checkpoint[STATE_DICT])
