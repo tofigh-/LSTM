@@ -11,7 +11,7 @@ def predict(model, inputs):
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
         features = torch.cat([output_prefinal.squeeze(), embedded_features, input_decoder[:, week_idx, :]], dim=1)
-        sales_mean, sales_variance, sales_predictions = model.generate_mu_sigma(features)
+        _, sales_predictions = model.generate_mu_sigma(features)
 
         # without teacher forcing
         future_unknown_estimates = sales_predictions
