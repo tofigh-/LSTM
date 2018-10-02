@@ -43,7 +43,6 @@ class EncoderDecoder(nn.Module):
         encoder_decoder_checkpoint = torch.load(model_path_dict[ENCODER_DECODER_CHECKPOINT])
 
         model.load_state_dict(encoder_decoder_checkpoint[STATE_DICT])
-        model_optimizer.load_state_dict(encoder_decoder_checkpoint[OPTIMIZER])
 
     @staticmethod
     def save_checkpoint(model, model_file_name):
