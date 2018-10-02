@@ -17,6 +17,6 @@ def predict(model, inputs):
         future_unknown_estimates = sales_predictions
 
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
-        all_weeks.append(sales_predictions.squeeze())
+        all_weeks.append(sales_mean.squeeze())
 
     return torch.stack(all_weeks).transpose(0, 1)
