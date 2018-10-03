@@ -73,7 +73,7 @@ class Attention(nn.Module):
 
         # Compute weights across every context sequence
         attention_scores = attention_scores.view(batch_size * output_len, query_len)
-        attention_scores.masked_fill(mask == 0, -1e9)
+        attention_scores = attention_scores.masked_fill(mask == 0, -1e9)
 
         attention_weights = self.softmax(attention_scores)
         attention_weights = attention_weights.view(batch_size, output_len, query_len)
