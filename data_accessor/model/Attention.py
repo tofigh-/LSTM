@@ -1,6 +1,28 @@
 import torch
 import torch.nn as nn
 from data_accessor.data_loader.Settings import *
+from torch import nn
+
+
+class TimeDistributedAttention(nn.Module):
+    def __init__(self, module, nonlinearity=None):
+        super(TimeDistributedAttention, self).__init__()
+        self.module = module
+        self.nonlinearity = nonlinearity
+
+    def forward(self, x):
+        if len(x.size()) <= 2:
+            return self.module(x)
+        batch_size,  time_length, num_features = x.shape
+        # merge batch and seq dimensions
+        x_reshape = x.contiguous().view(time_length * batch_size, num_features)
+        if self.nonlinearity is not None:
+            y = self.nonlinearity(self.module(x_reshape))
+        else:
+            y = self.module(x_reshape)
+        # We have to reshape Y
+        y = y.contiguous().view(batch_size, time_length, y.shape[1])
+        return y
 
 
 class Attention(nn.Module):
@@ -39,7 +61,7 @@ class Attention(nn.Module):
         if self.attention_type == 'general':
             self.linear_in = nn.Sequential(nn.Linear(dimensions, dimensions, bias=False),
                                            nn.Dropout(dropout))
-
+        self.attention = TimeDistributedAttention(nn.Linear(dimensions * 2,1),nn.Tanh())
         self.linear_out = nn.Sequential(
             nn.Linear(dimensions * 2, dimensions, bias=False),
             nn.Tanh(),
@@ -67,12 +89,11 @@ class Attention(nn.Module):
         if self.attention_type == "general":
             query = query.view(batch_size * output_len, dimensions)
             query = self.linear_in(query)
-            query = query.view(batch_size, output_len, dimensions)
+            query_expanded = query.view(batch_size, output_len, dimensions).expand(-1, query_len, -1)
 
         # (batch_size, output_len, dimensions) * (batch_size, query_len, dimensions) ->
         # (batch_size, output_len, query_len)
-        attention_scores = torch.bmm(query, context.transpose(1, 2).contiguous())
-
+        attention_scores = self.attention(torch.cat([query_expanded,context],dim=2))
         # Compute weights across every context sequence
         attention_scores = attention_scores.view(batch_size * output_len, query_len)
         attention_scores = attention_scores.masked_fill(mask == 0, -1e9)
@@ -84,8 +105,7 @@ class Attention(nn.Module):
         mix = torch.bmm(attention_weights, context)
 
         # concat -> (batch_size * output_len, 2*dimensions)
-        combined = torch.cat((mix, query), dim=2)
-        combined = combined.view(batch_size * output_len, 2 * dimensions)
+        combined = torch.cat((mix.squeeze(), query), dim=1)
 
         # Apply linear_out on every 2nd dimension of concat
         # output -> (batch_size, output_len, dimensions)
