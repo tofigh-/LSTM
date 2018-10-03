@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from data_accessor.data_loader.Settings import *
 
 
 class Attention(nn.Module):
@@ -28,7 +29,7 @@ class Attention(nn.Module):
          torch.Size([5, 1, 5])
     """
 
-    def __init__(self, dimensions, dropout=0.1, attention_type='general'):
+    def __init__(self, dimensions, dropout=ATTENTION_DROPOUT, attention_type='general'):
         super(Attention, self).__init__()
 
         if attention_type not in ['dot', 'general']:
@@ -36,7 +37,8 @@ class Attention(nn.Module):
 
         self.attention_type = attention_type
         if self.attention_type == 'general':
-            self.linear_in = nn.Sequential(nn.Linear(dimensions, dimensions, bias=False), nn.Dropout(dropout))
+            self.linear_in = nn.Sequential(nn.Linear(dimensions, dimensions, bias=False),
+                                           nn.Dropout(dropout))
 
         self.linear_out = nn.Sequential(
             nn.Linear(dimensions * 2, dimensions, bias=False),

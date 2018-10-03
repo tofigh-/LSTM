@@ -48,15 +48,11 @@ class FutureDecoderWithAttention(nn.Module):
         )
 
     def forward(self, input, hidden, embedded_inputs, encoder_outputs=None, encoder_mask=None):
-        # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
         # INPUT SIZE: BATCH x TOTAL_FEATURE_NUM
         numeric_features = input[:, self.numeric_feature_indices].float()  # BATCH x NUM_NUMERIC_FEATURES
-        # Assumption 2: embedded_inputs is a list where each element size: BATCH x EMBEDDING_SIZE
-        #  The length of the list is equal to the number of embedded features
-        # BATCH_SIZE x TOTAL_NUM_FEAT
         features = torch.cat([numeric_features, embedded_inputs], dim=1)
         output, hidden = self.rnn(numeric_features.unsqueeze(0), hidden)
-        attended_features, _ = self.attention(query=output.transpose(0,1), context=encoder_outputs, mask=encoder_mask)
+        attended_features, _ = self.attention(query=output.transpose(0, 1), context=encoder_outputs, mask=encoder_mask)
         encoded_features = torch.cat([attended_features.squeeze(), features], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
         out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
