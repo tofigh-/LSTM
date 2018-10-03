@@ -121,7 +121,6 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, loss_in_normal_domain=False, train_mode=True):
         kpi_sale = [[] for _ in range(OUTPUT_SIZE)]
-        encoder_first_week_kpi = []
         kpi_sale_scale = [[] for _ in range(OUTPUT_SIZE)]
         weekly_aggregated_kpi = []
         weekly_aggregated_kpi_scale = []
@@ -136,16 +135,13 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                 predicted_country_sales_test, \
                 country_sales_test, \
                 weekly_aggregated_kpi_test, \
-                weekly_aggregated_kpi_scale_test, \
-                encoder_kpi_per_country_total_test = data_iter(
+                weekly_aggregated_kpi_scale_test = data_iter(
                     data=test_dataloader,
                     train_mode=False,
                     loss_func=loss_func,
                     loss_func2=loss_func2
                 )
                 vanilla_rnn.mode(train_mode=True)
-                print "*Encoder First week* National Test Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total_test)
-
                 print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
                 print "Weekly Test Aggregated KPI {kpi}".format(
                     kpi=rounder(
@@ -184,7 +180,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             input_decode[:, :, feature_indices[STOCK][0]] = input_encode[-1, :, feature_indices[STOCK][0]]
             black_price = exponential(input_encode[-1, :, feature_indices[BLACK_PRICE_INT]], IS_LOG_TRANSFORM)
             if train_mode:
-                loss, output_global_sale, sale_predictions, encoder_predictions = vanilla_rnn.train(
+                loss, output_global_sale, sale_predictions = vanilla_rnn.train(
                     inputs=(input_encode, input_decode),
                     targets_future=targets_future,
                     loss_function=loss_func,
@@ -197,7 +193,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                                                                       loss_value=loss)
             else:
                 # TODO to generalize KPI computation to many weeks this 0 should go away
-                output_global_sale, sale_predictions, encoder_predictions = vanilla_rnn.predict_over_period(
+                output_global_sale, sale_predictions = vanilla_rnn.predict_over_period(
                     inputs=(input_encode, input_decode))
             # Batch x Country
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
@@ -237,26 +233,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                                             torch.sum(real_sales * black_price).item())
 
                 kpi_sale_scale[week_idx].append(kpi_denominator)
-                if week_idx == 0:
-                    encoder_first_week_kpi.append(kpi_compute_per_country(encoder_predictions[0],
-                                                                          target_sales=target_sales,
-                                                                          target_global_sales=target_global_sales,
-                                                                          log_transform=IS_LOG_TRANSFORM,
-                                                                          weight=black_price
-                                                                          ))
+
                 if batch_num % 1000 == 0 and train_mode:
                     kpi_per_country = np.sum(np.array(kpi_sale[week_idx]), axis=0) / np.sum(
                         np.array(kpi_sale_scale[week_idx]),
                         axis=0) * 100
-                    if week_idx == 0:
-                        encoder_kpi_per_country = np.sum(np.array(encoder_first_week_kpi), axis=0) / np.sum(
-                            np.array(kpi_sale_scale[week_idx]),
-                            axis=0) * 100
-
-                        print "{i}ith week: *Encoder Prediction* National Train KPI at Batch number {bn} is {kpi}".format(
-                            i=week_idx,
-                            bn=batch_num,
-                            kpi=rounder(encoder_kpi_per_country))
 
                     print "{i}ith week: National Train KPI at Batch number {bn} is {kpi}".format(
                         i=week_idx,
@@ -275,14 +256,13 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
             if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
                 vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
-        encoder_kpi_per_country_total = rounder(
-            100 * np.sum(np.array(encoder_first_week_kpi), axis=0) / np.sum(np.array(kpi_sale_scale[0]), axis=0))
+
         kpi_per_country_total = [rounder(
             100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
             for i in range(OUTPUT_SIZE)]
         return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total, \
                predicted_country_sales, country_sales, np.array(weekly_aggregated_kpi), np.array(
-            weekly_aggregated_kpi_scale), encoder_kpi_per_country_total
+            weekly_aggregated_kpi_scale)
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
@@ -299,14 +279,12 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         train_sale_kpi, \
         predicted_country_sales, \
         country_sales, weekly_aggregated_kpi, \
-        weekly_aggregated_kpi_scale, \
-        encoder_kpi_per_country_total = data_iter(data=train_dataloader,
+        weekly_aggregated_kpi_scale = data_iter(data=train_dataloader,
                                                   train_mode=True,
                                                   loss_func=loss_function,
                                                   loss_func2=loss_function2,
                                                   loss_in_normal_domain=loss_in_normal_domain,
                                                   teacher_forcing_ratio=teacher_forcing_ratio)
-        print "*Encoder First week* National Train Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
             kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
@@ -320,11 +298,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     predicted_country_sales, \
     country_sales, \
     weekly_aggregated_kpi, \
-    weekly_aggregated_kpi_scale, \
-    encoder_kpi_per_country_total = data_iter(test_dataloader, train_mode=False,
+    weekly_aggregated_kpi_scale = data_iter(test_dataloader, train_mode=False,
                                               loss_func=loss_function,
                                               loss_func2=loss_function2)
-    print "*Encoder First week* National Test Sale KPI {kpi}".format(kpi=encoder_kpi_per_country_total)
 
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
 
