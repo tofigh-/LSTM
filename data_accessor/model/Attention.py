@@ -28,7 +28,7 @@ class Attention(nn.Module):
          torch.Size([5, 1, 5])
     """
 
-    def __init__(self, dimensions, attention_type='general'):
+    def __init__(self, dimensions, dropout=0.1, attention_type='general'):
         super(Attention, self).__init__()
 
         if attention_type not in ['dot', 'general']:
@@ -36,11 +36,13 @@ class Attention(nn.Module):
 
         self.attention_type = attention_type
         if self.attention_type == 'general':
-            self.linear_in = nn.Linear(dimensions, dimensions, bias=False)
+            self.linear_in = nn.Sequential(nn.Linear(dimensions, dimensions, bias=False), nn.Dropout(dropout))
 
-        self.linear_out = nn.Linear(dimensions * 2, dimensions, bias=False)
+        self.linear_out = nn.Sequential(
+            nn.Linear(dimensions * 2, dimensions, bias=False),
+            nn.Tanh(),
+            nn.Dropout(dropout))
         self.softmax = nn.Softmax(dim=-1)
-        self.tanh = nn.Tanh()
 
     def forward(self, query, context, mask):
         """
@@ -65,7 +67,6 @@ class Attention(nn.Module):
             query = self.linear_in(query)
             query = query.view(batch_size, output_len, dimensions)
 
-
         # (batch_size, output_len, dimensions) * (batch_size, query_len, dimensions) ->
         # (batch_size, output_len, query_len)
         attention_scores = torch.bmm(query, context.transpose(1, 2).contiguous())
@@ -87,6 +88,5 @@ class Attention(nn.Module):
         # Apply linear_out on every 2nd dimension of concat
         # output -> (batch_size, output_len, dimensions)
         output = self.linear_out(combined).view(batch_size, output_len, dimensions)
-        output = self.tanh(output)
 
         return output, attention_weights
