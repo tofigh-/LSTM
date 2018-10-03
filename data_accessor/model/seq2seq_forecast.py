@@ -105,7 +105,7 @@ test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_wo
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               load_saved_model=False,
-                              is_attention=False,
+                              is_attention=True,
                               num_output=NUM_COUNTRIES)
 
 

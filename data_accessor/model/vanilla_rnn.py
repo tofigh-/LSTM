@@ -25,9 +25,9 @@ class VanillaRNNModel(object):
                                                  bidirectional=BI_DIRECTIONAL))
         if is_attention:
             self.future_decoder = cuda_converter(FutureDecoderWithAttention(
-                self.encoder.batch_norm,
                 embedding_descripts,
                 n_layers=1,
+                hidden_size=HIDDEN_SIZE,
                 rnn_layer=self.encoder.rnn,
                 num_output=num_output))
         else:
@@ -86,7 +86,7 @@ class VanillaRNNModel(object):
         loss = 0
         hidden_state = None
         embedded_features = None
-        future_unknown_estimates = None
+        future_unknown_estimates = encoder_output = encoder_mask = None
         all_week_predictions = []
         global_sale_all_weeks = []
         for future_week_idx in range(OUTPUT_SIZE):
@@ -98,11 +98,15 @@ class VanillaRNNModel(object):
             out_sales_predictions, \
             hidden_state, \
             embedded_features, \
+            encoder_output, \
+            encoder_mask, \
             out_sales_mean_predictions, \
             out_sales_variance_predictions = self.decode_output(inputs,
                                                                 future_week_idx,
                                                                 hidden_state,
                                                                 embedded_features,
+                                                                encoder_output,
+                                                                encoder_mask,
                                                                 future_unknown_estimates=temp_ff
                                                                 )
 
@@ -157,16 +161,20 @@ class VanillaRNNModel(object):
         # encoder_hidden: num_layer x BATCH x HIDDEN_SIZE
         encoder_output, \
         encoder_hidden, \
-        embedded_features = self.encoder(input_seq, encoder_hidden)
+        embedded_features, \
+        encoder_mask = self.encoder(input_seq, encoder_hidden)
         return encoder_hidden, \
                embedded_features, \
-               encoder_output
+               encoder_output, \
+               encoder_mask
 
     def decode_output(self,
                       inputs,
                       future_week_index,
                       hidden_state=None,
                       embedded_features=None,
+                      encoder_output=None,
+                      encoder_mask=None,
                       future_unknown_estimates=None):
         '''
         :param inputs: # (TOTAL_INPUT x BATCH x TOTAL_FEAT, OUTPUT_SIZE * BATCH * TOTAL_FEAT)
@@ -178,11 +186,11 @@ class VanillaRNNModel(object):
         '''
 
         input_seq_decoder = inputs[1]
-        encoder_outputs = None
         if hidden_state is None or future_unknown_estimates is None:
             hidden_state, \
             embedded_features, \
-            encoder_outputs = self.encode_input(inputs)
+            encoder_output, \
+            encoder_mask = self.encode_input(inputs)
 
         else:
             input_seq_decoder[future_week_index, :, self.sales_col] = future_unknown_estimates
@@ -196,11 +204,14 @@ class VanillaRNNModel(object):
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
             embedded_inputs=embedded_features,
-            encoder_outputs=encoder_outputs)
+            encoder_outputs=encoder_output,
+            encoder_mask=encoder_mask)
         return out_global_sales, \
                out_sales_predictions, \
                hidden, \
                embedded_features, \
+               encoder_output, \
+               encoder_mask, \
                out_sales_mean_predictions, \
                out_sales_variance_predictions
 
@@ -211,6 +222,7 @@ class VanillaRNNModel(object):
                             ):
         all_week_predictions = []
         global_sale_all_weeks = []
+        encoder_output = encoder_mask = None
         for week_idx in range(OUTPUT_SIZE):
             if use_future_unknown_estimates:
                 temp_ff = future_unknown_estimates
@@ -219,11 +231,13 @@ class VanillaRNNModel(object):
             global_sales_prediction, \
             future_unknown_estimates, \
             hidden_state, \
-            embedded_features, _, _ = self.decode_output(
+            embedded_features, encoder_output, encoder_mask, _, _ = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,
                 embedded_features,
+                encoder_output,
+                encoder_mask,
                 future_unknown_estimates=temp_ff)
 
             all_week_predictions.append(future_unknown_estimates)

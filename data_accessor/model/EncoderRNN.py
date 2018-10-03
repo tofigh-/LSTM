@@ -42,7 +42,7 @@ class EncoderRNN(nn.Module):
 
     def forward(self, input, hidden):
         numeric_features = input[:, :, self.numeric_feature_indices].float()
-
+        encoder_mask = input[:, :, feature_indices[STOCK]] > 0
         embedded_input = []
         for i, input_index in enumerate(self.embedding_feature_indices):
             embedded_input.append(
@@ -53,10 +53,17 @@ class EncoderRNN(nn.Module):
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None, :, :],
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None, :, :]
         )
-
+        if self.bidirectional:
+            output = torch.cat([output[:, :, 0:self.hidden_size], output[:, :, self.hidden_size:]], dim=0).transpose(0,
+                                                                                                                     1)
+            encoder_mask = encoder_mask.repeat(2, 1, 1).transpose(0, 1).squeeze()
+        else:
+            output = output.transpose(0, 1)
+            encoder_mask = encoder_mask.transpose(0,1).squeeze()
         return output, \
                hidden_out, \
-               torch.cat(embedded_input, dim=1)
+               torch.cat(embedded_input, dim=1), \
+               encoder_mask
 
     def initHidden(self, batch_size):
         factor = 2 if self.bidirectional else 1
