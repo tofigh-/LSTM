@@ -2,6 +2,7 @@ from os.path import join
 
 import numpy as np
 import torch
+from torch import optim
 
 from data_accessor.data_loader.Settings import *
 from data_accessor.data_loader.data_loader import DatasetLoader
@@ -273,17 +274,15 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
-        adjust_learning_rate(vanilla_rnn.future_decoder_optimizer, n_iter, LEARNING_RATE)
-        adjust_learning_rate(vanilla_rnn.encoder_optimizer, n_iter, LEARNING_RATE)
-
         loss_function = lognormal_loss
         loss_function2 = msloss
-        if n_iter <= 1:
-            teacher_forcing_ratio = 0.0
-            loss_in_normal_domain = False
-        else:
-            teacher_forcing_ratio = 0.0
-            loss_in_normal_domain = False
+        if n_iter == 5:
+            vanilla_rnn.encoder_optimizer = optim.ASGD(vanilla_rnn.encoder.parameters(), lr=LEARNING_RATE,
+                                                       weight_decay=ENCODER_WEIGHT_DECAY)
+            vanilla_rnn.future_decoder_optimizer = optim.ASGD(vanilla_rnn.future_decoder.parameters(), lr=LEARNING_RATE)
+        if n_iter > 5:
+            adjust_learning_rate(vanilla_rnn.future_decoder_optimizer, n_iter, LEARNING_RATE)
+            adjust_learning_rate(vanilla_rnn.encoder_optimizer, n_iter, LEARNING_RATE)
 
         _, _, \
         train_sale_kpi, \
@@ -294,8 +293,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             train_mode=True,
             loss_func=loss_function,
             loss_func2=loss_function2,
-            loss_in_normal_domain=loss_in_normal_domain,
-            teacher_forcing_ratio=teacher_forcing_ratio)
+            loss_in_normal_domain=False,
+            teacher_forcing_ratio=False)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
             kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
