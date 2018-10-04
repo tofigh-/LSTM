@@ -276,11 +276,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         loss_function = lognormal_loss
         loss_function2 = msloss
-        if n_iter == 5:
+        if n_iter == 10:
             vanilla_rnn.encoder_optimizer = optim.ASGD(vanilla_rnn.encoder.parameters(), lr=LEARNING_RATE,
                                                        weight_decay=ENCODER_WEIGHT_DECAY)
             vanilla_rnn.future_decoder_optimizer = optim.ASGD(vanilla_rnn.future_decoder.parameters(), lr=LEARNING_RATE)
-        if n_iter > 5:
+        if n_iter > 10:
             adjust_learning_rate(vanilla_rnn.future_decoder_optimizer, n_iter, LEARNING_RATE)
             adjust_learning_rate(vanilla_rnn.encoder_optimizer, n_iter, LEARNING_RATE)
 
