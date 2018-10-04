@@ -13,7 +13,7 @@ class TimeDistributedAttention(nn.Module):
     def forward(self, x):
         if len(x.size()) <= 2:
             return self.module(x)
-        batch_size,  time_length, num_features = x.shape
+        batch_size, time_length, num_features = x.shape
         # merge batch and seq dimensions
         x_reshape = x.contiguous().view(time_length * batch_size, num_features)
         if self.nonlinearity is not None:
@@ -61,7 +61,7 @@ class Attention(nn.Module):
         if self.attention_type == 'general':
             self.linear_in = nn.Sequential(nn.Linear(dimensions, dimensions, bias=False),
                                            nn.Dropout(dropout))
-        self.attention = TimeDistributedAttention(nn.Linear(dimensions * 2,1),nn.Tanh())
+        self.attention = TimeDistributedAttention(nn.Linear(dimensions * 2, 1), nn.Tanh())
         self.linear_out = nn.Sequential(
             nn.Linear(dimensions * 2, dimensions, bias=False),
             nn.Tanh(),
@@ -93,7 +93,7 @@ class Attention(nn.Module):
 
         # (batch_size, output_len, dimensions) * (batch_size, query_len, dimensions) ->
         # (batch_size, output_len, query_len)
-        attention_scores = self.attention(torch.cat([query_expanded,context],dim=2))
+        attention_scores = self.attention(torch.cat([query_expanded, context], dim=2))
         # Compute weights across every context sequence
         attention_scores = attention_scores.view(batch_size * output_len, query_len)
         attention_scores = attention_scores.masked_fill(mask == 0, -1e9)

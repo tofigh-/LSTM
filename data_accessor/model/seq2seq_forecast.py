@@ -46,7 +46,7 @@ else:
     train_workers = 4
     num_csku_per_query_test = 10000
     max_num_queries_train = None
-    max_num_queries_test = 5
+    max_num_queries_test = 20
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
@@ -101,12 +101,19 @@ test_db = DatasetReader(
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
-test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
+test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=2)
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 vanilla_rnn = VanillaRNNModel(embedding_descripts,
                               load_saved_model=False,
                               is_attention=True,
                               num_output=NUM_COUNTRIES)
+
+
+def adjust_learning_rate(optimizer, epoch, lr):
+    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+    lr = lr / epoch
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr
 
 
 def train(vanilla_rnn, n_iters, resume=RESUME):
@@ -266,6 +273,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
+        adjust_learning_rate(vanilla_rnn.future_decoder_optimizer, n_iter, LEARNING_RATE)
+        adjust_learning_rate(vanilla_rnn.encoder_optimizer, n_iter, LEARNING_RATE)
+
         loss_function = lognormal_loss
         loss_function2 = msloss
         if n_iter <= 1:
@@ -279,12 +289,13 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         train_sale_kpi, \
         predicted_country_sales, \
         country_sales, weekly_aggregated_kpi, \
-        weekly_aggregated_kpi_scale = data_iter(data=train_dataloader,
-                                                  train_mode=True,
-                                                  loss_func=loss_function,
-                                                  loss_func2=loss_function2,
-                                                  loss_in_normal_domain=loss_in_normal_domain,
-                                                  teacher_forcing_ratio=teacher_forcing_ratio)
+        weekly_aggregated_kpi_scale = data_iter(
+            data=train_dataloader,
+            train_mode=True,
+            loss_func=loss_function,
+            loss_func2=loss_function2,
+            loss_in_normal_domain=loss_in_normal_domain,
+            teacher_forcing_ratio=teacher_forcing_ratio)
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
             kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
@@ -298,9 +309,11 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
     predicted_country_sales, \
     country_sales, \
     weekly_aggregated_kpi, \
-    weekly_aggregated_kpi_scale = data_iter(test_dataloader, train_mode=False,
-                                              loss_func=loss_function,
-                                              loss_func2=loss_function2)
+    weekly_aggregated_kpi_scale = data_iter(
+        test_dataloader,
+        train_mode=False,
+        loss_func=loss_function,
+        loss_func2=loss_function2)
 
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
 
