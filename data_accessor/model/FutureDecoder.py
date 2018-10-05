@@ -48,8 +48,7 @@ class FutureDecoder(nn.Module):
             nn.Softplus()
         )
 
-    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
-                ):
+    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
         # INPUT SIZE: BATCH x TOTAL_FEATURE_NUM
         numeric_features = input[:, self.numeric_feature_indices].float()  # BATCH x NUM_NUMERIC_FEATURES
@@ -58,7 +57,7 @@ class FutureDecoder(nn.Module):
         # BATCH_SIZE x TOTAL_NUM_FEAT
         features = self.batch_norm(numeric_features)
         output, hidden = self.rnn(features.unsqueeze(0), hidden)
-        encoded_features = torch.cat([output[0], features,embedded_inputs], dim=1)
+        encoded_features = torch.cat([output[0], features, embedded_inputs], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
         out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
                                                      min=1e-5,
