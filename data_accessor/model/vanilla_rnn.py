@@ -219,10 +219,16 @@ class VanillaRNNModel(object):
                             hidden_state=None,
                             embedded_features=None,
                             future_unknown_estimates=None,
+                            loss_function=None,
+                            loss_function2=None,
+                            targets_future=None
                             ):
+        sales_future = targets_future[SALES_MATRIX]  # OUTPUT_SIZE x BATCH x NUM_COUNTRIES
+        global_sales = targets_future[GLOBAL_SALE]
         all_week_predictions = []
         global_sale_all_weeks = []
         encoder_output = encoder_mask = None
+        loss = 0
         for week_idx in range(OUTPUT_SIZE):
             if use_future_unknown_estimates:
                 temp_ff = future_unknown_estimates
@@ -231,7 +237,11 @@ class VanillaRNNModel(object):
             global_sales_prediction, \
             future_unknown_estimates, \
             hidden_state, \
-            embedded_features, encoder_output, encoder_mask, _, _ = self.decode_output(
+            embedded_features, \
+            encoder_output, \
+            encoder_mask, \
+            out_sales_mean_predictions, \
+            out_sales_variance_predictions = self.decode_output(
                 inputs,
                 week_idx,
                 hidden_state,
@@ -239,7 +249,12 @@ class VanillaRNNModel(object):
                 encoder_output,
                 encoder_mask,
                 future_unknown_estimates=temp_ff)
+            loss += loss_function(out_sales_mean_predictions, out_sales_variance_predictions,
+                                  sales_future[week_idx])
 
+            loss += 0.1 * loss_function2(global_sales_prediction,
+                                         global_sales[week_idx, :])
             all_week_predictions.append(future_unknown_estimates)
             global_sale_all_weeks.append(global_sales_prediction)
-        return global_sale_all_weeks, all_week_predictions
+
+        return loss.item() / OUTPUT_SIZE, global_sale_all_weeks, all_week_predictions

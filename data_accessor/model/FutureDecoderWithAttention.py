@@ -25,7 +25,7 @@ class FutureDecoderWithAttention(nn.Module):
         self.embedding_feature_indices = embedding_feature_indices
         self.numeric_feature_indices = numeric_feature_indices
         total_num_features = sum(self.embedding_sizes) + len(self.numeric_feature_indices)
-
+        self.num_output = num_output
         # It shares the batch_norm layer with encoder
         # (i.e., implicitly assumes encoder and decoder feature inputs have equal dimensions)
         self.relu = nn.Softplus(beta=0.8)
@@ -38,13 +38,14 @@ class FutureDecoderWithAttention(nn.Module):
             self.rnn.bias_ih_l0 = rnn_layer.bias_ih_l0
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
 
-        self.out_sale_means = nn.Sequential(
-            nn.Linear(self.hidden_size + total_num_features, num_output),
-            nn.Softplus()
+        self.out_sale_means = nn.ModuleList(
+            [nn.Sequential(nn.Linear(self.hidden_size + total_num_features, 1), nn.Softplus()) for _ in
+             range(num_output)]
         )
-        self.out_sale_variances = nn.Sequential(
-            nn.Linear(self.hidden_size + total_num_features, num_output),
-            nn.Softplus()
+
+        self.out_sale_variances = nn.ModuleList(
+            [nn.Sequential(nn.Linear(self.hidden_size + total_num_features, 1), nn.Softplus()) for _ in
+             range(num_output)]
         )
 
     def forward(self, input, hidden, embedded_inputs, encoder_outputs=None, encoder_mask=None):
@@ -54,10 +55,16 @@ class FutureDecoderWithAttention(nn.Module):
         output, hidden = self.rnn(numeric_features.unsqueeze(0), hidden)
         attended_features, _ = self.attention(query=output.transpose(0, 1), context=encoder_outputs, mask=encoder_mask)
         encoded_features = torch.cat([attended_features.squeeze(), features], dim=1)
-        out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
-        out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
-                                                     min=1e-5,
-                                                     max=1e5)  # (BATCH_SIZE,NUM_OUTPUT)
+        out_sales_mean_predictions = torch.cat(
+            [self.out_sale_means[i](encoded_features) for i in range(self.num_output)]
+            , dim=1)  # (BATCH_SIZE,NUM_OUTPUT)
+        out_sales_variance_predictions = torch.cat(
+            [
+                torch.clamp(self.out_sale_variances[i](encoded_features),
+                            min=1e-5,
+                            max=1e5) for i in range(self.num_output)
+            ]
+            , dim=1)
         if len(out_sales_mean_predictions.shape) == 1 and self.num_output > 1:
             out_sales_mean_predictions = out_sales_mean_predictions[None, :]
             out_sales_variance_predictions = out_sales_variance_predictions[None, :]

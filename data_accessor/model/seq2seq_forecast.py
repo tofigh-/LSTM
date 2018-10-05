@@ -3,7 +3,7 @@ from os.path import join
 import numpy as np
 import torch
 from torch import optim
-
+from torch.optim.lr_scheduler import ReduceLROnPlateau
 from data_accessor.data_loader.Settings import *
 from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
@@ -35,7 +35,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -134,33 +134,12 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         weekly_aggregated_kpi_scale = []
         predicted_country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
         country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
-        if train_mode: vanilla_rnn.mode(train_mode=True)
+        avg_loss = 0
+        if train_mode:
+            vanilla_rnn.mode(train_mode=True)
+        else:
+            vanilla_rnn.mode(train_mode=False)
         for batch_num, batch_data in enumerate(data):
-
-            if batch_num % 10001 == 0 and train_mode:
-                vanilla_rnn.mode(train_mode=False)
-                k1, k2, test_sale_kpi, \
-                predicted_country_sales_test, \
-                country_sales_test, \
-                weekly_aggregated_kpi_test, \
-                weekly_aggregated_kpi_scale_test = data_iter(
-                    data=test_dataloader,
-                    train_mode=False,
-                    loss_func=loss_func,
-                    loss_func2=loss_func2
-                )
-                vanilla_rnn.mode(train_mode=True)
-                print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
-                print "Weekly Test Aggregated KPI {kpi}".format(
-                    kpi=rounder(
-                        np.sum(weekly_aggregated_kpi_test, axis=0) / np.sum(weekly_aggregated_kpi_scale_test,
-                                                                            axis=0) * 100)
-                )
-                global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
-                print "Natioanl Test KPI is {t_kpi}".format(t_kpi=global_kpi)
-                bias = [predicted_country_sales_test[i] / country_sales_test[i] for i in range(OUTPUT_SIZE)]
-                print "Bias Test per country per week {bias}".format(bias=bias)
-
             batch_data = np.swapaxes(np.array(batch_data), axis1=0, axis2=1)
             # time x Batch x num
             if batch_data.shape[1] == 1:
@@ -196,13 +175,16 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
                     teacher_forcing_ratio=teacher_forcing_ratio,
                     loss_in_normal_domain=loss_in_normal_domain
                 )
+                avg_loss = loss + avg_loss
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
             else:
                 # TODO to generalize KPI computation to many weeks this 0 should go away
-                output_global_sale, sale_predictions = vanilla_rnn.predict_over_period(
-                    inputs=(input_encode, input_decode))
+                loss, output_global_sale, sale_predictions = vanilla_rnn.predict_over_period(
+                    inputs=(input_encode, input_decode), loss_function=loss_func, loss_function2=loss_func2,
+                    targets_future=targets_future)
+                avg_loss = avg_loss + loss
             # Batch x Country
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX][:, :, :], IS_LOG_TRANSFORM),
                                           dim=0)
@@ -268,7 +250,7 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         kpi_per_country_total = [rounder(
             100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
             for i in range(OUTPUT_SIZE)]
-        return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total, \
+        return avg_loss / (batch_num + 1), np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total, \
                predicted_country_sales, country_sales, np.array(weekly_aggregated_kpi), np.array(
             weekly_aggregated_kpi_scale)
 
@@ -276,15 +258,16 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         loss_function = lognormal_loss
         loss_function2 = msloss
-        if n_iter == 10:
-            vanilla_rnn.encoder_optimizer = optim.ASGD(vanilla_rnn.encoder.parameters(), lr=LEARNING_RATE,
-                                                       weight_decay=ENCODER_WEIGHT_DECAY)
-            vanilla_rnn.future_decoder_optimizer = optim.ASGD(vanilla_rnn.future_decoder.parameters(), lr=LEARNING_RATE)
-        if n_iter > 10:
-            adjust_learning_rate(vanilla_rnn.future_decoder_optimizer, n_iter, LEARNING_RATE)
-            adjust_learning_rate(vanilla_rnn.encoder_optimizer, n_iter, LEARNING_RATE)
-
-        _, _, \
+        scheduler_encoder = scheduler_decoder = None
+        change_optimizer_epoch = 6
+        if n_iter == change_optimizer_epoch:
+            vanilla_rnn.encoder_optimizer = optim.SGD(vanilla_rnn.encoder.parameters(), lr=LEARNING_RATE,
+                                                      weight_decay=ENCODER_WEIGHT_DECAY)
+            vanilla_rnn.future_decoder_optimizer = optim.SGD(vanilla_rnn.future_decoder.parameters(), lr=LEARNING_RATE)
+            scheduler_encoder = ReduceLROnPlateau(vanilla_rnn.encoder_optimizer, mode='min', patience=1)
+            scheduler_decoder = ReduceLROnPlateau(vanilla_rnn.future_decoder_optimizer, mode='min', patience=1)
+        vanilla_rnn.mode(train_mode=True)
+        _, _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
         country_sales, weekly_aggregated_kpi, \
@@ -299,30 +282,36 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print "Weekly Aggregated KPI {kpi}".format(
             kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
         )
+
+        vanilla_rnn.mode(train_mode=False)
+        avg_test_loss, k1, k2, test_sale_kpi, \
+        predicted_country_sales, \
+        country_sales, \
+        weekly_aggregated_kpi, \
+        weekly_aggregated_kpi_scale = data_iter(
+            test_dataloader,
+            train_mode=False,
+            loss_func=loss_function,
+            loss_func2=loss_function2)
+
+        print "Avg Test Loss {loss}".format(loss=avg_test_loss)
+        print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
+
+        print "Weekly Test Aggregated KPI {kpi}".format(
+            kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
+        )
+        global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
+        bias = [predicted_country_sales[i] / country_sales[i] for i in range(OUTPUT_SIZE)]
+        print "National AVG Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+        print "Bias Test per country per week {bias}".format(bias=bias)
+
         vanilla_rnn.save_checkpoint(encoder_file_name='encoder.gz', future_decoder_file_name='decoder.gz')
 
         train_dataloader.reshuffle_dataset()
 
-    vanilla_rnn.mode(train_mode=False)
-    k1, k2, test_sale_kpi, \
-    predicted_country_sales, \
-    country_sales, \
-    weekly_aggregated_kpi, \
-    weekly_aggregated_kpi_scale = data_iter(
-        test_dataloader,
-        train_mode=False,
-        loss_func=loss_function,
-        loss_func2=loss_function2)
-
-    print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
-
-    print "Weekly Test Aggregated KPI {kpi}".format(
-        kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
-    )
-    global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
-    bias = [predicted_country_sales[i] / country_sales[i] for i in range(OUTPUT_SIZE)]
-    print "National AVG Test KPI is {t_kpi}".format(t_kpi=global_kpi)
-    print "Bias Test per country per week {bias}".format(bias=bias)
+        if n_iter > change_optimizer_epoch:
+            scheduler_encoder.step(avg_test_loss)
+            scheduler_decoder.step(avg_test_loss)
 
 
 train(vanilla_rnn, n_iters=50)
