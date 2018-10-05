@@ -37,14 +37,18 @@ class FutureDecoderWithAttention(nn.Module):
             self.rnn.weight_hh_l0 = rnn_layer.weight_hh_l0
             self.rnn.bias_ih_l0 = rnn_layer.bias_ih_l0
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
-
+        self.reduce_dimensionality = nn.Sequential(
+            nn.Linear(hidden_size + total_num_features, hidden_size),
+            nn.Dropout(ATTENTION_DROPOUT),
+            nn.Tanh()
+        )
         self.out_sale_means = nn.ModuleList(
-            [nn.Sequential(nn.Linear(self.hidden_size + total_num_features, 1), nn.Softplus()) for _ in
+            [nn.Sequential(nn.Linear(self.hidden_size, 1), nn.Softplus()) for _ in
              range(num_output)]
         )
 
         self.out_sale_variances = nn.ModuleList(
-            [nn.Sequential(nn.Linear(self.hidden_size + total_num_features, 1), nn.Softplus()) for _ in
+            [nn.Sequential(nn.Linear(self.hidden_size, 1), nn.Softplus()) for _ in
              range(num_output)]
         )
 
@@ -53,8 +57,9 @@ class FutureDecoderWithAttention(nn.Module):
         numeric_features = input[:, self.numeric_feature_indices].float()  # BATCH x NUM_NUMERIC_FEATURES
         features = torch.cat([numeric_features, embedded_inputs], dim=1)
         output, hidden = self.rnn(numeric_features.unsqueeze(0), hidden)
-        attended_features, _ = self.attention(query=output.transpose(0, 1), context=encoder_outputs, mask=encoder_mask)
-        encoded_features = torch.cat([attended_features.squeeze(), features], dim=1)
+        query = self.reduce_dimensionality(torch.cat([output.squeeze(), features], dim=1))[:, None, :]
+        attended_features, _ = self.attention(query=query, context=encoder_outputs, mask=encoder_mask)
+        encoded_features = attended_features.squeeze()
         out_sales_mean_predictions = torch.cat(
             [self.out_sale_means[i](encoded_features) for i in range(self.num_output)]
             , dim=1)  # (BATCH_SIZE,NUM_OUTPUT)

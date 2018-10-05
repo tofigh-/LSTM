@@ -37,6 +37,7 @@ class EncoderRNN(nn.Module):
                            bidirectional=bidirectional)
         self.hidden_state_dimensionality_reduction = nn.Sequential(
             nn.Linear(in_features=2 * hidden_size, out_features=hidden_size),
+            nn.Dropout(rnn_dropout),
             nn.Softplus()
         )
 

@@ -35,7 +35,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -258,7 +258,6 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         loss_function = lognormal_loss
         loss_function2 = msloss
-        scheduler_encoder = scheduler_decoder = None
         change_optimizer_epoch = 6
         if n_iter == change_optimizer_epoch:
             vanilla_rnn.encoder_optimizer = optim.SGD(vanilla_rnn.encoder.parameters(), lr=LEARNING_RATE,
