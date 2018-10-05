@@ -10,7 +10,9 @@ from model_utilities import log, exponential
 
 
 class FutureDecoder(nn.Module):
-    def __init__(self, embedding_descriptions,
+    def __init__(self,
+                 batch_norm,
+                 embedding_descriptions,
                  n_layers=1,
                  hidden_size=None,
                  rnn_layer=None,
@@ -27,6 +29,7 @@ class FutureDecoder(nn.Module):
 
         # It shares the batch_norm layer with encoder
         # (i.e., implicitly assumes encoder and decoder feature inputs have equal dimensions)
+        self.batch_norm = batch_norm
         self.relu = nn.Softplus(beta=0.8)
         self.rnn = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=self.hidden_size,
                            num_layers=n_layers)
@@ -53,9 +56,9 @@ class FutureDecoder(nn.Module):
         # Assumption 2: embedded_inputs is a list where each element size: BATCH x EMBEDDING_SIZE
         #  The length of the list is equal to the number of embedded features
         # BATCH_SIZE x TOTAL_NUM_FEAT
-        features = torch.cat([numeric_features, embedded_inputs], dim=1)
-        output, hidden = self.rnn(numeric_features.unsqueeze(0), hidden)
-        encoded_features = torch.cat([output[0], features], dim=1)
+        features = self.batch_norm(numeric_features)
+        output, hidden = self.rnn(features.unsqueeze(0), hidden)
+        encoded_features = torch.cat([output[0], features,embedded_inputs], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
         out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
                                                      min=1e-5,
