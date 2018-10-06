@@ -7,10 +7,7 @@ def _weight_drop(module, weights, dropout):
     Helper for `WeightDrop`.
     """
 
-    def noop(x):
-        return x
-
-    # if isinstance(module, torch.nn.RNNBase): module.flatten_parameters = noop
+    if isinstance(module, torch.nn.RNNBase): module.flatten_parameters = lambda *args, **kwargs: None
     for name_w in weights:
         w = getattr(module, name_w)
         del module._parameters[name_w]
