@@ -8,6 +8,8 @@ from data_accessor.data_loader.Settings import *
 from my_relu import MyReLU
 from model_utilities import log, exponential
 
+from WeightDrop import WeightDrop
+
 
 class FutureDecoder(nn.Module):
     def __init__(self, embedding_descriptions,
@@ -28,13 +30,14 @@ class FutureDecoder(nn.Module):
         # It shares the batch_norm layer with encoder
         # (i.e., implicitly assumes encoder and decoder feature inputs have equal dimensions)
         self.relu = nn.Softplus(beta=0.8)
-        self.rnn = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=self.hidden_size,
-                           num_layers=n_layers)
+        self.lstm = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=self.hidden_size,
+                            num_layers=n_layers)
         if rnn_layer is not None:
-            self.rnn.weight_ih_l0 = rnn_layer.module.weight_ih_l0
-            self.rnn.weight_hh_l0 = rnn_layer.module.weight_hh_l0_raw
-            self.rnn.bias_ih_l0 = rnn_layer.module.bias_ih_l0
-            self.rnn.bias_hh_l0 = rnn_layer.module.bias_hh_l0
+            self.lstm.weight_ih_l0 = rnn_layer.module.weight_ih_l0
+            self.lstm.weight_hh_l0 = rnn_layer.module.weight_hh_l0_raw
+            self.lstm.bias_ih_l0 = rnn_layer.module.bias_ih_l0
+            self.lstm.bias_hh_l0 = rnn_layer.module.bias_hh_l0
+        self.rnn = WeightDrop(self.lstm, weights=['weight_hh_l0'], dropout=RNN_DROPOUT)
 
         self.out_sale_means = nn.Sequential(
             nn.Linear(self.hidden_size + total_num_features, num_output),
