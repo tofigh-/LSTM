@@ -34,8 +34,8 @@ class EncoderRNN(nn.Module):
         self.embedding_feature_indices = embedding_feature_indices
         self.numeric_feature_indices = numeric_feature_indices
         weight_drops = ['weight_hh_l0','weight_hh_l0_reverse']
-        self.lstm = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=hidden_size, num_layers=n_layers,
-                            bidirectional=bidirectional)
+        self.lstm = cuda_converter(nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=hidden_size, num_layers=n_layers,
+                            bidirectional=bidirectional))
         self.rnn = WeightDrop(module=self.lstm, weights=weight_drops, dropout=rnn_dropout)
         self.hidden_state_dimensionality_reduction = nn.Sequential(
             nn.Linear(in_features=2 * hidden_size, out_features=hidden_size),
