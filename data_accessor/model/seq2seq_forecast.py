@@ -255,8 +255,9 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             vanilla_rnn.encoder_optimizer = optim.SGD(vanilla_rnn.encoder.parameters(), lr=LEARNING_RATE,
                                                       weight_decay=ENCODER_WEIGHT_DECAY)
             vanilla_rnn.future_decoder_optimizer = optim.SGD(vanilla_rnn.future_decoder.parameters(), lr=LEARNING_RATE)
-            scheduler_encoder = ReduceLROnPlateau(vanilla_rnn.encoder_optimizer, mode='min', patience=1)
-            scheduler_decoder = ReduceLROnPlateau(vanilla_rnn.future_decoder_optimizer, mode='min', patience=1)
+            scheduler_encoder = ReduceLROnPlateau(vanilla_rnn.encoder_optimizer, mode='min', patience=1, factor=0.6)
+            scheduler_decoder = ReduceLROnPlateau(vanilla_rnn.future_decoder_optimizer, mode='min', patience=1,
+                                                  factor=0.6)
         vanilla_rnn.mode(train_mode=True)
         _, _, _, \
         train_sale_kpi, \
