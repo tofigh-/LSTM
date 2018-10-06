@@ -58,7 +58,7 @@ class EncoderRNN(nn.Module):
 
         return output, \
                hidden_out, \
-               torch.cat(embedded_input, dim=1)
+               nn.functional.dropout(torch.cat(embedded_input, dim=1), EMBEDDING_DROPOUT)
 
     def initHidden(self, batch_size):
         factor = 2 if self.bidirectional else 1
