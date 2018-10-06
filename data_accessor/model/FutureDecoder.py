@@ -37,8 +37,8 @@ class FutureDecoder(nn.Module):
             self.lstm.weight_hh_l0 = rnn_layer.module.weight_hh_l0_raw
             self.lstm.bias_ih_l0 = rnn_layer.module.bias_ih_l0
             self.lstm.bias_hh_l0 = rnn_layer.module.bias_hh_l0
-        self.rnn = WeightDrop(self.lstm, weights=['weight_hh_l0'], dropout=RNN_DROPOUT)
-
+        # self.rnn = WeightDrop(self.lstm, weights=['weight_hh_l0'], dropout=RNN_DROPOUT)
+        self.rnn = self.lstm
         self.out_sale_means = nn.Sequential(
             nn.Linear(self.hidden_size + total_num_features, num_output),
             nn.Softplus()
