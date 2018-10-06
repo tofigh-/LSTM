@@ -3,7 +3,7 @@ from os.path import join
 import numpy as np
 import torch
 from torch import optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from data_accessor.data_loader.Settings import *
 from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
@@ -250,12 +250,13 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         loss_function = lognormal_loss
         loss_function2 = msloss
-        change_optimizer_epoch = 6
+        change_optimizer_epoch = 1
         if n_iter == change_optimizer_epoch:
-            # vanilla_rnn.encoder_optimizer = optim.SGD(vanilla_rnn.encoder.parameters(), lr=LEARNING_RATE_SGD,weight_decay=ENCODER_WEIGHT_DECAY)
-            # vanilla_rnn.future_decoder_optimizer = optim.SGD(vanilla_rnn.future_decoder.parameters(), lr=LEARNING_RATE_SGD)
-            scheduler_encoder = ReduceLROnPlateau(vanilla_rnn.encoder_optimizer, mode='min', patience=4, factor=0.5)
-            scheduler_decoder = ReduceLROnPlateau(vanilla_rnn.future_decoder_optimizer, mode='min', patience=4, factor=0.5)
+            # scheduler_encoder = ReduceLROnPlateau(vanilla_rnn.encoder_optimizer, mode='min', patience=4, factor=0.5)
+            # scheduler_decoder = ReduceLROnPlateau(vanilla_rnn.future_decoder_optimizer, mode='min', patience=4, factor=0.5)
+            scheduler_encoder = CosineAnnealingLR(vanilla_rnn.encoder_optimizer, T_max=6, eta_min=0.000001)
+            scheduler_decoder = CosineAnnealingLR(vanilla_rnn.future_decoder_optimizer, T_max=6, eta_min=0.000001)
+
         vanilla_rnn.mode(train_mode=True)
         _, _, _, \
         train_sale_kpi, \
@@ -300,8 +301,8 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
         train_dataloader.reshuffle_dataset()
 
         if n_iter > change_optimizer_epoch:
-            scheduler_encoder.step(avg_test_loss)
-            scheduler_decoder.step(avg_test_loss)
+            scheduler_encoder.step(n_iter)
+            scheduler_decoder.step(n_iter)
 
 
 train(vanilla_rnn, n_iters=50)
