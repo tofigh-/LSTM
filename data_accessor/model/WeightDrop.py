@@ -2,16 +2,19 @@ from torch.nn import Parameter
 
 import torch
 
-
 def _weight_drop(module, weights, dropout):
     """
     Helper for `WeightDrop`.
     """
 
+    def noop(x):
+        return x
+
+    if isinstance(module, torch.nn.RNNBase): module.flatten_parameters = noop
     for name_w in weights:
         w = getattr(module, name_w)
         del module._parameters[name_w]
-        module.register_parameter(name_w + '_raw', Parameter(w))
+        module.register_parameter(name_w + '_raw', Parameter(w.data))
 
     original_module_forward = module.forward
 
