@@ -31,10 +31,10 @@ class FutureDecoder(nn.Module):
         self.rnn = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=self.hidden_size,
                            num_layers=n_layers)
         if rnn_layer is not None:
-            self.rnn.weight_ih_l0 = rnn_layer.weight_ih_l0
-            self.rnn.weight_hh_l0 = rnn_layer.weight_hh_l0
-            self.rnn.bias_ih_l0 = rnn_layer.bias_ih_l0
-            self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
+            self.rnn.weight_ih_l0 = rnn_layer.module.weight_ih_l0
+            self.rnn.weight_hh_l0 = rnn_layer.module.weight_hh_l0_raw
+            self.rnn.bias_ih_l0 = rnn_layer.module.bias_ih_l0
+            self.rnn.bias_hh_l0 = rnn_layer.module.bias_hh_l0
 
         self.out_sale_means = nn.Sequential(
             nn.Linear(self.hidden_size + total_num_features, num_output),

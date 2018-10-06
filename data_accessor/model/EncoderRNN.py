@@ -5,6 +5,7 @@ from data_accessor.data_loader.Settings import *
 from model_utilities import cuda_converter
 from time_distributed import TimeDistributed
 import torch.nn.functional as F
+from WeightDrop import WeightDrop
 
 
 class EncoderRNN(nn.Module):
@@ -32,9 +33,10 @@ class EncoderRNN(nn.Module):
         self.embedding_sizes = [embedding_descriptions[feature][EMBEDDING_SIZE] for feature in embedded_features]
         self.embedding_feature_indices = embedding_feature_indices
         self.numeric_feature_indices = numeric_feature_indices
-        self.p = rnn_dropout
-        self.rnn = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=hidden_size, num_layers=n_layers,
-                           bidirectional=bidirectional)
+        weight_drops = ['weight_hh_l0','weight_hh_l0_reverse']
+        self.lstm = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=hidden_size, num_layers=n_layers,
+                            bidirectional=bidirectional)
+        self.rnn = WeightDrop(module=self.lstm, weights=weight_drops, dropout=rnn_dropout)
         self.hidden_state_dimensionality_reduction = nn.Sequential(
             nn.Linear(in_features=2 * hidden_size, out_features=hidden_size),
             nn.Softplus()
@@ -60,7 +62,7 @@ class EncoderRNN(nn.Module):
 
     def initHidden(self, batch_size):
         factor = 2 if self.bidirectional else 1
-        if self.rnn.mode == 'LSTM':
+        if self.rnn.module.mode == 'LSTM':
             result = (
                 cuda_converter(torch.zeros(self.n_layers * factor, batch_size, self.hidden_size)),
                 cuda_converter(torch.zeros(self.n_layers * factor, batch_size, self.hidden_size))
