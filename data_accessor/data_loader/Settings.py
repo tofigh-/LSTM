@@ -84,12 +84,12 @@ NUM_LAYER = 1
 NUM_BATCH_SAVING_MODEL = 10000
 BI_DIRECTIONAL = True
 RNN_DROPOUT = 0.5
-EMBEDDING_DROPOUT = 0.3
+EMBEDDING_DROPOUT = 0.7
 ENCODER_WEIGHT_DECAY = 0.00001
 TEST_STOCK_THRESHOLD = 5
 TRAIN_STOCK_THRESHOLD = 2
 use_future_unknown_estimates = True
-to_print_variables = ['TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
+to_print_variables = ['EMBEDDING_DROPOUT','TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'SIZE_AVERAGE',
                       'SUM_WEIGHT', 'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',
                       'NUM_LAYER',
