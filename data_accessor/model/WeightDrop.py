@@ -106,8 +106,33 @@ class WeightDropLinear(torch.nn.Linear):
         weight_dropout (float): The probability a weight will be dropped.
     """
 
-    def __init__(self, weight_dropout=0.0, *args, **kwargs):
-        super(WeightDropLinear).__init__(*args, **kwargs)
-        torch.nn.Linear.__init__(self, *args, **kwargs)
+    def __init__(self, in_features, out_features, weight_dropout=0.0, *args, **kwargs):
+        # super(WeightDropLinear).__init__(in_features, out_features)
+        torch.nn.Linear.__init__(self, in_features, out_features)
         weights = ['weight']
-        _weight_drop(self, weights, weight_dropout)
+        self._weight_drop(weights, weight_dropout)
+
+    def _weight_drop(self, weights, dropout):
+        """
+        Helper for `WeightDrop`.
+        """
+
+        if isinstance(self, torch.nn.RNNBase): self.flatten_parameters = lambda *args, **kwargs: None
+        for name_w in weights:
+            w = getattr(self, name_w)
+            del self._parameters[name_w]
+            self.register_parameter(name_w + '_raw', Parameter(w))
+            setattr(self, name_w, w.data)
+
+        original_module_forward = self.forward
+
+        def forward(*args, **kwargs):
+            if kwargs['week_idx'] == 0:
+                for name_w in weights:
+                    raw_w = getattr(self, name_w + '_raw')
+                    w = torch.nn.functional.dropout(raw_w, p=dropout, training=self.training)
+                    setattr(self, name_w, w)
+
+            return original_module_forward(*args)
+
+        setattr(self, 'forward', forward)

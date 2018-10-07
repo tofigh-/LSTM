@@ -196,7 +196,8 @@ class VanillaRNNModel(object):
             input=input_seq_decoder[future_week_index, :, :],
             hidden=future_decoder_hidden,
             embedded_inputs=embedded_features,
-            encoder_outputs=encoder_outputs)
+            encoder_outputs=encoder_outputs,
+            week_idx=future_week_index)
         return out_global_sales, \
                out_sales_predictions, \
                hidden, \

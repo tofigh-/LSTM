@@ -8,7 +8,7 @@ from data_accessor.data_loader.Settings import *
 from my_relu import MyReLU
 from model_utilities import log, exponential
 
-from WeightDrop import WeightDrop
+from WeightDrop import WeightDrop, WeightDropLinear
 
 
 class FutureDecoder(nn.Module):
@@ -42,17 +42,18 @@ class FutureDecoder(nn.Module):
         self.lstm.flatten_parameters = lambda *args, **kwargs: None
         # self.rnn = WeightDrop(self.lstm, weights=['weight_hh_l0'], dropout=RNN_DROPOUT)
         self.rnn = self.lstm
+        self.hidden_size_reduction = WeightDropLinear(weight_dropout=0.7, in_features=self.hidden_size,
+                                                      out_features=self.hidden_size / 4)
         self.out_sale_means = nn.Sequential(
-            nn.Linear(self.hidden_size + NUM_COUNTRIES + sum(self.embedding_sizes), num_output),
+            nn.Linear(self.hidden_size / 4 + NUM_COUNTRIES + sum(self.embedding_sizes)/2, num_output),
             nn.Softplus()
         )
         self.out_sale_variances = nn.Sequential(
-            nn.Linear(self.hidden_size + NUM_COUNTRIES + sum(self.embedding_sizes), num_output),
+            nn.Linear(self.hidden_size / 4 + NUM_COUNTRIES + sum(self.embedding_sizes)/2, num_output),
             nn.Softplus()
         )
 
-    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None,
-                ):
+    def forward(self, input, hidden, embedded_inputs, encoder_outputs=None, week_idx=0):
         # IMPORTANT DECISION: I ASSUME DECODER TAKES THE INPUT IN BATCH BUT TIME STEPS ARE ONE AT A TIME
         # INPUT SIZE: BATCH x TOTAL_FEATURE_NUM
         numeric_features = input[:, self.numeric_feature_indices].float()  # BATCH x NUM_NUMERIC_FEATURES
@@ -62,7 +63,7 @@ class FutureDecoder(nn.Module):
         features = torch.cat([input[:, feature_indices[DISCOUNT_MATRIX]].float(), embedded_inputs], dim=1)
         setattr(self.rnn, 'weight_hh_l0', self.rnn_layer.module.weight_hh_l0)
         output, hidden = self.rnn(numeric_features.unsqueeze(0), hidden)
-        encoded_features = torch.cat([output[0], features], dim=1)
+        encoded_features = torch.cat([self.hidden_size_reduction(output[0], week_idx=week_idx), features], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
         out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
                                                      min=1e-5,
