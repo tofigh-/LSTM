@@ -43,11 +43,11 @@ class FutureDecoder(nn.Module):
         # self.rnn = WeightDrop(self.lstm, weights=['weight_hh_l0'], dropout=RNN_DROPOUT)
         self.rnn = self.lstm
         self.out_sale_means = nn.Sequential(
-            nn.Linear(self.hidden_size + total_num_features, num_output),
+            nn.Linear(self.hidden_size + NUM_COUNTRIES + sum(self.embedding_sizes), num_output),
             nn.Softplus()
         )
         self.out_sale_variances = nn.Sequential(
-            nn.Linear(self.hidden_size + total_num_features, num_output),
+            nn.Linear(self.hidden_size + NUM_COUNTRIES + sum(self.embedding_sizes), num_output),
             nn.Softplus()
         )
 
@@ -59,7 +59,7 @@ class FutureDecoder(nn.Module):
         # Assumption 2: embedded_inputs is a list where each element size: BATCH x EMBEDDING_SIZE
         #  The length of the list is equal to the number of embedded features
         # BATCH_SIZE x TOTAL_NUM_FEAT
-        features = torch.cat([numeric_features, embedded_inputs], dim=1)
+        features = torch.cat([input[:, feature_indices[DISCOUNT_MATRIX]].float(), embedded_inputs], dim=1)
         setattr(self.rnn, 'weight_hh_l0', self.rnn_layer.module.weight_hh_l0)
         output, hidden = self.rnn(numeric_features.unsqueeze(0), hidden)
         encoded_features = torch.cat([output[0], features], dim=1)
