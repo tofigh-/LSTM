@@ -35,7 +35,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 if debug_mode:
     num_csku_per_query_train = 500
     num_csku_per_query_test = 100
@@ -305,4 +305,4 @@ def train(vanilla_rnn, n_iters, resume=RESUME):
             scheduler_decoder.step(n_iter)
 
 
-train(vanilla_rnn, n_iters=50)
+train(vanilla_rnn, n_iters=150)
