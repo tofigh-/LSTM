@@ -5,6 +5,7 @@ from data_accessor.data_loader.Settings import *
 from model_utilities import cuda_converter
 from time_distributed import TimeDistributed
 import torch.nn.functional as F
+from CNNEncoder import CNNEncoder
 
 
 class EncoderRNN(nn.Module):
@@ -32,9 +33,15 @@ class EncoderRNN(nn.Module):
         self.embedding_sizes = [embedding_descriptions[feature][EMBEDDING_SIZE] for feature in embedded_features]
         self.embedding_feature_indices = embedding_feature_indices
         self.numeric_feature_indices = numeric_feature_indices
-        self.p = rnn_dropout
+        self.embedded_dimensionality_reduction = nn.Sequential(
+            nn.Linear(in_features=sum(self.embedding_sizes), out_features=sum(self.embedding_sizes) / 2),
+            nn.Dropout(EMBEDDING_DROPOUT))
         self.rnn = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=hidden_size, num_layers=n_layers,
                            bidirectional=bidirectional)
+        self.cnn_encoder = CNNEncoder(
+            embedding_dim=len(self.numeric_feature_indices),
+            num_filters=NUM_CNN_FILTER,
+            ngram_filter_sizes=NGRAM_FILTER_SIZES)
         self.hidden_state_dimensionality_reduction = nn.Sequential(
             nn.Linear(in_features=2 * hidden_size, out_features=hidden_size),
             nn.Softplus()
@@ -53,10 +60,13 @@ class EncoderRNN(nn.Module):
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None, :, :],
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None, :, :]
         )
+        embedded_dropout = self.embedded_dimensionality_reduction(torch.cat(embedded_input, dim=1))
+        mask = input[:, :, feature_indices[STOCK]] > 0
 
-        return output, \
+        output_cnn = self.cnn_encoder(numeric_features.transpose(0,1),mask.transpose(0,1).squeeze())
+        return output_cnn, \
                hidden_out, \
-               torch.cat(embedded_input, dim=1)
+               embedded_dropout
 
     def initHidden(self, batch_size):
         factor = 2 if self.bidirectional else 1

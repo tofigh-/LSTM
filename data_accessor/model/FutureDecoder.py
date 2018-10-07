@@ -23,8 +23,9 @@ class FutureDecoder(nn.Module):
         self.embedding_sizes = [embedding_descriptions[feature][EMBEDDING_SIZE] for feature in embedded_features]
         self.embedding_feature_indices = embedding_feature_indices
         self.numeric_feature_indices = numeric_feature_indices
-        total_num_features = sum(self.embedding_sizes) + len(self.numeric_feature_indices)
-
+        num_embedding_features = sum(self.embedding_sizes)
+        num_numeric_features = len(self.numeric_feature_indices)
+        num_cnn_encoded_features = NUM_CNN_FILTER * len(NGRAM_FILTER_SIZES)
         # It shares the batch_norm layer with encoder
         # (i.e., implicitly assumes encoder and decoder feature inputs have equal dimensions)
         self.relu = nn.Softplus(beta=0.8)
@@ -37,11 +38,13 @@ class FutureDecoder(nn.Module):
             self.rnn.bias_hh_l0 = rnn_layer.bias_hh_l0
 
         self.out_sale_means = nn.Sequential(
-            nn.Linear(self.hidden_size + total_num_features, num_output),
+            nn.Linear(self.hidden_size + num_cnn_encoded_features + num_embedding_features / 2 + num_numeric_features,
+                      num_output),
             nn.Softplus()
         )
         self.out_sale_variances = nn.Sequential(
-            nn.Linear(self.hidden_size + total_num_features, num_output),
+            nn.Linear(self.hidden_size + num_cnn_encoded_features + num_embedding_features / 2 + num_numeric_features,
+                      num_output),
             nn.Softplus()
         )
 
@@ -55,7 +58,7 @@ class FutureDecoder(nn.Module):
         # BATCH_SIZE x TOTAL_NUM_FEAT
         features = torch.cat([numeric_features, embedded_inputs], dim=1)
         output, hidden = self.rnn(numeric_features.unsqueeze(0), hidden)
-        encoded_features = torch.cat([output[0], features], dim=1)
+        encoded_features = torch.cat([encoder_outputs, output[0], features], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)
         out_sales_variance_predictions = torch.clamp(self.out_sale_variances(encoded_features).squeeze(),
                                                      min=1e-5,
