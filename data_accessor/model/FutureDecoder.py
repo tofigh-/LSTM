@@ -32,11 +32,14 @@ class FutureDecoder(nn.Module):
         self.relu = nn.Softplus(beta=0.8)
         self.lstm = nn.LSTM(input_size=len(self.numeric_feature_indices), hidden_size=self.hidden_size,
                             num_layers=n_layers)
+        self.rnn_layer = rnn_layer
         if rnn_layer is not None:
             self.lstm.weight_ih_l0 = rnn_layer.module.weight_ih_l0
-            self.lstm.weight_hh_l0 = rnn_layer.module.weight_hh_l0_raw
+            del self.lstm._parameters['weight_hh_l0']
+            self.lstm.register_parameter('weight_hh_l0_raw', self.rnn_layer.module.weight_hh_l0_raw)
             self.lstm.bias_ih_l0 = rnn_layer.module.bias_ih_l0
             self.lstm.bias_hh_l0 = rnn_layer.module.bias_hh_l0
+
         # self.rnn = WeightDrop(self.lstm, weights=['weight_hh_l0'], dropout=RNN_DROPOUT)
         self.rnn = self.lstm
         self.out_sale_means = nn.Sequential(
@@ -57,6 +60,7 @@ class FutureDecoder(nn.Module):
         #  The length of the list is equal to the number of embedded features
         # BATCH_SIZE x TOTAL_NUM_FEAT
         features = torch.cat([numeric_features, embedded_inputs], dim=1)
+        setattr(self.rnn, 'weight_hh_l0', self.rnn_layer.module.weight_hh_l0)
         output, hidden = self.rnn(numeric_features.unsqueeze(0), hidden)
         encoded_features = torch.cat([output[0], features], dim=1)
         out_sales_mean_predictions = self.out_sale_means(encoded_features).squeeze()  # (BATCH_SIZE,NUM_OUTPUT)

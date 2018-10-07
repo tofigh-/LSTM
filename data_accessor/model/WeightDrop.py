@@ -2,6 +2,7 @@ from torch.nn import Parameter
 
 import torch
 
+
 def _weight_drop(module, weights, dropout):
     """
     Helper for `WeightDrop`.
@@ -11,7 +12,8 @@ def _weight_drop(module, weights, dropout):
     for name_w in weights:
         w = getattr(module, name_w)
         del module._parameters[name_w]
-        module.register_parameter(name_w + '_raw', Parameter(w.data))
+        module.register_parameter(name_w + '_raw', Parameter(w))
+        setattr(module, name_w, w.data)
 
     original_module_forward = module.forward
 
