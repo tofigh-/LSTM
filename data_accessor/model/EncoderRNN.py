@@ -6,6 +6,7 @@ from model_utilities import cuda_converter
 from time_distributed import TimeDistributed
 import torch.nn.functional as F
 from WeightDrop import WeightDrop
+from CNNEncoder import CNNEncoder
 
 
 class EncoderRNN(nn.Module):
@@ -45,6 +46,15 @@ class EncoderRNN(nn.Module):
             nn.Linear(in_features=2 * hidden_size, out_features=hidden_size),
             nn.Softplus()
         )
+        cnn_Features = NUM_CNN_FILTER * len(NGRAM_FILTER_SIZES)
+        self.cnn_encoder = CNNEncoder(
+            embedding_dim=len(self.numeric_feature_indices),
+            num_filters=NUM_CNN_FILTER,
+            ngram_filter_sizes=NGRAM_FILTER_SIZES)
+        self.cnn_dimensionality_reduction = nn.Sequential(
+            nn.Linear(cnn_Features, cnn_Features / 2),
+            nn.Dropout(CNN_DROPOUT)
+        )
 
     def forward(self, input, hidden):
         numeric_features = input[:, :, self.numeric_feature_indices].float()
@@ -60,7 +70,12 @@ class EncoderRNN(nn.Module):
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None, :, :]
         )
         embedded_dropout = self.embedded_dimensionality_reduction(torch.cat(embedded_input, dim=1))
-        return output, \
+        mask = input[:, :, feature_indices[STOCK]] > 0
+
+        output_cnn = self.cnn_dimensionality_reduction(
+            self.cnn_encoder(numeric_features.transpose(0, 1), mask.transpose(0, 1).squeeze()))
+
+        return output_cnn, \
                hidden_out, \
                embedded_dropout
 

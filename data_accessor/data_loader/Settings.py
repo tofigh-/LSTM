@@ -83,13 +83,19 @@ HIDDEN_SIZE = 512
 NUM_LAYER = 1
 NUM_BATCH_SAVING_MODEL = 10000
 BI_DIRECTIONAL = True
-RNN_DROPOUT = 0.9
-EMBEDDING_DROPOUT = 0.7
+RNN_DROPOUT = 0.7
+EMBEDDING_DROPOUT = 0.5
+CNN_DROPOUT = 0.5
 ENCODER_WEIGHT_DECAY = 0.00001
 TEST_STOCK_THRESHOLD = 5
 TRAIN_STOCK_THRESHOLD = 2
 use_future_unknown_estimates = True
-to_print_variables = ['EMBEDDING_DROPOUT','TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
+NGRAM_FILTER_SIZES = [2, 4, 8, 12, 16, 32]
+NUM_CNN_FILTER = 64
+to_print_variables = ['CNN_DROPOUT', 'NUM_CNN_FILTER', 'NGRAM_FILTER_SIZES', 'EMBEDDING_DROPOUT',
+                      'TRAIN_STOCK_THRESHOLD',
+                      'TEST_STOCK_THRESHOLD',
+                      'use_future_unknown_estimates', 'RESUME',
                       'SIZE_AVERAGE',
                       'SUM_WEIGHT', 'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',
                       'NUM_LAYER',
