@@ -1,7 +1,8 @@
 from os.path import join
 
 import torch
-
+from torch import optim
+from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
 from data_accessor.data_loader.Settings import *
 from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
@@ -105,12 +106,8 @@ test_db = DatasetReader(
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
-test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
+test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=2)
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
-vanilla_rnn = VanillaRNNModel(embedding_descripts,
-                              load_saved_model=False,
-                              is_attention=False,
-                              num_output=NUM_COUNTRIES)
 
 d_model = len(numeric_feature_indices)
 print "d_model is: " + str(d_model)
@@ -127,8 +124,7 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
 
 def train(attention_model, n_iters, resume=RESUME):
     if resume:
-        EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'}, attention_model,
-                                       attention_model.optimizer)
+        EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'}, attention_model)
     attention_model.optimizer.zero_grad()
 
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
@@ -143,35 +139,12 @@ def train(attention_model, n_iters, resume=RESUME):
         weekly_aggregated_kpi_scale = []
         predicted_country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
         country_sales = [np.zeros(NUM_COUNTRIES) for _ in range(OUTPUT_SIZE)]
-
-        if train_mode: attention_model.mode(train_mode=True)
-
+        avg_loss = 0
+        if train_mode:
+            attention_model.mode(train_mode=True)
+        else:
+            attention_model.mode(train_mode=False)
         for batch_num, batch_data in enumerate(data):
-
-            if batch_num % 10001 == 0 and train_mode:
-                attention_model.mode(train_mode=False)
-                k1, k2, test_sale_kpi, \
-                predicted_country_sales_test, \
-                country_sales_test, \
-                weekly_aggregated_kpi_test, \
-                weekly_aggregated_kpi_scale_test = data_iter(
-                    data=test_dataloader,
-                    train_mode=False,
-                    loss_func=loss_func,
-                    loss_func2=loss_func2
-                )
-                attention_model.mode(train_mode=True)
-
-                print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
-                print "Weekly Test Aggregated KPI {kpi}".format(
-                    kpi=rounder(
-                        np.sum(weekly_aggregated_kpi_test, axis=0) / np.sum(weekly_aggregated_kpi_scale_test,
-                                                                            axis=0) * 100)
-                )
-                global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
-                print "Natioanl Test KPI is {t_kpi}".format(t_kpi=global_kpi)
-                bias = [predicted_country_sales_test[i] / country_sales_test[i] for i in range(OUTPUT_SIZE)]
-                print "Bias Test per country per week {bias}".format(bias=bias)
 
             batch_data = np.array(batch_data)
             # Batch x time x num
@@ -220,14 +193,20 @@ def train(attention_model, n_iters, resume=RESUME):
                     loss_function2=loss_func2,
                     teacher_forcing_ratio=teacher_forcing_ratio
                 )
+                avg_loss = loss + avg_loss
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
             else:
-                sale_predictions = predict(
+                loss, sale_predictions = predict(
                     model=attention_model,
+                    loss_function=loss_func,
+                    loss_function2=loss_func2,
+                    targets_future=targets_future,
                     inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous()
                 )
+                avg_loss = avg_loss + loss
+
             # Batch x Country
             weekly_aggregated = torch.sum(exponential(targets_future[SALES_MATRIX], IS_LOG_TRANSFORM),
                                           dim=1)
@@ -292,7 +271,7 @@ def train(attention_model, n_iters, resume=RESUME):
         kpi_per_country_total = [rounder(
             100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
             for i in range(OUTPUT_SIZE)]
-        return np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total, \
+        return avg_loss / (batch_num + 1), np.array(kpi_sale), np.array(kpi_sale_scale), kpi_per_country_total, \
                predicted_country_sales, country_sales, np.array(weekly_aggregated_kpi), np.array(
             weekly_aggregated_kpi_scale)
 
@@ -300,12 +279,13 @@ def train(attention_model, n_iters, resume=RESUME):
         print ("Iteration Number %d" % n_iter)
         loss_function = lognormal_loss
         loss_function2 = msloss
-        if n_iter <= 1:
-            teacher_forcing_ratio = 0.0
-        else:
-            teacher_forcing_ratio = 0.0
+        change_optimizer_epoch = 1
+        if n_iter == change_optimizer_epoch:
+            # scheduler_encoder = ReduceLROnPlateau(vanilla_rnn.encoder_optimizer, mode='min', patience=4, factor=0.5)
+            # scheduler_decoder = ReduceLROnPlateau(vanilla_rnn.future_decoder_optimizer, mode='min', patience=4, factor=0.5)
+            scheduler = CosineAnnealingLR(attention_model.optimizer.optimizer, T_max=6, eta_min=0.000001)
 
-        _, _, \
+        train_loss, _, _, \
         train_sale_kpi, \
         predicted_country_sales, \
         country_sales, weekly_aggregated_kpi, \
@@ -313,7 +293,7 @@ def train(attention_model, n_iters, resume=RESUME):
                                                 train_mode=True,
                                                 loss_func=loss_function,
                                                 loss_func2=loss_function2,
-                                                teacher_forcing_ratio=teacher_forcing_ratio,
+                                                teacher_forcing_ratio=False,
                                                 )
         print "National Train Sale KPI {kpi}".format(kpi=train_sale_kpi)
         print "Weekly Aggregated KPI {kpi}".format(
@@ -323,8 +303,35 @@ def train(attention_model, n_iters, resume=RESUME):
 
         train_dataloader.reshuffle_dataset()
 
+        attention_model.mode(train_mode=False)
+        test_loss, k1, k2, test_sale_kpi, \
+        predicted_country_sales_test, \
+        country_sales_test, \
+        weekly_aggregated_kpi_test, \
+        weekly_aggregated_kpi_scale_test = data_iter(
+            data=test_dataloader,
+            train_mode=False,
+            loss_func=loss_function,
+            loss_func2=loss_function2
+        )
+        attention_model.mode(train_mode=True)
+        print "Test Loss: {loss}".format(loss=test_loss)
+        print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
+        print "Weekly Test Aggregated KPI {kpi}".format(
+            kpi=rounder(
+                np.sum(weekly_aggregated_kpi_test, axis=0) / np.sum(weekly_aggregated_kpi_scale_test,
+                                                                    axis=0) * 100)
+        )
+        global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
+        print "Natioanl Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+        bias = [predicted_country_sales_test[i] / country_sales_test[i] for i in range(OUTPUT_SIZE)]
+        print "Bias Test per country per week {bias}".format(bias=bias)
+
+        if n_iter > change_optimizer_epoch:
+            scheduler.step(n_iter)
+
     attention_model.mode(train_mode=False)
-    k1, k2, test_sale_kpi, \
+    test_loss, k1, k2, test_sale_kpi, \
     predicted_country_sales, \
     country_sales, \
     weekly_aggregated_kpi, \
@@ -332,6 +339,7 @@ def train(attention_model, n_iters, resume=RESUME):
                                             loss_func=loss_function,
                                             loss_func2=loss_function2)
 
+    print "Test Loss: {loss}".format(loss=test_loss)
     print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
 
     print "Weekly Test Aggregated KPI {kpi}".format(
