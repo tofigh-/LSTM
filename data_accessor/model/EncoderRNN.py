@@ -46,9 +46,14 @@ class EncoderRNN(nn.Module):
             nn.Linear(in_features=2 * hidden_size, out_features=hidden_size),
             nn.Softplus()
         )
-        self.first_week_sale_prediction = nn.Sequential(
-            nn.Linear(hidden_size, 14),
-            nn.Softplus()
+        cnn_Features = NUM_CNN_FILTER * len(NGRAM_FILTER_SIZES)
+        self.cnn_encoder = CNNEncoder(
+            embedding_dim=len(self.numeric_feature_indices),
+            num_filters=NUM_CNN_FILTER,
+            ngram_filter_sizes=NGRAM_FILTER_SIZES)
+        self.cnn_dimensionality_reduction = nn.Sequential(
+            nn.Linear(cnn_Features, cnn_Features / 2),
+            nn.Dropout(CNN_DROPOUT)
         )
 
     def forward(self, input, hidden, train, noise_std=0):
@@ -76,9 +81,15 @@ class EncoderRNN(nn.Module):
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[0][0], hidden[0][1]], dim=1))[None, :, :],
             self.hidden_state_dimensionality_reduction(torch.cat([hidden[1][0], hidden[1][1]], dim=1))[None, :, :]
         )
-        out_first_week_prediction = self.first_week_sale_prediction(hidden_out[0]).squeeze()
-        return output, hidden_out, [embedded_feature[0, :, :] for embedded_feature in
-                                    embedded_input], out_first_week_prediction
+        embedded_dropout = self.embedded_dimensionality_reduction(torch.cat(embedded_input, dim=1))
+        mask = input[:, :, feature_indices[STOCK]] > 0
+
+        output_cnn = self.cnn_dimensionality_reduction(
+            self.cnn_encoder(numeric_features.transpose(0, 1), mask.transpose(0, 1).squeeze()))
+
+        return output_cnn, \
+               hidden_out, \
+               embedded_dropout
 
     def initHidden(self, batch_size):
         factor = 2 if self.bidirectional else 1

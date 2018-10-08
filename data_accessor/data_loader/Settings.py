@@ -89,9 +89,11 @@ DECODER_WEIGHT_DECAY = 0.0
 TEST_STOCK_THRESHOLD = 5
 TRAIN_STOCK_THRESHOLD = 2
 use_future_unknown_estimates = False
+NGRAM_FILTER_SIZES = [4, 6, 8, 12, 16, 32]
+NUM_CNN_FILTER = 64
 NOISE_STD_ENCODER = 1
 NOISE_STD_DECODER = 1 * np.ones(OUTPUT_SIZE) + np.arange(0.1, OUTPUT_SIZE * 0.1 + 0.1, 0.1)
-to_print_variables = ['NOISE_STD_ENCODER', 'NOISE_STD_DECODER',
+to_print_variables = ['NUM_CNN_FILTER', 'NGRAM_FILTER_SIZES', 'NOISE_STD_ENCODER', 'NOISE_STD_DECODER',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'SIZE_AVERAGE',
                       'SUM_WEIGHT', 'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',

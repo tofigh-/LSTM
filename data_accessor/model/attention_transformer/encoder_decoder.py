@@ -12,13 +12,14 @@ class EncoderDecoder(nn.Module):
     other models.
     """
 
-    def __init__(self, embeddings, encoder, decoder, generator, model_size):
+    def __init__(self, embeddings, cnn_encoder, encoder, decoder, generator, model_size):
         super(EncoderDecoder, self).__init__()
         self.encoder = encoder
         self.decoder = decoder
         self.generator = generator
         self.embeddings = embeddings
         self.model_size = model_size
+        self.cnn_encoder = cnn_encoder
         self.optimizer = self.get_std_optimizer()
 
     def forward(self, input_output_seq, input_mask, output_mask):
@@ -31,6 +32,9 @@ class EncoderDecoder(nn.Module):
 
     def encode(self, input_seq, encoder_input_mask):
         return self.encoder(input_seq, encoder_input_mask)
+
+    def cnn_encode(self, input_seq, encoder_input_mask):
+        return self.cnn_encoder(input_seq, encoder_input_mask)
 
     def decode(self, hidden_state, encoder_input_mask, decoder_input):
         return self.decoder(decoder_input, hidden_state, encoder_input_mask)

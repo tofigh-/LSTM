@@ -37,7 +37,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 validation_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 
 if debug_mode:
@@ -119,7 +119,10 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
                                             d_ff=4 * 96,
                                             h=14,
                                             dropout_enc=0.1,
-                                            dropout_dec=0.1))
+                                            dropout_dec=0.1,
+                                            num_cnn_filters=NUM_CNN_FILTER,
+                                            ngram_filter_sizes=NGRAM_FILTER_SIZES)
+                                            )
 
 
 def train(attention_model, n_iters, resume=RESUME):
