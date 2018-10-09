@@ -3,7 +3,8 @@ LICENSE: https://github.com/allenai/allennlp/blob/master/LICENSE
 """
 
 import torch
-from torch.nn import Conv1d, Linear, ReLU
+from torch.nn import Conv1d, Linear, ReLU, Sequential, Dropout
+from data_accessor.data_loader.Settings import CNN_DROPOUT
 
 
 class CNNEncoder(torch.nn.Module):
@@ -32,7 +33,10 @@ class CNNEncoder(torch.nn.Module):
 
         maxpool_output_dim = self._num_filters * len(self._ngram_filter_sizes)
         if self._output_dim:
-            self.projection_layer = Linear(maxpool_output_dim, self._output_dim)
+            self.projection_layer = Sequential(
+                Linear(maxpool_output_dim, self._output_dim),
+                Dropout(CNN_DROPOUT)
+            )
         else:
             self.projection_layer = None
             self._output_dim = maxpool_output_dim
@@ -40,10 +44,8 @@ class CNNEncoder(torch.nn.Module):
     def get_input_dim(self):
         return self._embedding_dim
 
-
     def get_output_dim(self):
         return self._output_dim
-
 
     def forward(self, tokens, mask=None):
         """

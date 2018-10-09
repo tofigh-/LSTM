@@ -121,8 +121,9 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
                                             dropout_enc=0.1,
                                             dropout_dec=0.1,
                                             num_cnn_filters=NUM_CNN_FILTER,
-                                            ngram_filter_sizes=NGRAM_FILTER_SIZES)
-                                            )
+                                            ngram_filter_sizes=NGRAM_FILTER_SIZES,
+                                            num_cnn_features=NUM_CNN_FEATURES)
+                                 )
 
 
 def train(attention_model, n_iters, resume=RESUME):
