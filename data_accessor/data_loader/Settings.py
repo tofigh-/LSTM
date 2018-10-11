@@ -86,7 +86,7 @@ BI_DIRECTIONAL = True
 RNN_DROPOUT = 0.5
 ENCODER_WEIGHT_DECAY = 0.00001
 TEST_STOCK_THRESHOLD = 0
-TRAIN_STOCK_THRESHOLD = 2
+TRAIN_STOCK_THRESHOLD = 0
 use_future_unknown_estimates = True
 to_print_variables = ['TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'SIZE_AVERAGE',
