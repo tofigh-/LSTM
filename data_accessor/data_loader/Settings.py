@@ -92,7 +92,6 @@ TRAIN_ZERO_SALE_PERCENTAGE = 0.0
 TEST_ZERO_SALE_PERCENTAGE = 1.0
 
 use_future_unknown_estimates = True
-use_future_unknown_estimates = False
 to_print_variables = ['TEST_ZERO_SALE_PERCENTAGE', 'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'SIZE_AVERAGE',
