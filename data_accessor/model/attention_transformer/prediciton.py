@@ -20,6 +20,7 @@ def predict(model, loss_function, loss_function2, targets_future, inputs):
 
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_mean.squeeze())
-        loss += loss_function(sales_mean, sales_variance, sales_future[:, week_idx, :])
+        # loss += loss_function(sales_mean, sales_variance, sales_future[:, week_idx, :])
+        loss += loss_function2(sales_predictions,sales_future[:, week_idx, :])
 
     return loss.item() / OUTPUT_SIZE, torch.stack(all_weeks).transpose(0, 1)
