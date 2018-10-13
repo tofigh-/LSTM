@@ -8,7 +8,7 @@ from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
 from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
-from loss import L2_LOSS, L1_LOSS, LogNormalLoss
+from loss import L2_LOSS, L1_LOSS, LogNormalLoss,LogLaplaceLoss
 from model_utilities import exponential, complete_embedding_description, cuda_converter, \
     kpi_compute_per_country, rounder
 from data_accessor.data_loader.utilities import load_label_encoder, save_label_encoder
@@ -130,6 +130,8 @@ def train(attention_model, n_iters, resume=RESUME):
     msloss = L2_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     l1loss = L1_LOSS(size_average=SIZE_AVERAGE, sum_weight=SUM_WEIGHT)
     lognormal_loss = LogNormalLoss(size_average=SIZE_AVERAGE)
+    loglaplace_loss = LogLaplaceLoss(size_average=SIZE_AVERAGE)
+
     np.random.seed(0)
 
     def data_iter(data, loss_func, loss_func2, teacher_forcing_ratio=1.0, train_mode=True):
@@ -277,7 +279,7 @@ def train(attention_model, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
-        loss_function = lognormal_loss
+        loss_function = loglaplace_loss
         loss_function2 = msloss
         change_optimizer_epoch = 1
         if RESUME:

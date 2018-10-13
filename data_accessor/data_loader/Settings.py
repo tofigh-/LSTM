@@ -59,7 +59,7 @@ FILTER_ZERO_PRICE = True
 FILTER_LOW_SALE = True
 SUM_WEIGHT = True
 SIZE_AVERAGE = True
-RESUME = True
+RESUME = False
 ## Variables
 ENCODER_CHECKPOINT = u'Encoder Checkpoint'
 ENCODER_DECODER_CHECKPOINT = u'Encoder Decoder Checkpoint'
@@ -90,9 +90,9 @@ TEST_STOCK_THRESHOLD = 0
 TRAIN_STOCK_THRESHOLD = 2
 TRAIN_ZERO_SALE_PERCENTAGE = 0.1
 TEST_ZERO_SALE_PERCENTAGE = 1.0
-
+OUTPUT_MODE = 'mode'
 use_future_unknown_estimates = True
-to_print_variables = ['TEST_ZERO_SALE_PERCENTAGE', 'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
+to_print_variables = ['OUTPUT_MODE', 'TEST_ZERO_SALE_PERCENTAGE', 'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'SIZE_AVERAGE',
                       'SUM_WEIGHT', 'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',

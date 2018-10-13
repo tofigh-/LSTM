@@ -13,13 +13,13 @@ def predict(model, loss_function, loss_function2, targets_future, inputs):
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
         features = torch.cat([output_prefinal.squeeze(), embedded_features, input_decoder[:, week_idx, :]], dim=1)
-        sales_mean, sales_variance, sales_predictions = model.generate_mu_sigma(features)
+        distribution_parameters, sales_predictions = model.generate_distribution_parameters(features)
+        loss += loss_function(*distribution_parameters, target=sales_future[:, week_idx, :])
 
         # without teacher forcing
         future_unknown_estimates = sales_predictions
 
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_predictions.squeeze())
-        loss += loss_function(sales_mean, sales_variance, sales_future[:, week_idx, :])
 
     return loss.item() / OUTPUT_SIZE, torch.stack(all_weeks).transpose(0, 1)

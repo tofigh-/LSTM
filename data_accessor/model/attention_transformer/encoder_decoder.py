@@ -35,8 +35,8 @@ class EncoderDecoder(nn.Module):
     def decode(self, hidden_state, encoder_input_mask, decoder_input):
         return self.decoder(decoder_input, hidden_state, encoder_input_mask)
 
-    def generate_mu_sigma(self, input):
-        return self.generator(input)
+    def generate_distribution_parameters(self, inputs):
+        return self.generator(inputs)
 
     @staticmethod
     def load_checkpoint(model_path_dict, model):

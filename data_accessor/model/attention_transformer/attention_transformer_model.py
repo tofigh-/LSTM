@@ -8,7 +8,7 @@ from decoder import Decoder
 from decoder_layer import DecoderLayer
 from torch import nn
 from embeddings import Embeddings
-from generator_layer import GeneratorLayer
+from generator_layer_loglaplace import GeneratorLayerLogLaplace
 
 from data_accessor.data_loader.Settings import *
 
@@ -27,7 +27,7 @@ def make_model(embedding_descriptions, total_input, forecast_length, N=6,
         encoder=Encoder(EncoderLayer(d_model, c(multi_head_attn), c(positionwise_feed_forward), dropout_enc), N),
         decoder=Decoder(DecoderLayer(d_model, c(multi_head_attn), c(multi_head_attn),
                                      c(positionwise_feed_forward), dropout_dec), N),
-        generator=GeneratorLayer(d_model * 2 + num_embedded_features, num_output=14),
+        generator=GeneratorLayerLogLaplace(d_model * 2 + num_embedded_features, num_output=14),
         model_size=d_model)
 
     # This was important from their code.

@@ -2,11 +2,10 @@ import torch
 from torch import nn
 
 
-class GeneratorLayer(nn.Module):
-    "Define standard linear + softmax generation step."
+class GeneratorLayerLogNormal(nn.Module):
 
     def __init__(self, total_num_features, num_output):
-        super(GeneratorLayer, self).__init__()
+        super(GeneratorLayerLogNormal, self).__init__()
         self.out_sale_means = nn.Sequential(
             nn.Linear(total_num_features, num_output),
             nn.Softplus()
