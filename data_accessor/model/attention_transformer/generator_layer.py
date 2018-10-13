@@ -21,5 +21,5 @@ class GeneratorLayer(nn.Module):
         out_sales_variance_predictions = torch.clamp(self.out_sale_variances(input_values).squeeze(),
                                                      min=1e-5,
                                                      max=1e5)
-        final_output = out_sales_mean_predictions + 0.5 * out_sales_variance_predictions
+        final_output = out_sales_mean_predictions - 0.5 * out_sales_variance_predictions
         return out_sales_mean_predictions, out_sales_variance_predictions, final_output
