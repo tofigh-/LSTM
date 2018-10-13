@@ -33,7 +33,6 @@ class GeneratorLayerLogLaplace(nn.Module):
             idx = alpha > 1
             final_output = theta.clone()
             final_output[idx] = final_output[idx] + torch.log(1 + 1 / (alpha[idx] ** 2 - 1))
-            final_output[1 - idx] = 0
         else:
             raise Exception
         return [alpha, theta], final_output
