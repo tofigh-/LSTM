@@ -38,10 +38,8 @@ class GeneratorLayerLogLaplace(nn.Module):
             idx_n = 1 - idx
             final_output = theta.clone()
             log_alpha_beta = torch.log(alpha + beta)
-            final_output[idx] = final_output[idx] + log_alpha_beta[idx] / beta[idx] - torch.log(2 * alpha[idx]) / beta[
-                idx]
-            final_output[idx_n] = final_output[idx_n] - log_alpha_beta[idx_n] / alpha[idx_n] + \
-                                  torch.log(2 * beta[idx_n]) / alpha[idx_n]
+            final_output[idx] = final_output[idx] + (log_alpha_beta[idx] - torch.log(2 * alpha[idx])) / beta[idx]
+            final_output[idx_n] = final_output[idx_n] + (torch.log(2 * beta[idx_n]) - log_alpha_beta[idx_n]) / alpha[idx_n]
 
             final_output = torch.clamp(final_output, min=0)
         elif OUTPUT_MODE == 'mean':
