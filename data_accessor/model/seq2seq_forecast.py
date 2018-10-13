@@ -280,6 +280,30 @@ def train(attention_model, n_iters, resume=RESUME):
         loss_function = msloss
         loss_function2 = msloss
         change_optimizer_epoch = 1
+        if RESUME:
+            attention_model.mode(train_mode=False)
+            test_loss, k1, k2, test_sale_kpi, \
+            predicted_country_sales_test, \
+            country_sales_test, \
+            weekly_aggregated_kpi_test, \
+            weekly_aggregated_kpi_scale_test = data_iter(
+                data=test_dataloader,
+                train_mode=False,
+                loss_func=loss_function,
+                loss_func2=loss_function2
+            )
+            attention_model.mode(train_mode=True)
+            print "Test Loss: {loss}".format(loss=test_loss)
+            print "National Test Sale KPI {kpi}".format(kpi=test_sale_kpi)
+            print "Weekly Test Aggregated KPI {kpi}".format(
+                kpi=rounder(
+                    np.sum(weekly_aggregated_kpi_test, axis=0) / np.sum(weekly_aggregated_kpi_scale_test,
+                                                                        axis=0) * 100)
+            )
+            global_kpi = [np.sum(k1[i, :, 0:-1]) / np.sum(k2[i, :, 0:-1]) * 100 for i in range(OUTPUT_SIZE)]
+            print "Natioanl Test KPI is {t_kpi}".format(t_kpi=global_kpi)
+            bias = [predicted_country_sales_test[i] / country_sales_test[i] for i in range(OUTPUT_SIZE)]
+            print "Bias Test per country per week {bias}".format(bias=bias)
         if n_iter == change_optimizer_epoch:
             # scheduler_encoder = ReduceLROnPlateau(vanilla_rnn.encoder_optimizer, mode='min', patience=4, factor=0.5)
             # scheduler_decoder = ReduceLROnPlateau(vanilla_rnn.future_decoder_optimizer, mode='min', patience=4, factor=0.5)
