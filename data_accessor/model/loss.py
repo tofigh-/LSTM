@@ -113,14 +113,9 @@ class LogLaplaceLoss(nn.Module):
         super(LogLaplaceLoss, self).__init__()
         self.size_average = size_average
 
-    def forward(self, alpha, beta, theta, target):
+    def forward(self, alpha, theta, target):
         _assert_no_grad(target)
-        idx = target >= theta
-        idx_n = 1 - idx
-        log_alpha_beta = torch.log(alpha * beta / (alpha + beta))
-        loss = log_alpha_beta
-        loss[idx] = loss[idx] - alpha[idx] * (target[idx] - theta[idx])
-        loss[idx_n] = loss[idx_n] - beta[idx_n] * (theta[idx_n] - target[idx_n])
+        loss = torch.log(alpha) - alpha * torch.abs(target - theta)
         if self.size_average:
             return torch.mean(loss)
         else:
