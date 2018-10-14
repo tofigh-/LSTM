@@ -31,8 +31,8 @@ class GeneratorLayerLogLaplace(nn.Module):
 
         elif OUTPUT_MODE == 'mean':
             idx = alpha > 1
-            final_output = theta.clone()
-            final_output[idx] = final_output[idx] + torch.log(1 + 1 / (alpha[idx] ** 2 - 1))
+            final_output = torch.zeros(theta.shape)
+            final_output[idx] = theta[idx] + torch.log(1 + 1 / (alpha[idx] ** 2 - 1))
         else:
             raise Exception
         return [alpha, theta], final_output
