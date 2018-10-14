@@ -21,8 +21,9 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
         features = torch.cat([output_prefinal.squeeze(), embedded_features, input_decoder[:, week_idx, :]], dim=1)
         sales_mean, sales_predictions = model.generate_mu_sigma(features)
-        loss += loss_function(sales_mean[:, 0], sales_future[:, week_idx, 0])
-        loss += loss_function2(sales_mean[:, 1:], sales_future[:, week_idx, 1:])
+        loss += loss_function(sales_mean[:, [0, 2, 4, 6, 12]], sales_future[:, week_idx, [0, 2, 4, 6, 12]])
+        loss += loss_function2(sales_mean[:, [1, 3, 5, 7, 8, 9, 10, 11, 13]],
+                               sales_future[:, week_idx, [1, 3, 5, 7, 8, 9, 10, 11, 13]])
         if use_teacher_forcing:
             input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = sales_future[:, week_idx, :].data
 

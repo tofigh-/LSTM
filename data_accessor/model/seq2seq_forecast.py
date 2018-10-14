@@ -277,7 +277,7 @@ def train(attention_model, n_iters, resume=RESUME):
 
     for n_iter in range(1, n_iters + 1):
         print ("Iteration Number %d" % n_iter)
-        loss_function = l1loss
+        loss_function = msloss
         loss_function2 = l1loss
         change_optimizer_epoch = 1
         if RESUME:
