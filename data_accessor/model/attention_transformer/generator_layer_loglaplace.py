@@ -19,8 +19,8 @@ class GeneratorLayerLogLaplace(nn.Module):
 
     def forward(self, input_values):
         alpha = torch.clamp(self.out_sale_alpha(input_values).squeeze(),
-                            min=1e-5,
-                            max=1e5)  # (BATCH_SIZE,NUM_OUTPUT)
+                            min=0.5,
+                            max=1.5)  # (BATCH_SIZE,NUM_OUTPUT)
         theta = self.out_sale_theta(input_values).squeeze()
         if OUTPUT_MODE == 'mode':
             final_output = theta.clone()
