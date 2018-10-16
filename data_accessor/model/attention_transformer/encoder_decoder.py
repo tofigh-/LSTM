@@ -20,7 +20,11 @@ class EncoderDecoder(nn.Module):
         self.embeddings = embeddings
         self.model_size = model_size
         self.optimizer = self.get_std_optimizer()
-        self.loss_weights = {i: 1.0 * cuda_converter(nn.Parameter(torch.ones(1))) for i in range(NUM_COUNTRIES)}
+        if torch.cuda.is_available():
+            self.loss_weights = {i: nn.Parameter(torch.ones(1)).to("cuda") for i in range(NUM_COUNTRIES)}
+        else:
+            self.loss_weights = {i: nn.Parameter(torch.ones(1)) for i in range(NUM_COUNTRIES)}
+
         self.loss_weight_optimizer = torch.optim.Adam(self.loss_weights.values(), lr=0.01, betas=(0.9, 0.98), eps=1e-9)
         for p in self.loss_weights.values():
             p.requires_grad = False
