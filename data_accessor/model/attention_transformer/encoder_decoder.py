@@ -21,7 +21,7 @@ class EncoderDecoder(nn.Module):
         self.model_size = model_size
         self.optimizer = self.get_std_optimizer()
         if torch.cuda.is_available():
-            self.loss_weights = {i: nn.Parameter(torch.ones(1)).to("cuda") for i in range(NUM_COUNTRIES)}
+            self.loss_weights = {i: nn.Parameter(torch.ones(1, device='cuda')) for i in range(NUM_COUNTRIES)}
         else:
             self.loss_weights = {i: nn.Parameter(torch.ones(1)) for i in range(NUM_COUNTRIES)}
 
