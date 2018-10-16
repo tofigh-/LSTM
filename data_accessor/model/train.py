@@ -300,7 +300,7 @@ class Training(object):
             loss_l2_avg += loss_l2_countries
 
         kpi_loss_grads = []
-
+        print "Passed the evaluation"
         avg_loss.backward(retain_graph=True)
         loss_weight_gradients = cuda_converter(torch.zeros(NUM_COUNTRIES))
         for param in self.model.parameters():
