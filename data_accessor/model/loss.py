@@ -57,41 +57,41 @@ class LogNegativeBinomial(nn.Module):
         return out
 
 
-class L1_LOSS(nn.Module):
-    def __init__(self, size_average=True, sum_weight=False):
-        super(L1_LOSS, self).__init__()
-        self.size_average = size_average
-        self.sum_weight = sum_weight
-        if self.sum_weight: self.size_average = False
+class KPILoss(nn.Module):
+    def __init__(self):
+        super(KPILoss, self).__init__()
 
     def forward(self, input, target, weights=None):
         _assert_no_grad(target)
-        if weights is not None:
-            out = torch.mean(torch.mul(F.l1_loss(input, target, size_average=False, reduce=False), weights))
-        else:
-
-            out = F.l1_loss(input, target, size_average=self.size_average)
-            if self.sum_weight:
-                out = out / (torch.sum(target) + 0.0001)
+        scaler = torch.sum(torch.mul(target, weights)) + 0.00001
+        out = (torch.mul(F.l1_loss(input, target, size_average=False, reduce=False), weights)).sum() / scaler
         return out
 
 
-class L2_LOSS(nn.Module):
-    def __init__(self, size_average=True, sum_weight=False):
-        super(L2_LOSS, self).__init__()
-        self.size_average = size_average
-        self.sum_weight = sum_weight
-        if self.sum_weight:
-            self.size_average = False
+class L1Loss(nn.Module):
+    def __init__(self, sum_loss=True):
+        super(L1Loss, self).__init__()
+        self.sum_loss = sum_loss
 
-    def forward(self, input, target, weights=None):
+    def forward(self, input, target):
         _assert_no_grad(target)
-        if weights is not None:
-            out = torch.mean(torch.mul(F.mse_loss(input, target, size_average=False, reduce=False), weights))
-        else:
-            out = F.mse_loss(input, target, size_average=self.size_average)
-            if self.sum_weight:
-                out = out / (torch.sum(target) + 0.0001)
+        assert input.shape == target.shape
+        out = torch.mean(F.l1_loss(input, target, size_average=False, reduce=False), dim=0)
+        if self.sum_loss:
+            out = out.sum()
+        return out
+
+
+class L2Loss(nn.Module):
+    def __init__(self, sum_loss=True):
+        super(L2Loss, self).__init__()
+        self.sum_loss = sum_loss
+
+    def forward(self, input, target):
+        _assert_no_grad(target)
+        out = torch.mean(F.mse_loss(input, target, size_average=False, reduce=False), dim=0)
+        if self.sum_loss:
+            out = out.sum()
         return out
 
 

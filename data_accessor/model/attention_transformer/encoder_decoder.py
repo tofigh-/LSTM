@@ -20,6 +20,10 @@ class EncoderDecoder(nn.Module):
         self.embeddings = embeddings
         self.model_size = model_size
         self.optimizer = self.get_std_optimizer()
+        self.loss_weights = {i: nn.Parameter(torch.ones(1)) for i in range(NUM_COUNTRIES)}
+        self.loss_weight_optimizer = torch.optim.Adam(self.loss_weights.values(), lr=LEARNING_RATE, betas=(0.9, 0.98), eps=1e-9)
+        for p in self.loss_weights.values():
+            p.requires_grad = False
 
     def forward(self, input_output_seq, input_mask, output_mask):
         "Take in and process masked src and target sequences."

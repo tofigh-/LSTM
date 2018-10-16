@@ -56,7 +56,7 @@ class DatasetReader(Dataset):
         self.length = length
 
     def reshuffle(self):
-        self.row_iteration_order = np.random.choice(self.num_samples, self.num_samples, replace=False) + 1
+        shuffle(self.row_iteration_order)
 
     def __getitem__(self, idx):
         try:

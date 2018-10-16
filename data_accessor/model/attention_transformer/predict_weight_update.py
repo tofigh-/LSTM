@@ -2,12 +2,18 @@ from data_accessor.data_loader.Settings import *
 import torch
 
 
-def predict(model, loss_function, loss_function2, targets_future, inputs):
+def predict_weight_update(model, loss_function, loss_function2, targets_future, inputs, update_weights_mode=False,
+                          kpi_loss=None,
+                          weights=None):
     sales_future = targets_future[SALES_MATRIX]
     input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs)
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     all_weeks = []
-    loss = 0
+
+    loss_l2 = torch.zeros(len(l2_loss_countries))
+    loss_l1 = torch.zeros(len(l1_loss_countries))
+    week_weights = np.exp(-0.1 * np.arange(OUTPUT_SIZE))
+    loss_kpi = 0
     for week_idx in range(OUTPUT_SIZE):
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
@@ -19,11 +25,9 @@ def predict(model, loss_function, loss_function2, targets_future, inputs):
 
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_mean.squeeze())
-        for country_idx in l2_loss_countries:
-            loss += model.loss_weights[country_idx] * loss_function(sales_mean[:, country_idx],
-                                                                    sales_future[:, week_idx, country_idx]).sum()
-        for country_idx in l1_loss_countries:
-            loss += model.loss_weights[country_idx] * loss_function2(sales_mean[:, country_idx],
-                                                                     sales_future[:, week_idx, country_idx]).sum()
 
-    return loss.item() / OUTPUT_SIZE, torch.stack(all_weeks).transpose(0, 1)
+        loss_l2 += loss_function(sales_mean[:, l2_loss_countries], sales_future[:, week_idx, l2_loss_countries])
+        loss_l1 += loss_function2(sales_mean[:, l1_loss_countries], sales_future[:, week_idx, l1_loss_countries])
+        loss_kpi += kpi_loss(sales_mean, sales_future[:, week_idx, :], weights * week_weights[week_idx])
+
+    return loss_l2, loss_l1, loss_kpi

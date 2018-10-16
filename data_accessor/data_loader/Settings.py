@@ -57,8 +57,7 @@ IS_LOG_TRANSFORM = True
 FILTER_LOW_STOCK = True
 FILTER_ZERO_PRICE = True
 FILTER_LOW_SALE = True
-SUM_WEIGHT = True
-SIZE_AVERAGE = True
+SUM_LOSS = False
 RESUME = False
 ## Variables
 ENCODER_CHECKPOINT = u'Encoder Checkpoint'
@@ -90,12 +89,14 @@ TEST_STOCK_THRESHOLD = 0
 TRAIN_STOCK_THRESHOLD = 2
 TRAIN_ZERO_SALE_PERCENTAGE = 0.1
 TEST_ZERO_SALE_PERCENTAGE = 1.0
-
+VALIDATION_RATIO = 0.1
 use_future_unknown_estimates = True
-to_print_variables = ['TEST_ZERO_SALE_PERCENTAGE', 'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
+l2_loss_countries = [0]
+l1_loss_countries = list(range(1,14))
+to_print_variables = ['l2_loss_countries', 'l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
+                      'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
-                      'SIZE_AVERAGE',
-                      'SUM_WEIGHT', 'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',
+                      'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',
                       'NUM_LAYER',
                       'HIDDEN_SIZE', 'LEARNING_RATE', 'GRADIENT_CLIP', 'BATCH_SIZE', 'TEST_BATCH_SIZE',
                       'TOTAL_INPUT', 'TOTAL_LENGTH', 'PAST_KNOWN_LENGTH', 'OUTPUT_SIZE']
