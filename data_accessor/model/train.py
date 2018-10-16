@@ -111,6 +111,7 @@ class Training(object):
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
                 if batch_num % 100 == 0:
+                    print "loss weights before update", self.model.loss_weights
                     self._update_loss_weights()
             else:
                 loss, sale_predictions = predict(
@@ -331,4 +332,4 @@ class Training(object):
         # self._loss_weight_mode(train_mode=False)
         self.model.optimizer.zero_grad()
         print "average loss for updating weights", loss_weight_gradients
-        print self.model.loss_weights
+        print "loss weights after update", self.model.loss_weights
