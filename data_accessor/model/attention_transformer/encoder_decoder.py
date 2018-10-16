@@ -21,7 +21,7 @@ class EncoderDecoder(nn.Module):
         self.model_size = model_size
         self.optimizer = self.get_std_optimizer()
         self.loss_weights = {i: nn.Parameter(torch.ones(1)) for i in range(NUM_COUNTRIES)}
-        self.loss_weight_optimizer = torch.optim.Adam(self.loss_weights.values(), lr=LEARNING_RATE, betas=(0.9, 0.98), eps=1e-9)
+        self.loss_weight_optimizer = torch.optim.Adam(self.loss_weights.values(), lr=0.01, betas=(0.9, 0.98), eps=1e-9)
         for p in self.loss_weights.values():
             p.requires_grad = False
 

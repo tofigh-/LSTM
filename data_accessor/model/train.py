@@ -309,13 +309,13 @@ class Training(object):
             loss.backward(retain_graph=True)
             for idx, param in enumerate(self.model.parameters()):
                 if param.grad is not None:
-                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).sum()
+                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).mean()
                 param.grad = None
         for loss, country_id in zip(loss_l1_avg, l1_loss_countries):
             loss.backward(retain_graph=True)
             for idx, param in enumerate(self.model.parameters()):
                 if param.grad is not None:
-                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).sum()
+                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).mean()
                 param.grad = None
 
         for country_id in range(NUM_COUNTRIES):

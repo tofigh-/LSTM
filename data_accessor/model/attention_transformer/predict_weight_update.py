@@ -30,6 +30,6 @@ def predict_weight_update(model, loss_function, loss_function2, targets_future, 
         loss_l2 += loss_function(sales_mean[:, l2_loss_countries], sales_future[:, week_idx, l2_loss_countries])
         loss_l1 += loss_function2(sales_mean[:, l1_loss_countries], sales_future[:, week_idx, l1_loss_countries])
         loss_kpi += kpi_loss(exponential(sales_mean, True), exponential(sales_future[:, week_idx, :], True),
-                             exponential(weights, True) * week_weights[week_idx])
+                             weights/1000 * week_weights[week_idx])
 
     return loss_l2, loss_l1, loss_kpi
