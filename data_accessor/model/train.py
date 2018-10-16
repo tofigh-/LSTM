@@ -283,6 +283,7 @@ class Training(object):
             all_param_grads.append(torch.empty([NUM_COUNTRIES] + list(param.shape)))
 
         for batch_num, batch_data in enumerate(self.validation_dataloader):
+
             batch_data = np.array(batch_data)
             targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
             loss_l2_countries, loss_l1_countries, loss_kpi = predict_weight_update(
@@ -295,6 +296,7 @@ class Training(object):
                 kpi_loss=kpi_loss,
                 weights=black_price
             )
+            print batch_num
             avg_loss = avg_loss + loss_kpi
             loss_l1_avg += loss_l1_countries
             loss_l2_avg += loss_l2_countries
