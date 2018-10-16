@@ -276,8 +276,8 @@ class Training(object):
         kpi_loss = KPILoss()
         self.model.mode(train_mode=True)
         avg_loss = 0
-        loss_l2_avg = torch.zeros(len(l2_loss_countries))
-        loss_l1_avg = torch.zeros(len(l1_loss_countries))
+        loss_l2_avg = cuda_converter(torch.zeros(len(l2_loss_countries)))
+        loss_l1_avg = cuda_converter(torch.zeros(len(l1_loss_countries)))
         all_param_grads = []
         for idx, param in enumerate(self.model.parameters()):
             all_param_grads.append(torch.empty([NUM_COUNTRIES] + list(param.shape)))
