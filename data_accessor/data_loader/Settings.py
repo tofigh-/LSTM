@@ -91,8 +91,8 @@ TRAIN_ZERO_SALE_PERCENTAGE = 0.1
 TEST_ZERO_SALE_PERCENTAGE = 1.0
 VALIDATION_RATIO = 0.1
 use_future_unknown_estimates = True
-l2_loss_countries = [0]
-l1_loss_countries = list(range(1,14))
+list_l2_loss_countries = [0]
+list_l1_loss_countries = list(range(1, 14))
 to_print_variables = ['l2_loss_countries', 'l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
                       'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',

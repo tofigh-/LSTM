@@ -22,10 +22,10 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
         features = torch.cat([output_prefinal.squeeze(), embedded_features, input_decoder[:, week_idx, :]], dim=1)
         sales_mean, sales_predictions = model.generate_mu_sigma(features)
 
-        for country_idx in l2_loss_countries:
+        for country_idx in list_l2_loss_countries:
             loss += model.loss_weights[country_idx] * loss_function(sales_mean[:, country_idx],
                                                                     sales_future[:, week_idx, country_idx]).sum()
-        for country_idx in l1_loss_countries:
+        for country_idx in list_l1_loss_countries:
             loss += model.loss_weights[country_idx] * loss_function2(sales_mean[:, country_idx],
                                                                      sales_future[:, week_idx, country_idx]).sum()
 

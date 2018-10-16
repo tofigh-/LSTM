@@ -276,8 +276,8 @@ class Training(object):
         kpi_loss = KPILoss()
         self.model.mode(train_mode=True)
         avg_loss = 0
-        loss_l2_avg = cuda_converter(torch.zeros(len(l2_loss_countries)))
-        loss_l1_avg = cuda_converter(torch.zeros(len(l1_loss_countries)))
+        loss_l2_avg = cuda_converter(torch.zeros(len(list_l2_loss_countries)))
+        loss_l1_avg = cuda_converter(torch.zeros(len(list_l1_loss_countries)))
         all_param_grads = []
         for idx, param in enumerate(self.model.parameters()):
             all_param_grads.append(torch.empty([NUM_COUNTRIES] + list(param.shape)))
@@ -302,17 +302,17 @@ class Training(object):
         kpi_loss_grads = []
 
         avg_loss.backward(retain_graph=True)
-        loss_weight_gradients = torch.zeros(NUM_COUNTRIES)
+        loss_weight_gradients = cuda_converter(torch.zeros(NUM_COUNTRIES))
         for param in self.model.parameters():
             kpi_loss_grads.append(param.grad)
             param.grad = None
-        for loss, country_id in zip(loss_l2_avg, l2_loss_countries):
+        for loss, country_id in zip(loss_l2_avg, list_l2_loss_countries):
             loss.backward(retain_graph=True)
             for idx, param in enumerate(self.model.parameters()):
                 if param.grad is not None:
                     loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).mean()
                 param.grad = None
-        for loss, country_id in zip(loss_l1_avg, l1_loss_countries):
+        for loss, country_id in zip(loss_l1_avg, list_l1_loss_countries):
             loss.backward(retain_graph=True)
             for idx, param in enumerate(self.model.parameters()):
                 if param.grad is not None:
@@ -320,7 +320,7 @@ class Training(object):
                 param.grad = None
 
         for country_id in range(NUM_COUNTRIES):
-            self.model.loss_weights[country_id].grad = torch.tensor([loss_weight_gradients[country_id]])
+            self.model.loss_weights[country_id].grad = cuda_converter(torch.tensor([loss_weight_gradients[country_id]]))
         self.model.loss_weight_optimizer.step()
         self.model.loss_weight_optimizer.zero_grad()
         sum_value = 0

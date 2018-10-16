@@ -19,10 +19,10 @@ def predict(model, loss_function, loss_function2, targets_future, inputs):
 
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_mean.squeeze())
-        for country_idx in l2_loss_countries:
+        for country_idx in list_l2_loss_countries:
             loss += model.loss_weights[country_idx] * loss_function(sales_mean[:, country_idx],
                                                                     sales_future[:, week_idx, country_idx]).sum()
-        for country_idx in l1_loss_countries:
+        for country_idx in list_l1_loss_countries:
             loss += model.loss_weights[country_idx] * loss_function2(sales_mean[:, country_idx],
                                                                      sales_future[:, week_idx, country_idx]).sum()
 
