@@ -1,6 +1,6 @@
 from data_accessor.data_loader.Settings import *
 import torch
-from data_accessor.model.model_utilities import exponential
+from data_accessor.model.model_utilities import exponential,cuda_converter
 
 
 def predict_weight_update(model, loss_function, loss_function2, targets_future, inputs, update_weights_mode=False,
@@ -11,8 +11,8 @@ def predict_weight_update(model, loss_function, loss_function2, targets_future, 
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     all_weeks = []
 
-    loss_l2 = torch.zeros(len(l2_loss_countries))
-    loss_l1 = torch.zeros(len(l1_loss_countries))
+    loss_l2 = cuda_converter(torch.zeros(len(l2_loss_countries)))
+    loss_l1 = cuda_converter(torch.zeros(len(l1_loss_countries)))
     week_weights = np.exp(-0.1 * np.arange(OUTPUT_SIZE))
     loss_kpi = 0
     for week_idx in range(OUTPUT_SIZE):
