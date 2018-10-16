@@ -93,7 +93,7 @@ VALIDATION_RATIO = 0.1
 use_future_unknown_estimates = True
 list_l2_loss_countries = [0]
 list_l1_loss_countries = list(range(1, 14))
-to_print_variables = ['l2_loss_countries', 'l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
+to_print_variables = ['list_l2_loss_countries', 'list_l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
                       'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',
