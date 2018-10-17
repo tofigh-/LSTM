@@ -275,51 +275,57 @@ class Training(object):
     def _update_loss_weights(self):
         kpi_loss = KPILoss()
         self.model.mode(train_mode=True)
-        avg_loss = 0
-        loss_l2_avg = cuda_converter(torch.zeros(len(list_l2_loss_countries)))
-        loss_l1_avg = cuda_converter(torch.zeros(len(list_l1_loss_countries)))
-        all_param_grads = []
-        for idx, param in enumerate(self.model.parameters()):
-            all_param_grads.append(torch.empty([NUM_COUNTRIES] + list(param.shape)))
+        num_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
-        for batch_num, batch_data in enumerate(self.validation_dataloader):
+        def compute_aggregated_gradients(loss_function=None, loss_function2=None, reference_kpi=None,
+                                         use_weights=False,
+                                         country_id=None):
+            for batch_num, batch_data in enumerate(self.validation_dataloader):
+                batch_data = np.array(batch_data)
+                targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
+                if use_weights:
+                    weights = black_price
+                else:
+                    weights = None
+                loss_kpi = predict_weight_update(
+                    model=self.model,
+                    targets_future=targets_future,
+                    inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous(),
+                    loss_function=loss_function,
+                    loss_function2=loss_function2,
+                    reference_kpi=reference_kpi,
+                    weights=weights,
+                    country_id=country_id
+                )
+                loss_kpi.backward()
 
-            batch_data = np.array(batch_data)
-            targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
-            loss_l2_countries, loss_l1_countries, loss_kpi = predict_weight_update(
-                model=self.model,
-                loss_function=self.msloss,
-                loss_function2=self.l1loss,
-                targets_future=targets_future,
-                inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous(),
-                update_weights_mode=True,
-                kpi_loss=kpi_loss,
-                weights=black_price
-            )
-            print batch_num
-            avg_loss = avg_loss + loss_kpi
-            loss_l1_avg += loss_l1_countries
-            loss_l2_avg += loss_l2_countries
+        def _update_weight_gradients(model, loss_weight_gradients, country_id, kpi_loss_grads):
+            for idx, param in enumerate(model.parameters()):
+                if param.grad is not None:
+                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx] / num_params).sum()
+                param.grad = None
+            return loss_weight_gradients
 
+        compute_aggregated_gradients(reference_kpi=kpi_loss, use_weights=True)
+        print "Passed the reference kpi evaluation/ gradient computation"
         kpi_loss_grads = []
-        print "Passed the evaluation"
-        avg_loss.backward(retain_graph=True)
         loss_weight_gradients = cuda_converter(torch.zeros(NUM_COUNTRIES))
         for param in self.model.parameters():
             kpi_loss_grads.append(param.grad)
             param.grad = None
-        for loss, country_id in zip(loss_l2_avg, list_l2_loss_countries):
-            loss.backward(retain_graph=True)
-            for idx, param in enumerate(self.model.parameters()):
-                if param.grad is not None:
-                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).mean()
-                param.grad = None
-        for loss, country_id in zip(loss_l1_avg, list_l1_loss_countries):
-            loss.backward(retain_graph=True)
-            for idx, param in enumerate(self.model.parameters()):
-                if param.grad is not None:
-                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).mean()
-                param.grad = None
+        self.model.optimizer.zero_grad()
+
+        for country_id in zip(list_l2_loss_countries):
+            compute_aggregated_gradients(loss_function=self.msloss, country_id=country_id, use_weights=False)
+            loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
+                                                             kpi_loss_grads)
+            self.model.optimizer.zero_grad()
+
+        for country_id in list_l1_loss_countries:
+            compute_aggregated_gradients(loss_function=self.msloss, country_id=country_id, use_weights=False)
+            loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
+                                                             kpi_loss_grads)
+            self.model.optimizer.zero_grad()
 
         for country_id in range(NUM_COUNTRIES):
             self.model.loss_weights[country_id].grad = cuda_converter(torch.tensor([loss_weight_gradients[country_id]]))

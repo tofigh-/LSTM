@@ -1,20 +1,18 @@
 from data_accessor.data_loader.Settings import *
 import torch
-from data_accessor.model.model_utilities import exponential,cuda_converter
+from data_accessor.model.model_utilities import exponential, cuda_converter
 
 
-def predict_weight_update(model, loss_function, loss_function2, targets_future, inputs, update_weights_mode=False,
-                          kpi_loss=None,
-                          weights=None):
+def predict_weight_update(model, inputs, targets_future, loss_function=None, loss_function2=None, reference_kpi=None,
+                          weights=None,country_id=None):
     sales_future = targets_future[SALES_MATRIX]
     input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs)
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     all_weeks = []
 
-    loss_l2 = cuda_converter(torch.zeros(len(list_l2_loss_countries)))
-    loss_l1 = cuda_converter(torch.zeros(len(list_l1_loss_countries)))
+
+    loss = 0
     week_weights = np.exp(-0.1 * np.arange(OUTPUT_SIZE))
-    loss_kpi = 0
     for week_idx in range(OUTPUT_SIZE):
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
@@ -26,10 +24,14 @@ def predict_weight_update(model, loss_function, loss_function2, targets_future, 
 
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_mean.squeeze())
+        if loss_function is not None:
+            loss += loss_function(sales_mean[:, country_id],
+                                  sales_future[:, week_idx, country_id])
+        if loss_function2 is not None:
+            loss += loss_function2(sales_mean[:, country_id],
+                                   sales_future[:, week_idx, country_id])
+        if reference_kpi is not None:
+            loss += reference_kpi(exponential(sales_mean, True), exponential(sales_future[:, week_idx, :], True),
+                                  weights / 1000 * week_weights[week_idx])
 
-        loss_l2 += loss_function(sales_mean[:, list_l2_loss_countries], sales_future[:, week_idx, list_l2_loss_countries])
-        loss_l1 += loss_function2(sales_mean[:, list_l1_loss_countries], sales_future[:, week_idx, list_l1_loss_countries])
-        loss_kpi += kpi_loss(exponential(sales_mean, True), exponential(sales_future[:, week_idx, :], True),
-                             weights/1000 * week_weights[week_idx])
-
-    return loss_l2, loss_l1, loss_kpi
+    return loss/OUTPUT_SIZE
