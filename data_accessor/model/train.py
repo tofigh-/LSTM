@@ -25,6 +25,11 @@ class Training(object):
         self.n_iters = n_iters
         self.msloss = L2Loss(sum_loss=SUM_LOSS)
         self.l1loss = L1Loss(sum_loss=SUM_LOSS)
+        self.cached_validation_data = []
+        for batch_num, batch_data in enumerate(self.validation_dataloader):
+            batch_data = np.array(batch_data)
+            targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
+            self.cached_validation_data.append([targets_future, batch_data, black_price])
 
     def _kpi_print(self, mode, loss_value, kpi_value, weekly_aggregated_kpi, weekly_aggregated_kpi_scale, k1, k2,
                    predicted_country_sales=None, country_sales=None):
@@ -280,9 +285,9 @@ class Training(object):
         def compute_aggregated_gradients(loss_function=None, loss_function2=None, reference_kpi=None,
                                          use_weights=False,
                                          country_id=None):
-            for batch_num, batch_data in enumerate(self.validation_dataloader):
-                batch_data = np.array(batch_data)
-                targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
+
+            for targets_future, batch_data, black_price in self.cached_validation_data:
+
                 if use_weights:
                     weights = black_price
                 else:
@@ -297,6 +302,7 @@ class Training(object):
                     weights=weights,
                     country_id=country_id
                 )
+                loss_kpi = loss_kpi / len(self.cached_validation_data)
                 loss_kpi.backward()
 
         def _update_weight_gradients(model, loss_weight_gradients, country_id, kpi_loss_grads):
