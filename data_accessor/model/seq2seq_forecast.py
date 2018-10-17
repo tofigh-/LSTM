@@ -44,12 +44,12 @@ if debug_mode:
 
 else:
     num_csku_per_query_train = 10000
-    num_csku_per_query_validation = 10000
+    num_csku_per_query_validation = 1000
     train_workers = 4
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 5
-    max_num_queries_validation = None
+    max_num_queries_validation = 1
 
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
@@ -93,30 +93,20 @@ test_transform = Transform(
     keep_zero_sale_filter=TEST_ZERO_SALE_PERCENTAGE,
     activate_filters=True)
 
-count_num_rows = 'SELECT max(_ROWID_) FROM data'
-connection = sqlite3.connect(path_to_training_db)
-conn_db = connection.cursor()
-conn_db.execute(count_num_rows)
-num_samples = conn_db.fetchall()[0][0]
-row_iteration_order = np.random.choice(num_samples, num_samples, replace=False) + 1
-num_validation_samples = int(num_samples * VALIDATION_RATIO)
-validation_rows = row_iteration_order[0:num_validation_samples]
-training_rows = row_iteration_order[num_validation_samples:]
+
 train_db = DatasetReader(
     path_to_training_db=path_to_training_db,
     transform=train_transform,
     num_csku_per_query=num_csku_per_query_train,
     max_num_queries=max_num_queries_train,
-    row_iteration_order=training_rows,
-    shuffle_dataset=False)
+    shuffle_dataset=True)
 
 validation_db = DatasetReader(
     path_to_training_db=path_to_training_db,
     transform=validation_transform,
     num_csku_per_query=num_csku_per_query_validation,
     max_num_queries=max_num_queries_validation,
-    row_iteration_order=validation_rows,
-    shuffle_dataset=False)
+    shuffle_dataset=True)
 
 test_db = DatasetReader(
     path_to_training_db=path_to_training_db,

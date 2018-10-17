@@ -26,11 +26,6 @@ class Training(object):
         self.n_iters = n_iters
         self.msloss = L2Loss(sum_loss=SUM_LOSS)
         self.l1loss = L1Loss(sum_loss=SUM_LOSS)
-        self.cached_validation_data = []
-        for batch_num, batch_data in enumerate(self.validation_dataloader):
-            batch_data = np.array(batch_data)
-            targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
-            self.cached_validation_data.append([targets_future, batch_data, black_price])
 
     def _kpi_print(self, mode, loss_value, kpi_value, weekly_aggregated_kpi, weekly_aggregated_kpi_scale, k1, k2,
                    predicted_country_sales=None, country_sales=None):
@@ -287,7 +282,10 @@ class Training(object):
                                          use_weights=False,
                                          country_id=None):
 
-            for targets_future, batch_data, black_price in self.cached_validation_data:
+            for batch_num, batch_data in enumerate(self.validation_dataloader):
+                batch_data = np.array(batch_data)
+                print batch_num
+                targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
                 if use_weights:
                     weights = black_price
                 else:
