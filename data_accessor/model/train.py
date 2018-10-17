@@ -288,7 +288,6 @@ class Training(object):
                                          country_id=None):
 
             for targets_future, batch_data, black_price in self.cached_validation_data:
-
                 if use_weights:
                     weights = black_price
                 else:
@@ -325,7 +324,7 @@ class Training(object):
         for country_id in zip(list_l2_loss_countries):
             st = time()
             compute_aggregated_gradients(loss_function=self.msloss, country_id=country_id, use_weights=False)
-            print (time() - st,country_id)
+            print (time() - st, country_id)
             loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
                                                              kpi_loss_grads)
             self.model.optimizer.zero_grad()
