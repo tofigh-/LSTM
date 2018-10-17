@@ -304,7 +304,7 @@ class Training(object):
         def _update_weight_gradients(model, loss_weight_gradients, country_id, kpi_loss_grads):
             for idx, param in enumerate(model.parameters()):
                 if param.grad is not None:
-                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx] / num_params).sum()
+                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).sum()
                 param.grad = None
             return loss_weight_gradients
 
@@ -328,7 +328,7 @@ class Training(object):
             loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
                                                              kpi_loss_grads)
             self.model.optimizer.zero_grad()
-
+        loss_weight_gradients = loss_weight_gradients / torch.norm(loss_weight_gradients)
         sum_value = 0
         for country_id in range(NUM_COUNTRIES):
             self.model.loss_weights[country_id] -= 0.001 * loss_weight_gradients[country_id].item()
