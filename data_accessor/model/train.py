@@ -14,6 +14,7 @@ import sys
 from data_accessor.model.attention_transformer.training import train_per_batch
 from data_accessor.model.attention_transformer.predict_weight_update import predict_weight_update
 from data_accessor.model.attention_transformer.encoder_decoder import EncoderDecoder
+from time import time
 
 
 class Training(object):
@@ -322,13 +323,17 @@ class Training(object):
         self.model.optimizer.zero_grad()
 
         for country_id in zip(list_l2_loss_countries):
+            st = time()
             compute_aggregated_gradients(loss_function=self.msloss, country_id=country_id, use_weights=False)
+            print (time() - st,country_id)
             loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
                                                              kpi_loss_grads)
             self.model.optimizer.zero_grad()
 
         for country_id in list_l1_loss_countries:
-            compute_aggregated_gradients(loss_function=self.msloss, country_id=country_id, use_weights=False)
+            st = time()
+            compute_aggregated_gradients(loss_function=self.l1loss, country_id=country_id, use_weights=False)
+            print (time() - st, country_id)
             loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
                                                              kpi_loss_grads)
             self.model.optimizer.zero_grad()
