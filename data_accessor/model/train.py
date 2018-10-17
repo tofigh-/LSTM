@@ -300,7 +300,6 @@ class Training(object):
                     weights=weights,
                     country_id=country_id
                 )
-                loss_kpi = loss_kpi / len(self.cached_validation_data)
                 loss_kpi.backward()
 
         def _update_weight_gradients(model, loss_weight_gradients, country_id, kpi_loss_grads):
@@ -347,5 +346,6 @@ class Training(object):
             self.model.loss_weights[country_id] = self.model.loss_weights[country_id] / sum_value
         # self._loss_weight_mode(train_mode=False)
         self.model.optimizer.zero_grad()
+        self.validation_dataloader.reshufle()
         print "average loss for updating weights", loss_weight_gradients
         print "loss weights after update", self.model.loss_weights
