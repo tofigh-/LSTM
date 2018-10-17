@@ -284,7 +284,6 @@ class Training(object):
 
             for batch_num, batch_data in enumerate(self.validation_dataloader):
                 batch_data = np.array(batch_data)
-                print batch_num
                 targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
                 if use_weights:
                     weights = black_price
