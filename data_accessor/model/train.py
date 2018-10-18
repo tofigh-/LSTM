@@ -111,7 +111,7 @@ class Training(object):
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
-                if batch_num % 500 == 0:
+                if batch_num % UPDATE_LOSS_AT_BATCH_NUM == 0:
                     print "loss weights before update", self.model.loss_weights
                     self._update_loss_weights()
             else:
@@ -311,7 +311,7 @@ class Training(object):
         compute_aggregated_gradients(reference_kpi=kpi_loss, use_weights=True)
         print "Passed the reference kpi evaluation/ gradient computation"
         kpi_loss_grads = []
-        loss_weight_gradients = cuda_converter(torch.zeros(NUM_COUNTRIES))
+        loss_weight_gradients = cuda_converter(torch.zeros(len(list_l2_loss_countries + list_l1_loss_countries)))
         for param in self.model.parameters():
             kpi_loss_grads.append(param.grad)
             param.grad = None
@@ -325,18 +325,13 @@ class Training(object):
 
         for country_id in list_l1_loss_countries:
             compute_aggregated_gradients(loss_function=self.l1loss, country_id=country_id, use_weights=False)
-            loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
+            loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients,
+                                                             country_id + len(list_l2_loss_countries),
                                                              kpi_loss_grads)
             self.model.optimizer.zero_grad()
         loss_weight_gradients = loss_weight_gradients / torch.norm(loss_weight_gradients)
-        sum_value = 0
-        for country_id in range(NUM_COUNTRIES):
-            self.model.loss_weights[country_id] -= 0.001 * loss_weight_gradients[country_id].item()
-            self.model.loss_weights[country_id] = torch.clamp(self.model.loss_weights[country_id], min=0)
-            sum_value += self.model.loss_weights[country_id]
-
-        for country_id in range(NUM_COUNTRIES):
-            self.model.loss_weights[country_id] = self.model.loss_weights[country_id] / sum_value
+        self.model.loss_weights = torch.clamp(self.model.loss_weights, min=0)
+        self.model.loss_weights = self.model.loss_weights / self.model.loss_weights.sum()
         # self._loss_weight_mode(train_mode=False)
         self.model.optimizer.zero_grad()
         self.validation_dataloader.reshuffle_dataset()

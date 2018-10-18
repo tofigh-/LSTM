@@ -75,7 +75,6 @@ class L1Loss(nn.Module):
 
     def forward(self, input, target):
         _assert_no_grad(target)
-        assert input.shape == target.shape
         out = torch.mean(F.l1_loss(input, target, size_average=False, reduce=False), dim=0)
         if self.sum_loss:
             out = out.sum()

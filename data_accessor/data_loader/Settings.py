@@ -89,9 +89,10 @@ TEST_STOCK_THRESHOLD = 0
 TRAIN_STOCK_THRESHOLD = 2
 TRAIN_ZERO_SALE_PERCENTAGE = 0.1
 TEST_ZERO_SALE_PERCENTAGE = 1.0
+UPDATE_LOSS_AT_BATCH_NUM = 1000
 use_future_unknown_estimates = True
-list_l2_loss_countries = [0]
-list_l1_loss_countries = list(range(1, 14))
+list_l2_loss_countries = list(range(0, 14))
+list_l1_loss_countries = list(range(0, 14))
 to_print_variables = ['list_l2_loss_countries', 'list_l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
                       'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
