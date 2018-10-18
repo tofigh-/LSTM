@@ -276,7 +276,6 @@ class Training(object):
     def _update_loss_weights(self):
         kpi_loss = KPILoss()
         self.model.mode(train_mode=True)
-        num_params = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
 
         def compute_aggregated_gradients(loss_function=None, loss_function2=None, reference_kpi=None,
                                          use_weights=False,
@@ -330,6 +329,7 @@ class Training(object):
                                                              kpi_loss_grads)
             self.model.optimizer.zero_grad()
         loss_weight_gradients = loss_weight_gradients / torch.norm(loss_weight_gradients)
+        self.model.loss_weights -= 0.001 * loss_weight_gradients
         self.model.loss_weights = torch.clamp(self.model.loss_weights, min=0)
         self.model.loss_weights = self.model.loss_weights / self.model.loss_weights.sum()
         # self._loss_weight_mode(train_mode=False)
