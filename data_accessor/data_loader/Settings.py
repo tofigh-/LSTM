@@ -90,6 +90,7 @@ TRAIN_STOCK_THRESHOLD = 2
 TRAIN_ZERO_SALE_PERCENTAGE = 0.1
 TEST_ZERO_SALE_PERCENTAGE = 1.0
 UPDATE_LOSS_AT_BATCH_NUM = 1000
+
 use_future_unknown_estimates = True
 list_l2_loss_countries = list(range(0, 14))
 list_l1_loss_countries = list(range(0, 14))
@@ -124,15 +125,16 @@ FEATURE_DESCRIPTIONS[HDG_INDEX][TRANSFORMATION].insert(0, TO_STRING)
 embedded_features = [feature for feature, description in FEATURE_DESCRIPTIONS.iteritems()
                      if LABEL_ENCODING in description[TRANSFORMATION]
                      ]
+EMBEDDING_SIZE_FOR_ALL = 10
 embedding_descriptions = \
     {
         # COUNTRY: {EMBEDDING_SIZE: int(14), EMBEDDING_MAX: 15},
-        CG1: {EMBEDDING_SIZE: int(10), EMBEDDING_MAX: None}
+        CG1: {EMBEDDING_SIZE: int(EMBEDDING_SIZE_FOR_ALL), EMBEDDING_MAX: None}
     }
 
 for feature in embedded_features:
     if feature not in embedding_descriptions:
-        embedding_descriptions[feature] = {EMBEDDING_SIZE: 10, EMBEDDING_MAX: None}
+        embedding_descriptions[feature] = {EMBEDDING_SIZE: EMBEDDING_SIZE_FOR_ALL, EMBEDDING_MAX: None}
 
 import numpy as np
 

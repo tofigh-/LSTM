@@ -24,14 +24,15 @@ class Embeddings(nn.Module):
 
     def forward(self, input):
         numeric_features = input[:, :, self.numeric_feature_indices].float()
-        numeric_mask = input[:,:,feature_indices[STOCK]] > 0
+        numeric_mask = input[:, :, feature_indices[STOCK]] > 0
         # Each embedding is computed for the first time-step and replicated 52 times (.expand does exactly that)
         #  for all time steps.
         embedded_input = []
         for i, input_index in enumerate(self.embedding_feature_indices):
             embedded_input.append(
-                self.embeddings[i](input[:, 0, input_index].long())
+                self.embeddings[i](input[:, 0, input_index].long()).unsqueeze(-1)
             )
         past_seq = numeric_features[:, :self.total_input, :]
         future_seq = numeric_features[:, self.total_input:, :]
-        return past_seq, future_seq, torch.cat(embedded_input, dim=1), numeric_mask[:,:self.total_input,:].transpose(1,2)
+        embedded_output = torch.sum(torch.cat(embedded_input, dim=2), dim=2)
+        return past_seq, future_seq, embedded_output, numeric_mask[:, :self.total_input, :].transpose(1, 2)

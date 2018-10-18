@@ -19,8 +19,7 @@ def make_model(embedding_descriptions, total_input, forecast_length, N=6,
     c = copy.deepcopy
     multi_head_attn = MultiHeadedAttention(h, d_model)
     positionwise_feed_forward = PositionwiseFeedForward(d_model, d_ff, dropout_enc)
-    embedding_sizes = [embedding_descriptions[feature][EMBEDDING_SIZE] for feature in embedded_features]
-    num_embedded_features = sum(embedding_sizes)
+    num_embedded_features = EMBEDDING_SIZE_FOR_ALL
 
     model = EncoderDecoder(
         embeddings=Embeddings(embedding_descriptions, total_input, forecast_length),
