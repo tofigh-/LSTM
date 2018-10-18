@@ -21,9 +21,9 @@ class EncoderDecoder(nn.Module):
         self.model_size = model_size
         self.optimizer = self.get_std_optimizer()
         if torch.cuda.is_available():
-            self.loss_weights = nn.Parameter(torch.ones(len(list_l2_loss_countries + list_l1_loss_countries), device='cuda'))
+            self.loss_weights = torch.ones(len(list_l2_loss_countries + list_l1_loss_countries), device='cuda')
         else:
-            self.loss_weights = nn.Parameter(torch.ones(len(list_l2_loss_countries + list_l1_loss_countries)))
+            self.loss_weights = torch.ones(len(list_l2_loss_countries + list_l1_loss_countries))
         self.loss_weights.requires_grad = False
 
     def forward(self, input_output_seq, input_mask, output_mask):
