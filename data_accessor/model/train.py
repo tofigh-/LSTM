@@ -26,6 +26,7 @@ class Training(object):
         self.n_iters = n_iters
         self.msloss = L2Loss(sum_loss=SUM_LOSS)
         self.l1loss = L1Loss(sum_loss=SUM_LOSS)
+        self.cache_validation = None
 
     def _kpi_print(self, mode, loss_value, kpi_value, weekly_aggregated_kpi, weekly_aggregated_kpi_scale, k1, k2,
                    predicted_country_sales=None, country_sales=None):
@@ -276,14 +277,24 @@ class Training(object):
     def _update_loss_weights(self):
         kpi_loss = KPILoss()
         self.model.mode(train_mode=True)
+        cache_validation = None
 
         def compute_aggregated_gradients(loss_function=None, loss_function2=None, reference_kpi=None,
                                          use_weights=False,
-                                         country_id=None):
-
-            for batch_num, batch_data in enumerate(self.validation_dataloader):
-                batch_data = np.array(batch_data)
-                targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
+                                         country_id=None, cache_validation=None):
+            temp_data_cached = []
+            if cache_validation is None:
+                iterate_over = self.validation_dataloader
+            else:
+                iterate_over = cache_validation
+            for batch_num, data in enumerate(iterate_over):
+                if cache_validation is None:
+                    batch_data = np.array(data)
+                    if batch_data.shape[0] == 1: continue
+                    targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
+                    temp_data_cached.append([targets_future, batch_data, black_price])
+                else:
+                    targets_future, batch_data, black_price = data
                 if use_weights:
                     weights = black_price
                 else:
@@ -299,6 +310,9 @@ class Training(object):
                     country_id=country_id
                 )
                 loss_kpi.backward()
+            if cache_validation is None:
+                cache_validation = temp_data_cached
+            return cache_validation
 
         def _update_weight_gradients(model, loss_weight_gradients, country_id, kpi_loss_grads):
             for idx, param in enumerate(model.parameters()):
@@ -307,7 +321,8 @@ class Training(object):
                 param.grad = None
             return loss_weight_gradients
 
-        compute_aggregated_gradients(reference_kpi=kpi_loss, use_weights=True)
+        cache_validation = compute_aggregated_gradients(reference_kpi=kpi_loss, use_weights=True,
+                                                        cache_validation=cache_validation)
         print "Passed the reference kpi evaluation/ gradient computation"
         kpi_loss_grads = []
         loss_weight_gradients = cuda_converter(torch.zeros(len(list_l2_loss_countries + list_l1_loss_countries)))
@@ -317,13 +332,15 @@ class Training(object):
         self.model.optimizer.zero_grad()
 
         for country_id in zip(list_l2_loss_countries):
-            compute_aggregated_gradients(loss_function=self.msloss, country_id=country_id, use_weights=False)
+            compute_aggregated_gradients(loss_function=self.msloss, country_id=country_id, use_weights=False,
+                                         cache_validation=cache_validation)
             loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
                                                              kpi_loss_grads)
             self.model.optimizer.zero_grad()
 
         for country_id in list_l1_loss_countries:
-            compute_aggregated_gradients(loss_function=self.l1loss, country_id=country_id, use_weights=False)
+            compute_aggregated_gradients(loss_function=self.l1loss, country_id=country_id, use_weights=False,
+                                         cache_validation=cache_validation)
             loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients,
                                                              country_id + len(list_l2_loss_countries),
                                                              kpi_loss_grads)
