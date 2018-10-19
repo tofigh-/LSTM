@@ -115,7 +115,10 @@ class Transform(object):
                 continue
             num_weeks = len(idx_range)
             sufficient_length = TOTAL_LENGTH if self.training_transformation else TOTAL_INPUT
+
             num_zeros = sufficient_length - num_weeks if num_weeks < sufficient_length else 0
+            if self.training_transformation:
+                num_zeros = max(num_zeros, TOTAL_LENGTH - 5 - OUTPUT_SIZE)
             csku_object = self.feature_transforms.enrich_csku(csku_object, self.training_transformation)
             arguments = {'num_zeros': num_zeros, 'num_weeks': num_weeks, 'start_period': start_period,
                          'end_period': end_period, 'label_encoders': self.label_encoders}
