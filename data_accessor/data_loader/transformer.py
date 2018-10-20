@@ -117,10 +117,13 @@ class Transform(object):
             sufficient_length = TOTAL_LENGTH if self.training_transformation else TOTAL_INPUT
 
             num_zeros = sufficient_length - num_weeks if num_weeks < sufficient_length else 0
+            num_zeros_right = 0
             if self.training_transformation:
                 num_zeros = max(num_zeros, TOTAL_LENGTH - 5 - OUTPUT_SIZE)
+                num_zeros_right = OUTPUT_SIZE - 1
             csku_object = self.feature_transforms.enrich_csku(csku_object, self.training_transformation)
-            arguments = {'num_zeros': num_zeros, 'num_weeks': num_weeks, 'start_period': start_period,
+            arguments = {'num_zeros': num_zeros, 'num_zeros_right': num_zeros_right, 'num_weeks': num_weeks,
+                         'start_period': start_period,
                          'end_period': end_period, 'label_encoders': self.label_encoders}
 
             feature_dictionary = self.feature_transforms.transform(csku_object, idx_range, **arguments)
