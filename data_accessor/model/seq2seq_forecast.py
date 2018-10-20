@@ -43,7 +43,7 @@ if debug_mode:
     max_num_queries_validation = 1
 
 else:
-    num_csku_per_query_train = 2500
+    num_csku_per_query_train = 10000
     num_csku_per_query_validation = 1000
     train_workers = 4
     num_csku_per_query_test = 10000
@@ -73,6 +73,7 @@ train_transform = Transform(
 
 validation_transform = copy.deepcopy(train_transform)
 validation_transform.stock_threshold = TEST_STOCK_THRESHOLD
+validation_transform.no_additional_left_zeros=True
 validation_transform.keep_zero_sale_filter = TEST_ZERO_SALE_PERCENTAGE
 
 if label_encoders is None:
