@@ -23,6 +23,7 @@ class Transform(object):
                  keep_zero_sale_filter=1.0,
                  stock_threshold=0,
                  keep_percentage_zero_price=0.0,
+                 no_additional_left_zeros = False,
                  activate_filters=True):
         '''
 
@@ -39,6 +40,7 @@ class Transform(object):
         self.keep_zero_price_percentage = keep_percentage_zero_price
         self.stock_threshold = stock_threshold
         self.feature_transforms = feature_transforms
+        self.no_additional_left_zeros = no_additional_left_zeros
         if label_encoders is None:
             assert db_file is not None, 'Path to DB to compute label encoder is not provided'
             self.label_encoders = compute_label_encoders(db_file)
@@ -117,7 +119,7 @@ class Transform(object):
             sufficient_length = TOTAL_LENGTH if self.training_transformation else TOTAL_INPUT
 
             num_zeros = sufficient_length - num_weeks if num_weeks < sufficient_length else 0
-            if self.training_transformation:
+            if self.training_transformation and not self.no_additional_left_zeros:
                 num_zeros = max(num_zeros, TOTAL_LENGTH - 5 - OUTPUT_SIZE)
             csku_object = self.feature_transforms.enrich_csku(csku_object, self.training_transformation)
             arguments = {'num_zeros': num_zeros, 'num_weeks': num_weeks, 'start_period': start_period,

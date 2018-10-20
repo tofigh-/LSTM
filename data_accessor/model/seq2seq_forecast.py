@@ -91,6 +91,7 @@ test_transform = Transform(
     keep_percentage_zero_price=0.0,
     stock_threshold=TEST_STOCK_THRESHOLD,
     keep_zero_sale_filter=TEST_ZERO_SALE_PERCENTAGE,
+    no_additional_left_zeros=True,
     activate_filters=True)
 
 
