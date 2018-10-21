@@ -48,8 +48,8 @@ class Embeddings(nn.Module):
             if sum_mask_fist_element != TOTAL_INPUT and sum_mask_fist_element != 0:
                 past_seq = torch.masked_select(past_seq, numeric_mask).view(batch_size, -1,
                                                                             self.num_numeric_features)
-            if sum_mask_fist_element ==0:
-                past_seq = past_seq[:,[-1],:]
+            if sum_mask_fist_element == 0:
+                past_seq = past_seq[:, [-1], :]
             numeric_mask = None
 
         future_seq = numeric_features[:, self.total_input:, :]

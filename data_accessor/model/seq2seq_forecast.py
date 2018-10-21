@@ -34,7 +34,7 @@ path_to_training_db = join(dir_path, file_name)
 debug_mode = False
 
 if debug_mode:
-    num_csku_per_query_train = 2000
+    num_csku_per_query_train = 500
     num_csku_per_query_test = 100
     num_csku_per_query_validation = 50
     train_workers = 0
@@ -45,7 +45,7 @@ if debug_mode:
 else:
     num_csku_per_query_train = 5000
     num_csku_per_query_validation = 1000
-    train_workers = 4
+    train_workers = 8
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 5
@@ -130,7 +130,7 @@ print "d_model is: " + str(d_model)
 attention_model = cuda_converter(make_model(embedding_descriptions=embedding_descripts,
                                             total_input=TOTAL_INPUT,
                                             forecast_length=OUTPUT_SIZE,
-                                            N=6,
+                                            N=10,
                                             d_model=d_model,
                                             d_ff=4 * d_model,
                                             h=14,
