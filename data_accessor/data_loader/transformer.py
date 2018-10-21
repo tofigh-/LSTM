@@ -23,7 +23,7 @@ class Transform(object):
                  keep_zero_sale_filter=1.0,
                  stock_threshold=0,
                  keep_percentage_zero_price=0.0,
-                 no_additional_left_zeros = False,
+                 no_additional_left_zeros=False,
                  activate_filters=True):
         '''
 
@@ -98,6 +98,12 @@ class Transform(object):
         end_idx = num_weeks + start_idx
 
         return range(start_idx, end_idx), (start_date, end_date)
+
+    def length_sort(self, selected_rows):
+        if sort_key == STOCK:
+            selected_rows.sort(key = lambda feat_seq :  sum(feat_seq[0:TOTAL_INPUT,feature_indices[STOCK]]>0))
+        if sort_key == SALES_MATRIX:
+            selected_rows.sort(key = lambda feat_seq :  sum((feat_seq[0:TOTAL_INPUT,feature_indices[SALES_MATRIX]].sum(axis=1))>0))
 
     def filter_out_low_stock(self, feature_dictionary, target_index, threshold):
         return feature_dictionary[STOCK][target_index] <= threshold

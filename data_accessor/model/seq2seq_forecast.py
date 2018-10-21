@@ -34,7 +34,7 @@ path_to_training_db = join(dir_path, file_name)
 debug_mode = False
 
 if debug_mode:
-    num_csku_per_query_train = 500
+    num_csku_per_query_train = 2000
     num_csku_per_query_test = 100
     num_csku_per_query_validation = 50
     train_workers = 0
@@ -101,6 +101,7 @@ train_db = DatasetReader(
     transform=train_transform,
     num_csku_per_query=num_csku_per_query_train,
     max_num_queries=max_num_queries_train,
+    length_sort=True,
     shuffle_dataset=True)
 
 validation_db = DatasetReader(
@@ -108,6 +109,7 @@ validation_db = DatasetReader(
     transform=validation_transform,
     num_csku_per_query=num_csku_per_query_validation,
     max_num_queries=max_num_queries_validation,
+    length_sort=True,
     shuffle_dataset=True)
 
 test_db = DatasetReader(
@@ -115,6 +117,7 @@ test_db = DatasetReader(
     transform=test_transform,
     num_csku_per_query=num_csku_per_query_test,
     max_num_queries=max_num_queries_test,
+    length_sort=True,
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)

@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 class DatasetReader(Dataset):
 
     def __init__(self, path_to_training_db, transform=None, num_csku_per_query=10000, max_num_queries=None,
-                 shuffle_dataset=True, seed=None,
+                 shuffle_dataset=True, seed=None,length_sort=True,
                  row_iteration_order=None):
         if row_iteration_order is not None and shuffle_dataset:
             raise ValueError('shuffle_dataset and row_iteration_order are mutually exclusive. '
@@ -18,6 +18,7 @@ class DatasetReader(Dataset):
             raise ValueError('seed and row_iteration_order are mutually exclusive. '
                              'When row_iteration_order is provided, seed should be set to None.')
 
+        self.length_sort = length_sort
         self.path_to_training_db = path_to_training_db
         self.big_batch_size = num_csku_per_query
         count_num_rows = 'SELECT max(_ROWID_) FROM data'
@@ -82,4 +83,6 @@ class DatasetReader(Dataset):
         finally:
             connection.close()
             shuffle(selected_rows)
+            if self.length_sort:
+                self.transform.length_sort(selected_rows)
         return selected_rows
