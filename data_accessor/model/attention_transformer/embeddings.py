@@ -56,5 +56,4 @@ class Embeddings(nn.Module):
         embedded_output = torch.sum(torch.cat(embedded_input, dim=2), dim=2)
         if numeric_mask is not None:
             numeric_mask = numeric_mask.transpose(1, 2)
-        print past_seq.shape[1]
         return past_seq, future_seq, embedded_output, numeric_mask
