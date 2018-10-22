@@ -69,6 +69,8 @@ train_transform = Transform(
     keep_percentage_zero_price=0.0,
     stock_threshold=TRAIN_STOCK_THRESHOLD,
     keep_zero_sale_filter=TRAIN_ZERO_SALE_PERCENTAGE,
+    no_additional_left_zeros=False,
+    no_additional_right_zeros=False,
     activate_filters=True)
 
 validation_transform = copy.deepcopy(train_transform)

@@ -76,14 +76,14 @@ def high_dimensional_harmonic(x, **kwargs):
     return encoded_iso_week
 
 
-def iso_week_padding(x, start_period, num_zeros, **kwarg):
+def iso_week_padding(x, start_period, num_zeros, num_zeros_right, **kwarg):
     if num_zeros == 0: return x
     zero_padded_start_date = start_period - timedelta(num_zeros * 7)
     iso_week_seq = []
     for idx in range(num_zeros):
         week_date = zero_padded_start_date + timedelta(idx * 7)
         iso_week_seq.append(week_date.isocalendar()[1])
-    return np.concatenate([iso_week_seq, x], axis=0)
+    return np.concatenate([iso_week_seq, x, np.zeros(num_zeros_right)], axis=0)
 
 
 def compute_label_encoders(db_file, include_country=True, convert_to_string=True, chunk_size=100):
