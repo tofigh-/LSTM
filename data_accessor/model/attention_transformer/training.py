@@ -13,7 +13,7 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
     sales_future = targets_future[SALES_MATRIX]
-    mask_key = STOCK if np.random.rand() < 0.5 else SALES_MATRIX
+    mask_key = STOCK
     input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs, mask_key)
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     loss = 0
