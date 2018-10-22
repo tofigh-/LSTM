@@ -100,9 +100,9 @@ class Transform(object):
         return range(start_idx, end_idx), (start_date, end_date)
 
     def length_sort(self, selected_rows):
-        if sort_key == STOCK:
+        if mask_key == STOCK:
             selected_rows.sort(key = lambda feat_seq :  sum(feat_seq[0:TOTAL_INPUT,feature_indices[STOCK]]>0))
-        if sort_key == SALES_MATRIX:
+        if mask_key == SALES_MATRIX:
             selected_rows.sort(key = lambda feat_seq :  sum((feat_seq[0:TOTAL_INPUT,feature_indices[SALES_MATRIX]].sum(axis=1))>0))
 
     def filter_out_low_stock(self, feature_dictionary, target_index, threshold):

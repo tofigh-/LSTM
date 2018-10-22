@@ -9,7 +9,7 @@ from torch.utils.data import Dataset
 class DatasetReader(Dataset):
 
     def __init__(self, path_to_training_db, transform=None, num_csku_per_query=10000, max_num_queries=None,
-                 shuffle_dataset=True, seed=None,length_sort=True,
+                 shuffle_dataset=True, seed=None,length_sort=False,
                  row_iteration_order=None):
         if row_iteration_order is not None and shuffle_dataset:
             raise ValueError('shuffle_dataset and row_iteration_order are mutually exclusive. '

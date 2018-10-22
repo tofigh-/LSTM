@@ -31,8 +31,8 @@ class EncoderDecoder(nn.Module):
         input_seq, output_seq = self.embed(input_output_seq)
         return self.decode(self.encode(input_seq, input_mask), input_mask, output_seq)
 
-    def embed(self, input_output_seq):
-        return self.embeddings(input_output_seq)
+    def embed(self, input_output_seq, mask_key=STOCK):
+        return self.embeddings(input_output_seq, mask_key)
 
     def encode(self, input_seq, encoder_input_mask):
         return self.encoder(input_seq, encoder_input_mask)
