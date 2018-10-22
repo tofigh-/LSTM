@@ -65,6 +65,7 @@ class MyFeatureClass(FeaturesBase):
         for feature, description in self.feature_descriptions.iteritems():
 
             transformation_arguments = {'is_transform': IS_LOG_TRANSFORM, 'num_zeros': kwargs['num_zeros'],
+                                        'num_zeros_right': kwargs['num_zeros_right'],
                                         'global_or_international': description[TYPE], 'feature': feature,
                                         'start_period': kwargs['start_period'],
                                         'label_encoders': kwargs['label_encoders']}
@@ -145,7 +146,7 @@ class MyFeatureClass(FeaturesBase):
                 f = feature_value
             feature_seq.append(f)
 
-        feature_seq = [np.concatenate(feature_seq).transpose()]  # TOTAL_LENGTH x  NUM_FEAT
+        feature_seq = np.concatenate(feature_seq).transpose()  # TOTAL_LENGTH x  NUM_FEAT
 
         return feature_seq
 

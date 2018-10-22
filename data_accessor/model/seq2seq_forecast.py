@@ -16,7 +16,6 @@ from datetime import timedelta
 import git
 from data_accessor.model.attention_transformer.attention_transformer_model import make_model
 from train import Training
-import sqlite3
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
@@ -26,6 +25,7 @@ commit_hash = repo.head.object.hexsha
 branch_name = repo.active_branch.path
 print "commit_hash: " + commit_hash
 print "branch_name: " + branch_name
+print "Experiment time: " + str(datetime.now())
 
 dir_path = ""
 file_name = "training.db"
@@ -73,7 +73,7 @@ train_transform = Transform(
 
 validation_transform = copy.deepcopy(train_transform)
 validation_transform.stock_threshold = TEST_STOCK_THRESHOLD
-validation_transform.no_additional_left_zeros=True
+validation_transform.no_additional_left_zeros = True
 validation_transform.keep_zero_sale_filter = TEST_ZERO_SALE_PERCENTAGE
 
 if label_encoders is None:
@@ -95,13 +95,11 @@ test_transform = Transform(
     no_additional_left_zeros=True,
     activate_filters=True)
 
-
 train_db = DatasetReader(
     path_to_training_db=path_to_training_db,
     transform=train_transform,
     num_csku_per_query=num_csku_per_query_train,
     max_num_queries=max_num_queries_train,
-    length_sort=False,
     shuffle_dataset=True)
 
 validation_db = DatasetReader(
@@ -109,7 +107,6 @@ validation_db = DatasetReader(
     transform=validation_transform,
     num_csku_per_query=num_csku_per_query_validation,
     max_num_queries=max_num_queries_validation,
-    length_sort=False,
     shuffle_dataset=True)
 
 test_db = DatasetReader(
@@ -117,7 +114,6 @@ test_db = DatasetReader(
     transform=test_transform,
     num_csku_per_query=num_csku_per_query_test,
     max_num_queries=max_num_queries_test,
-    length_sort=False,
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
@@ -130,7 +126,7 @@ print "d_model is: " + str(d_model)
 attention_model = cuda_converter(make_model(embedding_descriptions=embedding_descripts,
                                             total_input=TOTAL_INPUT,
                                             forecast_length=OUTPUT_SIZE,
-                                            N=4,
+                                            N=6,
                                             d_model=d_model,
                                             d_ff=4 * d_model,
                                             h=14,

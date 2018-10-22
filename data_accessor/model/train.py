@@ -84,9 +84,12 @@ class Training(object):
             self.model.mode(train_mode=True)
         else:
             self.model.mode(train_mode=False)
-        for batch_num, batch_data in enumerate(data):
-
+        for batch_num, batch_data2 in enumerate(data):
+            loss_masks = []
+            batch_data = []
+            batch_data[:], loss_masks[:] = zip(*batch_data2)
             batch_data = np.array(batch_data)
+            loss_masks = np.array(loss_masks)
             # Batch x time x num
             if batch_data.shape[0] == 1:
                 print "Warning; batch size is one"
@@ -106,6 +109,7 @@ class Training(object):
                     targets_future=targets_future,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
+                    loss_masks=cuda_converter(torch.from_numpy(loss_masks).byte()).contiguous(),
                     teacher_forcing_ratio=teacher_forcing_ratio
                 )
                 avg_loss = loss + avg_loss
@@ -114,7 +118,7 @@ class Training(object):
                                                                                       loss_value=loss)
                 if batch_num % UPDATE_LOSS_AT_BATCH_NUM == 0:
                     # print "loss weights before update", self.model.loss_weights
-                    d=1
+                    d = 1
                     # self._update_loss_weights()
             else:
                 loss, sale_predictions = predict(

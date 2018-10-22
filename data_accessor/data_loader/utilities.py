@@ -1,8 +1,6 @@
 import cPickle as pickle
 import sqlite3
 from datetime import timedelta
-
-import numpy as np
 import types
 
 from Settings import *
@@ -10,13 +8,15 @@ import codecs
 import json
 
 
-def zero_padder(x, num_zeros, global_or_international, **kwargs):
-    if num_zeros == 0: return x
+def zero_padder(x, num_zeros, num_zeros_right, global_or_international, **kwargs):
     size = x.shape
-    if global_or_international == DYNAMIC_GLOBAL:
-        return np.concatenate([[0] * num_zeros, x])
+    if num_zeros == 0 and num_zeros_right == 0:
+        out = x
+    elif global_or_international == DYNAMIC_GLOBAL:
+        out = np.concatenate([[0] * num_zeros, x, [0] * num_zeros_right])
     else:
-        return np.concatenate([np.zeros((size[0], num_zeros)), x], axis=1)
+        out = np.concatenate([np.zeros((size[0], num_zeros)), x, np.zeros((size[0], num_zeros_right))], axis=1)
+    return out
 
 
 def encode_strings(value, feature, label_encoders, **kwarg):
@@ -144,4 +144,3 @@ def save_label_encoder(label_encoders, file_path):
 
 def append_lists(inputs):
     return sum(inputs, [])
-
