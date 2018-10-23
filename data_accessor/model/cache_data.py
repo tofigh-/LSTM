@@ -36,6 +36,7 @@ def cache_data(dataset):
     all_losses = []
     all_batches = []
     for batch_num, large_batch in enumerate(dataloader):
+        print batch_num
         if batch_num == 0: print ("length of one batch data is {length_b}".format(length_b=len(large_batch)))
         loss_masks = []
         batch_data = []
