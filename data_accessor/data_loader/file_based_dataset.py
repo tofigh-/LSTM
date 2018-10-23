@@ -19,8 +19,9 @@ class FileBasedDatasetReader(Dataset):
         self.temp_path = '/home/tnaghibi/cached_data'
         if not os.path.exists(self.temp_path):
             os.mkdir(self.temp_path)
-        Popen(['cp', join(path_to_training_dir, self.all_batch_files[0]), self.temp_path])
+        process_main = Popen(['cp', join(path_to_training_dir, self.all_batch_files[0]), self.temp_path])
         Popen(['cp', join(path_to_training_dir, self.all_loss_files[0]), self.temp_path])
+        process_main.wait()
 
     def __len__(self):
         return self.length
@@ -32,8 +33,8 @@ class FileBasedDatasetReader(Dataset):
         return
 
     def __getitem__(self, idx):
-        Popen(['cp', join(self.path_to_training_dir, self.all_batch_files[(idx+1) % self.length]), self.temp_path])
-        Popen(['cp', join(self.path_to_training_dir, self.all_loss_files[(idx+1) % self.length]), self.temp_path])
+        Popen(['cp', join(self.path_to_training_dir, self.all_batch_files[(idx + 1) % self.length]), self.temp_path])
+        Popen(['cp', join(self.path_to_training_dir, self.all_loss_files[(idx + 1) % self.length]), self.temp_path])
         batch_data = np.load(os.path.join(self.temp_path, self.all_batch_files[idx]))
         loss_masks = np.load(os.path.join(self.temp_path, self.all_loss_files[idx]))
         Popen(['rm', join(self.temp_path, self.all_batch_files[idx])])
