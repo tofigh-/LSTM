@@ -22,9 +22,9 @@ class FileBasedDatasetReader(Dataset):
         if not os.path.exists(self.temp_path):
             os.mkdir(self.temp_path)
         process_batch = Popen(['cp', join(path_to_training_dir, self.all_batch_files[0]), self.temp_path],
-                              stdout=PIPE, shell=True, preexec_fn=os.setsid)
+                              stdout=PIPE, shell=False, preexec_fn=os.setsid)
         process_loss = Popen(['cp', join(path_to_training_dir, self.all_loss_files[0]), self.temp_path],
-                             stdout=PIPE, shell=True, preexec_fn=os.setsid)
+                             stdout=PIPE, shell=False, preexec_fn=os.setsid)
         process_batch.wait()
         self._kill_process(process_batch)
         self._kill_process(process_loss)
