@@ -1,3 +1,4 @@
+#!/usr/bin/python
 from os.path import join
 import copy
 
