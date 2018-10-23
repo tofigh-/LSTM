@@ -147,7 +147,7 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
                                             dropout_dec=0.1))
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
-
+sys.stdout.flush()
 
 training = Training(model=attention_model, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
                     validation_dataloader=validation_dataloader, n_iters=50)

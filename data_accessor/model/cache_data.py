@@ -6,7 +6,7 @@ from data_accessor.data_loader.Settings import *
 from time import time
 from random import shuffle, seed
 import os
-
+import sys
 
 def cache_data(dataset):
     extension = 'npy'
@@ -42,6 +42,7 @@ def cache_data(dataset):
     all_losses = []
     all_batches = []
     for batch_num, large_batch in enumerate(dataloader):
+
         print batch_num
         if batch_num == 0: print ("length of one batch data is {length_b}".format(length_b=len(large_batch)))
         loss_masks = []
@@ -55,6 +56,7 @@ def cache_data(dataset):
             save_batches(all_losses, all_batches, batch_num)
             all_losses = []
             all_batches = []
+        sys.stdout.flush()
 
     save_batches(all_losses, all_batches, batch_num + 1)
     all_losses = []
