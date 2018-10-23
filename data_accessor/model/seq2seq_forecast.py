@@ -108,19 +108,20 @@ train_db = DatasetReader(
     num_csku_per_query=num_csku_per_query_train,
     max_num_queries=max_num_queries_train,
     shuffle_dataset=True)
+cache_dir_path = "/data/cached_data"
 if cache_training:
     if not USE_ALREADY_CACHED:
-        if not os.path.exists(dir_path):
-            os.mkdir(dir_path)
+        if not os.path.exists(cache_dir_path):
+            os.mkdir(cache_dir_path)
             cache_data(train_db)
         else:
             print "WARNING: cached directory existed, caching is not run"
     else:
-        if not os.path.exists('/data/cached_data'):
+        if not os.path.exists(cache_dir_path):
             print "WARNING: cached data do not exist and need to be computed"
             cache_data(train_db)
 
-train_db_cached = FileBasedDatasetReader('/data/cached_data')
+train_db_cached = FileBasedDatasetReader(cache_dir_path)
 
 validation_db = DatasetReader(
     path_to_training_db=path_to_training_db,
