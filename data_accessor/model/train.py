@@ -15,7 +15,7 @@ from data_accessor.model.attention_transformer.training import train_per_batch
 from data_accessor.model.attention_transformer.predict_weight_update import predict_weight_update
 from data_accessor.model.attention_transformer.encoder_decoder import EncoderDecoder
 from time import time
-
+from datetime import datetime
 
 class Training(object):
     def __init__(self, model, train_dataloader, test_dataloader, validation_dataloader, n_iters):
@@ -207,6 +207,8 @@ class Training(object):
         loss_function2 = self.l1loss
         for n_iter in range(1, self.n_iters + 1):
             print ("Iteration Number %d" % n_iter)
+            start_date_time = datetime.now()
+            print start_date_time
 
             change_optimizer_epoch = 1
             if RESUME:
@@ -266,6 +268,8 @@ class Training(object):
 
             if n_iter > change_optimizer_epoch:
                 scheduler.step(n_iter)
+
+            print "epoch took {hour} hour".format(hour=(datetime.now() - start_date_time).seconds / 3600)
 
         self.model.mode(train_mode=False)
         test_loss, k1, k2, test_sale_kpi, \
