@@ -59,17 +59,17 @@ class FileBasedDatasetReader(Dataset):
         self._kill_process(self.p_rm_loss)
         self.p_batch = Popen(
             ['cp', join(self.path_to_training_dir, self.all_batch_files[(idx + 1) % self.length]), self.temp_path],
-            stdout=PIPE, shell=True, preexec_fn=os.setsid)
+            stdout=PIPE, shell=False, preexec_fn=os.setsid)
         self.p_loss = Popen(
             ['cp', join(self.path_to_training_dir, self.all_loss_files[(idx + 1) % self.length]), self.temp_path],
-            stdout=PIPE, shell=True, preexec_fn=os.setsid)
+            stdout=PIPE, shell=False, preexec_fn=os.setsid)
         if not os.path.exists(join(self.temp_path, self.all_batch_files[idx])):
             p_batch = Popen(
                 ['cp', join(self.path_to_training_dir, self.all_batch_files[(idx) % self.length]),
-                 self.temp_path], stdout=PIPE, shell=True, preexec_fn=os.setsid)
+                 self.temp_path], stdout=PIPE, shell=False, preexec_fn=os.setsid)
             p_loss = Popen(
                 ['cp', join(self.path_to_training_dir, self.all_loss_files[(idx) % self.length]),
-                 self.temp_path], stdout=PIPE, shell=True, preexec_fn=os.setsid)
+                 self.temp_path], stdout=PIPE, shell=False, preexec_fn=os.setsid)
             p_batch.wait()
             self._kill_process(p_batch)
             self._kill_process(p_loss)
