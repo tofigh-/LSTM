@@ -9,6 +9,7 @@ from subprocess import Popen, PIPE
 from os.path import join
 from random import shuffle, seed
 import signal
+from data_accessor.data_loader.Settings import TOTAL_LENGTH
 
 
 class FileBasedDatasetReader(Dataset):
@@ -79,4 +80,4 @@ class FileBasedDatasetReader(Dataset):
 
         self.p_rm_batch = Popen(['rm', join(self.temp_path, self.all_batch_files[idx])])
         self.p_rm_loss = Popen(['rm', join(self.temp_path, self.all_loss_files[idx])])
-        return zip(batch_data, loss_masks)
+        return zip(batch_data[:, -TOTAL_LENGTH:, :], loss_masks)
