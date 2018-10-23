@@ -8,11 +8,15 @@ from random import shuffle, seed
 import os
 import sys
 
+
 def cache_data(dataset):
     extension = 'npy'
     dir_path = '/data/cached_data'
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
+    else:
+        print "WARNING: cached directory existed, caching is not run"
+        return
 
     def save_batches(all_losses, all_batches, batch_num):
         st = time()
