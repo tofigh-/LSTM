@@ -78,6 +78,6 @@ class FileBasedDatasetReader(Dataset):
         batch_data = np.load(join(self.temp_path, self.all_batch_files[idx]))
         loss_masks = np.load(join(self.temp_path, self.all_loss_files[idx]))
 
-        self.p_rm_batch = Popen(['rm', join(self.temp_path, self.all_batch_files[idx])])
-        self.p_rm_loss = Popen(['rm', join(self.temp_path, self.all_loss_files[idx])])
+        self.p_rm_batch = Popen(['rm', join(self.temp_path, self.all_batch_files[idx])],stdout=PIPE, shell=False,preexec_fn=os.setsid)
+        self.p_rm_loss = Popen(['rm', join(self.temp_path, self.all_loss_files[idx])],stdout=PIPE, shell=False,preexec_fn=os.setsid)
         return zip(batch_data[:, -TOTAL_LENGTH:, :], loss_masks)
