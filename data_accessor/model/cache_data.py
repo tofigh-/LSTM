@@ -26,7 +26,7 @@ def cache_data(dataset):
             seq_length=TOTAL_INPUT,
             output_size=OUTPUT_SIZE,
             extension=extension)
-
+        print np.array(all_batches).shape
         save(np.array(all_batches), output_path_batch)
         print ("time to save batch {time_amount} sec".format(time_amount=time() - st))
         save(np.array(all_losses), output_path_loss)
@@ -45,7 +45,7 @@ def cache_data(dataset):
         loss_masks = np.array(loss_masks)
         all_batches.append(batch_data)
         all_losses.append(loss_masks)
-        if batch_num == 10:
+        if batch_num == 3:
             save_batches(all_losses, all_batches, batch_num)
             all_losses = []
             all_batches = []
