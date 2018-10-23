@@ -94,7 +94,7 @@ use_future_unknown_estimates = True
 list_l2_loss_countries = list(range(0, 14))
 list_l1_loss_countries = list(range(0, 14))
 cache_training = True
-RESUME_CACHING = True
+USE_ALREADY_CACHED = False
 to_print_variables = ['list_l2_loss_countries', 'list_l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
                       'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',

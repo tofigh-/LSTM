@@ -108,6 +108,8 @@ train_db = DatasetReader(
     num_csku_per_query=num_csku_per_query_train,
     max_num_queries=max_num_queries_train,
     shuffle_dataset=True)
+if cache_training and not USE_ALREADY_CACHED:
+    cache_data(train_db)
 train_db_cached = FileBasedDatasetReader('/data/cached_data')
 
 validation_db = DatasetReader(
@@ -145,8 +147,7 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
                                             dropout_dec=0.1))
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
-if cache_training and not RESUME_CACHING:
-    cache_data(train_db)
+
 
 training = Training(model=attention_model, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
                     validation_dataloader=validation_dataloader, n_iters=50)
