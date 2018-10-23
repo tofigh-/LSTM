@@ -51,7 +51,7 @@ def cache_data(dataset):
         loss_masks = np.array(loss_masks)
         all_batches.append(batch_data)
         all_losses.append(loss_masks)
-        if batch_num == 10:
+        if batch_num == 5:
             save_batches(all_losses, all_batches, batch_num)
             all_losses = []
             all_batches = []
