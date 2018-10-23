@@ -269,7 +269,7 @@ class Training(object):
             if n_iter > change_optimizer_epoch:
                 scheduler.step(n_iter)
 
-            print "epoch took {hour} hour".format(hour=(datetime.now() - start_date_time).seconds / 3600)
+            print "epoch took {hour} hour".format(hour=(datetime.now() - start_date_time).seconds / 3600.0)
 
         self.model.mode(train_mode=False)
         test_loss, k1, k2, test_sale_kpi, \

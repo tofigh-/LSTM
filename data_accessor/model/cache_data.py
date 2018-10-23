@@ -31,7 +31,7 @@ def cache_data(dataset):
         print ("time to save batch {time_amount} sec".format(time_amount=time() - st))
         save(np.array(all_losses), output_path_loss)
 
-    dataloader = DataLoader(dataset, num_workers=4, collate_fn=append_lists, pin_memory=False,
+    dataloader = DataLoader(dataset, num_workers=0, collate_fn=append_lists, pin_memory=False,
                             batch_size=1)
     all_losses = []
     all_batches = []
