@@ -7,6 +7,7 @@ from torch.utils.data import Dataset
 import os
 from subprocess import Popen
 from os.path import join
+from random import shuffle, seed
 
 
 class FileBasedDatasetReader(Dataset):
@@ -30,13 +31,23 @@ class FileBasedDatasetReader(Dataset):
         self.length = length
 
     def reshuffle(self):
-        return
+        seed_val = np.random.randint(1, 10000)
+        seed(seed_val)
+        shuffle(self.all_batch_files)
+        seed(seed_val)
+        shuffle(self.all_loss_files)
 
     def __getitem__(self, idx):
         Popen(['cp', join(self.path_to_training_dir, self.all_batch_files[(idx + 1) % self.length]), self.temp_path])
         Popen(['cp', join(self.path_to_training_dir, self.all_loss_files[(idx + 1) % self.length]), self.temp_path])
-        batch_data = np.load(os.path.join(self.temp_path, self.all_batch_files[idx]))
-        loss_masks = np.load(os.path.join(self.temp_path, self.all_loss_files[idx]))
+        if not os.path.exists(join(self.temp_path, self.all_batch_files[idx])):
+            p_main = Popen(
+                ['cp', join(self.path_to_training_dir, self.all_batch_files[(idx) % self.length]), self.temp_path])
+            Popen(['cp', join(self.path_to_training_dir, self.all_loss_files[(idx) % self.length]), self.temp_path])
+            p_main.wait()
+        batch_data = np.load(join(self.temp_path, self.all_batch_files[idx]))
+        loss_masks = np.load(join(self.temp_path, self.all_loss_files[idx]))
+
         Popen(['rm', join(self.temp_path, self.all_batch_files[idx])])
         Popen(['rm', join(self.temp_path, self.all_loss_files[idx])])
         return zip(batch_data, loss_masks)
