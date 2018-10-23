@@ -108,8 +108,18 @@ train_db = DatasetReader(
     num_csku_per_query=num_csku_per_query_train,
     max_num_queries=max_num_queries_train,
     shuffle_dataset=True)
-if cache_training and not USE_ALREADY_CACHED:
-    cache_data(train_db)
+if cache_training:
+    if not USE_ALREADY_CACHED:
+        if not os.path.exists(dir_path):
+            os.mkdir(dir_path)
+            cache_data(train_db)
+        else:
+            print "WARNING: cached directory existed, caching is not run"
+    else:
+        if not os.path.exists('/data/cached_data'):
+            print "WARNING: cached data do not exist and need to be computed"
+            cache_data(train_db)
+
 train_db_cached = FileBasedDatasetReader('/data/cached_data')
 
 validation_db = DatasetReader(
@@ -139,7 +149,7 @@ print "d_model is: " + str(d_model)
 attention_model = cuda_converter(make_model(embedding_descriptions=embedding_descripts,
                                             total_input=TOTAL_INPUT,
                                             forecast_length=OUTPUT_SIZE,
-                                            N=6,
+                                            N=10,
                                             d_model=d_model,
                                             d_ff=4 * d_model,
                                             h=14,
