@@ -4,6 +4,7 @@ import copy
 from data_accessor.data_loader.Settings import *
 from data_accessor.data_loader.data_loader import DatasetLoader
 from data_accessor.data_loader.my_dataset import DatasetReader
+from data_accessor.data_loader.file_based_dataset import FileBasedDatasetReader
 from data_accessor.data_loader.my_feature_class import MyFeatureClass
 from data_accessor.data_loader.transformer import Transform
 from model_utilities import complete_embedding_description, cuda_converter
@@ -46,7 +47,10 @@ if debug_mode:
 else:
     num_csku_per_query_train = 10000
     num_csku_per_query_validation = 1000
-    train_workers = 8
+    if cache_training:
+        train_workers = 0
+    else:
+        train_workers = 4
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 5
@@ -104,6 +108,7 @@ train_db = DatasetReader(
     num_csku_per_query=num_csku_per_query_train,
     max_num_queries=max_num_queries_train,
     shuffle_dataset=True)
+train_db_cached = FileBasedDatasetReader('/data/cached_data')
 
 validation_db = DatasetReader(
     path_to_training_db=path_to_training_db,
@@ -119,7 +124,10 @@ test_db = DatasetReader(
     max_num_queries=max_num_queries_test,
     shuffle_dataset=True,
     seed=42)
-train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
+if cache_training:
+    train_dataloader = DatasetLoader(train_db_cached, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
+else:
+    train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
 validation_dataloader = DatasetLoader(validation_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
 test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
@@ -137,9 +145,9 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
                                             dropout_dec=0.1))
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
-if cache_training:
+if cache_training and not RESUME_CACHING:
     cache_data(train_db)
 
 training = Training(model=attention_model, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
                     validation_dataloader=validation_dataloader, n_iters=50)
-# training.train(resume=RESUME)
+training.train(resume=RESUME)

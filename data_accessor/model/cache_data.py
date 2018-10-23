@@ -10,7 +10,7 @@ import os
 
 def cache_data(dataset):
     extension = 'npy'
-    dir_path = 'cached_data'
+    dir_path = '/data/cached_data'
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
 
