@@ -16,6 +16,7 @@ from datetime import timedelta
 import git
 from data_accessor.model.attention_transformer.attention_transformer_model import make_model
 from train import Training
+from cache_data import cache_data
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
@@ -130,13 +131,15 @@ attention_model = cuda_converter(make_model(embedding_descriptions=embedding_des
                                             forecast_length=OUTPUT_SIZE,
                                             N=6,
                                             d_model=d_model,
-                                            d_ff=4*d_model,
+                                            d_ff=4 * d_model,
                                             h=14,
                                             dropout_enc=0.1,
                                             dropout_dec=0.1))
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
+if cache_training:
+    cache_data(train_db)
 
 training = Training(model=attention_model, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
                     validation_dataloader=validation_dataloader, n_iters=50)
-training.train(resume=RESUME)
+# training.train(resume=RESUME)
