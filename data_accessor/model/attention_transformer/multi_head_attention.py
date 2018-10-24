@@ -43,7 +43,7 @@ class MultiHeadedAttention(nn.Module):
 
     def attention(self, query, key, value, mask=None, dropout=None, self_attention=True):
         "Compute 'Scaled Dot Product Attention'"
-        d_k = query.shape[-1]
+        batch_size, num_head, query_time_length, d_k = query.shape
         if self_attention:
             scores = torch.matmul(query, key.transpose(-2, -1)) \
                      / math.sqrt(d_k)
@@ -54,6 +54,8 @@ class MultiHeadedAttention(nn.Module):
 
         if mask is not None:
             scores = scores.masked_fill(mask == 0, -1e9)
+            if query_time_length > 1:
+                scores = scores.masked_fill(mask.transpose(-2, -1) == 0, -1e9)
         p_attn = F.softmax(scores, dim=-1)
         if dropout is not None:
             p_attn = dropout(p_attn)

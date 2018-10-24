@@ -31,7 +31,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 path_to_training_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 if debug_mode:
     num_csku_per_query_train = 500
@@ -43,9 +43,9 @@ if debug_mode:
     max_num_queries_validation = 1
 
 else:
-    num_csku_per_query_train = 30000
+    num_csku_per_query_train = 5000
     num_csku_per_query_validation = 1000
-    train_workers = 2
+    train_workers = 8
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 5
@@ -128,7 +128,7 @@ print "d_model is: " + str(d_model)
 attention_model = cuda_converter(make_model(embedding_descriptions=embedding_descripts,
                                             total_input=TOTAL_INPUT,
                                             forecast_length=OUTPUT_SIZE,
-                                            N=10,
+                                            N=6,
                                             d_model=d_model,
                                             d_ff=4*d_model,
                                             h=14,
