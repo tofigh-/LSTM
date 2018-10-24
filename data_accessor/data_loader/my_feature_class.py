@@ -13,6 +13,11 @@ class MyFeatureClass(FeaturesBase):
                                 ZERO_PAD: zero_padder, ISO_WEEK_PADDING: iso_week_padding, TO_STRING: to_string
             , HIGH_DIMENSIONAL_SIN: high_dimensional_harmonic}
         self.low_sale_percentage = low_sale_percentage
+        self.positional_encoding_values = None
+        if POSITION_ENCODING in FEATURE_DESCRIPTIONS:
+            self.positional_encoding_values = high_dimensional_harmonic(np.arange(TOTAL_LENGTH),
+                                                                        size=FEATURE_DESCRIPTIONS[POSITION_ENCODING][
+                                                                            SIZE]).transpose()
 
     def to_feature_parameter_format(self, csku_object):
         return csku_object
@@ -31,6 +36,7 @@ class MyFeatureClass(FeaturesBase):
     def enrich_csku(self, csku_object, training_transformation=True):
         iso_week_seq = iso_week_generate(csku_object, training_transformation)
         csku_object[ISO_WEEK_SEQ] = iso_week_seq
+        csku_object[POSITION_ENCODING] = np.arange(len(csku_object[STOCK]))
         csku_object = add_cgs(csku_object)
         csku_object[GLOBAL_SALE] = np.sum(csku_object[SALES_MATRIX], axis=0)
         csku_object = add_country(csku_object)
@@ -141,7 +147,10 @@ class MyFeatureClass(FeaturesBase):
                 if SIZE not in description.keys():
                     f = np.array(feature_value)[None, :]
                 else:
-                    f = feature_value.transpose()
+                    if feature == POSITION_ENCODING:
+                        f = self.positional_encoding_values
+                    else:
+                        f = feature_value.transpose()
             if description[TYPE] is DYNAMIC_INT:
                 f = feature_value
             feature_seq.append(f)

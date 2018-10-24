@@ -6,7 +6,7 @@ import six
 from isoweek import Week
 
 from Settings import *
-from utilities import compute_label_encoders
+from utilities import compute_label_encoders, high_dimensional_harmonic
 
 
 class Transform(object):
@@ -137,6 +137,8 @@ class Transform(object):
                 chunk_data = self.create_chunk_of_samples(feature_dictionary)
                 transformed_samples.extend(chunk_data)
             else:
+                if POSITION_ENCODING in feature_dictionary:
+                    feature_dictionary[POSITION_ENCODING] = self.positional_encoding_values
                 transformed_samples.extend(self.feature_transforms.to_final_format_prediction(feature_dictionary))
         return transformed_samples
 
