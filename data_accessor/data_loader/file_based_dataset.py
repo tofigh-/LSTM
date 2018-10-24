@@ -22,26 +22,21 @@ class FileBasedDatasetReader(Dataset):
         self.temp_path = '/home/tnaghibi/cached_data'
         if not os.path.exists(self.temp_path):
             os.mkdir(self.temp_path)
-        process_batch = Popen(['cp', join(path_to_training_dir, self.all_batch_files[0]), self.temp_path],
-                              stdout=PIPE, shell=False, preexec_fn=os.setsid)
-        process_loss = Popen(['cp', join(path_to_training_dir, self.all_loss_files[0]), self.temp_path],
-                             stdout=PIPE, shell=False, preexec_fn=os.setsid)
-        process_batch.wait()
-        self._kill_process(process_batch)
-        self._kill_process(process_loss)
-        self.p_batch = None
-        self.p_loss = None
-        self.p_rm_batch = None
-        self.p_rm_loss = None
+        self.idx_move = 50
+        for i in range(self.idx_move):
+            self._copy_(self.all_batch_files[i])
+            self._copy_(self.all_loss_files[i])
+
+    def _copy_(self, file_name):
+        cmd = ' '.join(['cp', join(self.path_to_training_dir, file_name), self.temp_path])
+        os.system(cmd)
+
+    def _rm_(self, file_name):
+        cmd = ' '.join(['rm', join(self.temp_path, file_name)])
+        os.system(cmd)
 
     def __len__(self):
         return self.length
-
-    def _kill_process(self, process):
-        try:
-            os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-        except:
-            print "no process found to kill"
 
     def reset_length(self, length):
         self.length = length
@@ -54,30 +49,14 @@ class FileBasedDatasetReader(Dataset):
         shuffle(self.all_loss_files)
 
     def __getitem__(self, idx):
-        self._kill_process(self.p_batch)
-        self._kill_process(self.p_loss)
-        self._kill_process(self.p_rm_batch)
-        self._kill_process(self.p_rm_loss)
-        self.p_batch = Popen(
-            ['cp', join(self.path_to_training_dir, self.all_batch_files[(idx + 1) % self.length]), self.temp_path],
-            stdout=PIPE, shell=False, preexec_fn=os.setsid)
-        self.p_loss = Popen(
-            ['cp', join(self.path_to_training_dir, self.all_loss_files[(idx + 1) % self.length]), self.temp_path],
-            stdout=PIPE, shell=False, preexec_fn=os.setsid)
-        if not os.path.exists(join(self.temp_path, self.all_batch_files[idx])):
-            p_batch = Popen(
-                ['cp', join(self.path_to_training_dir, self.all_batch_files[(idx) % self.length]),
-                 self.temp_path], stdout=PIPE, shell=False, preexec_fn=os.setsid)
-            p_loss = Popen(
-                ['cp', join(self.path_to_training_dir, self.all_loss_files[(idx) % self.length]),
-                 self.temp_path], stdout=PIPE, shell=False, preexec_fn=os.setsid)
-            p_batch.wait()
-            self._kill_process(p_batch)
-            self._kill_process(p_loss)
+        if idx == self.idx_move:
+            self._rm_("*")
+            for i in range(50):
+                self._copy_(self.all_batch_files[(idx + i) % self.length])
+                self._copy_(self.all_loss_files[(idx + i) % self.length])
+            self.idx_move = (self.idx_move + 50) % self.length
 
         batch_data = np.load(join(self.temp_path, self.all_batch_files[idx]))
         loss_masks = np.load(join(self.temp_path, self.all_loss_files[idx]))
 
-        self.p_rm_batch = Popen(['rm', join(self.temp_path, self.all_batch_files[idx])],stdout=PIPE, shell=False,preexec_fn=os.setsid)
-        self.p_rm_loss = Popen(['rm', join(self.temp_path, self.all_loss_files[idx])],stdout=PIPE, shell=False,preexec_fn=os.setsid)
         return zip(batch_data[:, -TOTAL_LENGTH:, :], loss_masks)
