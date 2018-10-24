@@ -27,12 +27,17 @@ class FileBasedDatasetReader(Dataset):
             self._copy_(self.all_batch_files[i])
             self._copy_(self.all_loss_files[i])
 
-    def _copy_(self, file_name):
+    def _copy_(self, file_name, not_wait=False):
+
         cmd = ' '.join(['cp', join(self.path_to_training_dir, file_name), self.temp_path])
+        if not_wait:
+            cmd = cmd + " &"
         os.system(cmd)
 
-    def _rm_(self, file_name):
+    def _rm_(self, file_name, not_wait=False):
         cmd = ' '.join(['rm', join(self.temp_path, file_name)])
+        if not_wait:
+            cmd = cmd + " &"
         os.system(cmd)
 
     def __len__(self):
@@ -52,8 +57,8 @@ class FileBasedDatasetReader(Dataset):
         if idx == self.idx_move:
             self._rm_("*")
             for i in range(50):
-                self._copy_(self.all_batch_files[(idx + i) % self.length])
-                self._copy_(self.all_loss_files[(idx + i) % self.length])
+                self._copy_(self.all_batch_files[(idx + i) % self.length], not_wait=True)
+                self._copy_(self.all_loss_files[(idx + i) % self.length], not_wait=True)
             self.idx_move = (self.idx_move + 50) % self.length
 
         batch_data = np.load(join(self.temp_path, self.all_batch_files[idx]))
