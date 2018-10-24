@@ -43,7 +43,7 @@ if debug_mode:
     max_num_queries_validation = 1
 
 else:
-    num_csku_per_query_train = 10000
+    num_csku_per_query_train = 20000
     num_csku_per_query_validation = 1000
     train_workers = 8
     num_csku_per_query_test = 10000
@@ -128,7 +128,7 @@ print "d_model is: " + str(d_model)
 attention_model = cuda_converter(make_model(embedding_descriptions=embedding_descripts,
                                             total_input=TOTAL_INPUT,
                                             forecast_length=OUTPUT_SIZE,
-                                            N=6,
+                                            N=10,
                                             d_model=d_model,
                                             d_ff=4*d_model,
                                             h=14,
