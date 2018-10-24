@@ -43,7 +43,7 @@ if debug_mode:
     max_num_queries_validation = 1
 
 else:
-    num_csku_per_query_train = 3000
+    num_csku_per_query_train = 2500
     num_csku_per_query_validation = 1000
     train_workers = 14
     num_csku_per_query_test = 10000

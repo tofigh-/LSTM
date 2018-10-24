@@ -33,5 +33,5 @@ def make_model(embedding_descriptions, total_input, forecast_length, N=6,
     # Initialize parameters with Glorot / fan_avg.
     for p in model.parameters():
         if p.dim() > 1:
-            nn.init.xavier_uniform(p)
+            nn.init.xavier_uniform_(p, gain=nn.init.calculate_gain('relu'))
     return model
