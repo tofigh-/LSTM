@@ -138,7 +138,7 @@ class Transform(object):
                 transformed_samples.extend(chunk_data)
             else:
                 if POSITION_ENCODING in feature_dictionary:
-                    feature_dictionary[POSITION_ENCODING] = self.positional_encoding_values
+                    feature_dictionary[POSITION_ENCODING] = self.feature_transforms.positional_encoding_values
                 transformed_samples.extend(self.feature_transforms.to_final_format_prediction(feature_dictionary))
         return transformed_samples
 
