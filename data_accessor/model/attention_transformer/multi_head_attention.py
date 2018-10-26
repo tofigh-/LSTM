@@ -54,8 +54,8 @@ class MultiHeadedAttention(nn.Module):
 
         if mask is not None:
             scores = scores.masked_fill(mask == 0, -1e9)
-            # if query_time_length > 1:
-            #     scores = scores.masked_fill(mask.transpose(-2, -1) == 0, -1e9)
+            if query_time_length > 1:
+                scores = scores.masked_fill(mask.transpose(-2, -1) == 0, -1e9)
         p_attn = F.softmax(scores, dim=-1)
         if dropout is not None:
             p_attn = dropout(p_attn)
