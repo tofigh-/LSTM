@@ -19,6 +19,7 @@ class Transform(object):
                  max_end_date=None,
                  target_dates=[],
                  training_transformation=True,
+                 testing_Transformation = False,
                  keep_zero_stock_filter=0.0,
                  keep_zero_sale_filter=1.0,
                  stock_threshold=0,
@@ -43,6 +44,7 @@ class Transform(object):
         self.feature_transforms = feature_transforms
         self.no_additional_left_zeros = no_additional_left_zeros
         self.no_additional_right_zeros = no_additional_right_zeros
+        self.testing_Transformation = testing_Transformation
         if label_encoders is None:
             assert db_file is not None, 'Path to DB to compute label encoder is not provided'
             self.label_encoders = compute_label_encoders(db_file)

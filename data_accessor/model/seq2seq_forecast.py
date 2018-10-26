@@ -90,6 +90,7 @@ test_transform = Transform(
     db_file=path_to_training_db,
     target_dates=[target_test_date],
     training_transformation=True,
+    testing_Transformation = True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
     stock_threshold=TEST_STOCK_THRESHOLD,
