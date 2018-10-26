@@ -31,7 +31,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 path_to_training_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 if debug_mode:
     num_csku_per_query_train = 500
@@ -139,6 +139,6 @@ attention_model = cuda_converter(attention_model)
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
 
-training = Training(model=attention_model.attention_model, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
+training = Training(model=attention_model.module, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
                     validation_dataloader=validation_dataloader, n_iters=50)
 training.train(resume=RESUME)
