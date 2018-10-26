@@ -4,7 +4,7 @@ import torch
 
 def predict(model, loss_function, loss_function2, targets_future, inputs):
     sales_future = targets_future[SALES_MATRIX]
-    input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs)
+    input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs,mask_key=SALES_MATRIX)
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     all_weeks = []
     loss = 0
