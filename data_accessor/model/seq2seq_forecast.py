@@ -129,7 +129,7 @@ print "d_model is: " + str(d_model)
 attention_model = (make_model(embedding_descriptions=embedding_descripts,
                                              total_input=TOTAL_INPUT,
                                              forecast_length=OUTPUT_SIZE,
-                                             N_enc=6,
+                                             N_enc=3,
                                              N_dec=1,
                                              d_model=d_model,
                                              d_ff=4 * d_model,
