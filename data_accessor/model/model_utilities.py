@@ -4,11 +4,11 @@ from torch.autograd import Variable
 from data_accessor.data_loader.Settings import *
 
 use_cuda = torch.cuda.is_available()
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 def cuda_converter(input):
     if use_cuda:
-        return input.cuda()
+        return input.cuda(device)
     else:
         return input
 

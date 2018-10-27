@@ -90,7 +90,7 @@ test_transform = Transform(
     db_file=path_to_training_db,
     target_dates=[target_test_date],
     training_transformation=True,
-    testing_Transformation = True,
+    testing_Transformation=True,
     keep_zero_stock_filter=0.0,
     keep_percentage_zero_price=0.0,
     stock_threshold=TEST_STOCK_THRESHOLD,
@@ -126,19 +126,20 @@ embedding_descripts = complete_embedding_description(embedding_descriptions, lab
 
 d_model = len(numeric_feature_indices)
 print "d_model is: " + str(d_model)
-attention_model = nn.DataParallel(make_model(embedding_descriptions=embedding_descripts,
-                                            total_input=TOTAL_INPUT,
-                                            forecast_length=OUTPUT_SIZE,
-                                            N=6,
-                                            d_model=d_model,
-                                            d_ff=4*d_model,
-                                            h=18,
-                                            dropout_enc=0.1,
-                                            dropout_dec=0.1))
+attention_model = (make_model(embedding_descriptions=embedding_descripts,
+                                             total_input=TOTAL_INPUT,
+                                             forecast_length=OUTPUT_SIZE,
+                                             N_enc=6,
+                                             N_dec=1,
+                                             d_model=d_model,
+                                             d_ff=4 * d_model,
+                                             h=18,
+                                             dropout_enc=0.1,
+                                             dropout_dec=0.1))
 attention_model = cuda_converter(attention_model)
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
 
-training = Training(model=attention_model.module, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
+training = Training(model=attention_model, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
                     validation_dataloader=validation_dataloader, n_iters=50)
 training.train(resume=RESUME)
