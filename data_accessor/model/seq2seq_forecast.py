@@ -43,9 +43,9 @@ if debug_mode:
     max_num_queries_validation = 1
 
 else:
-    num_csku_per_query_train = 3000
+    num_csku_per_query_train = 10000
     num_csku_per_query_validation = 1000
-    train_workers = 4
+    train_workers = 6
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 5
@@ -130,7 +130,7 @@ attention_model = (make_model(embedding_descriptions=embedding_descripts,
                                              total_input=TOTAL_INPUT,
                                              forecast_length=OUTPUT_SIZE,
                                              N_enc=6,
-                                             N_dec=6,
+                                             N_dec=1,
                                              d_model=d_model,
                                              d_ff=4 * d_model,
                                              h=18,
