@@ -17,6 +17,7 @@ import git
 from data_accessor.model.attention_transformer.attention_transformer_model import make_model
 from train import Training
 from torch import nn
+
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
     print (variable, settings.__dict__[variable])
@@ -126,16 +127,16 @@ embedding_descripts = complete_embedding_description(embedding_descriptions, lab
 
 d_model = len(numeric_feature_indices)
 print "d_model is: " + str(d_model)
-attention_model = (make_model(embedding_descriptions=embedding_descripts,
-                                             total_input=TOTAL_INPUT,
-                                             forecast_length=OUTPUT_SIZE,
-                                             N_enc=6,
-                                             N_dec=6,
-                                             d_model=d_model,
-                                             d_ff=4 * d_model,
-                                             h=18,
-                                             dropout_enc=0.1,
-                                             dropout_dec=0.1))
+attention_model = make_model(embedding_descriptions=embedding_descripts,
+                             total_input=TOTAL_INPUT,
+                             forecast_length=OUTPUT_SIZE,
+                             N_enc=6,
+                             N_dec=6,
+                             d_model=d_model,
+                             d_ff=4 * d_model,
+                             h=18,
+                             dropout_enc=0.1,
+                             dropout_dec=0.1)
 attention_model = cuda_converter(attention_model)
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
