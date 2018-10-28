@@ -66,7 +66,7 @@ class EncoderDecoder(nn.Module):
 
     def get_std_optimizer(self):
         return NoamOpt(model_size=self.model_size, factor=2, warmup=10,
-                       optimizer=torch.optim.Adam(self.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.98), eps=1e-9))
+                       optimizer=torch.optim.ASGD(self.parameters(), lr=LEARNING_RATE, betas=(0.9, 0.98), eps=1e-9))
 
 
 def subsequent_mask(size):
