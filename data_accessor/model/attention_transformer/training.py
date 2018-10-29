@@ -8,7 +8,7 @@ import sys
 import numpy as np
 
 
-def train_per_batch(model, inputs, targets_future, loss_function, loss_function2, loss_masks,
+def train_per_batch(model, inputs, targets_future, loss_function, loss_function2,bias_loss, loss_masks,
                     teacher_forcing_ratio):
     use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
 
@@ -25,10 +25,12 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
         features = torch.cat([output_prefinal[:,0,:], embedded_features, input_decoder[:, week_idx, :]], dim=1)
         sales_mean, sales_predictions = model.generate_mu_sigma(features)
 
-        l2 = loss_function(sales_mean[loss_masks[:, week_idx]],
+        l2 = loss_function(sales_predictions[loss_masks[:, week_idx]],
                            sales_future[loss_masks[:, week_idx], week_idx, :])
-        l1 = loss_function2(sales_mean[loss_masks[:, week_idx]], sales_future[loss_masks[:, week_idx], week_idx, :])
+        l1 = loss_function2(sales_predictions[loss_masks[:, week_idx]], sales_future[loss_masks[:, week_idx], week_idx, :])
         loss += (torch.cat([l2, l1]) * model.loss_weights).sum()
+        if bias_loss is not None:
+            loss +=bias_loss(sales_predictions[loss_masks[:, week_idx]],sales_future[loss_masks[:, week_idx], week_idx, :])
 
         # for country_idx in list_l2_loss_countries:
         #     loss += model.loss_weights[country_idx] * loss_function(sales_mean[:, country_idx],

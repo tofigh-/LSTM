@@ -2,10 +2,10 @@ from os.path import join
 
 import torch
 from torch import optim
-from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
+from torch.optim.lr_scheduler import CosineAnnealingLR
 from data_accessor.data_loader.Settings import *
 from data_accessor.model.attention_transformer.prediciton import predict
-from loss import L2Loss, L1Loss, LogNormalLoss, KPILoss
+from loss import L2Loss, L1Loss, KPILoss,BiasLoss
 from model_utilities import exponential, cuda_converter, \
     kpi_compute_per_country, rounder
 
@@ -26,6 +26,7 @@ class Training(object):
         self.n_iters = n_iters
         self.msloss = L2Loss(sum_loss=SUM_LOSS)
         self.l1loss = L1Loss(sum_loss=SUM_LOSS)
+        self.bias_loss = BiasLoss()
         self.cache_validation = None
 
     def _kpi_print(self, mode, loss_value, kpi_value, weekly_aggregated_kpi, weekly_aggregated_kpi_scale, k1, k2,
@@ -109,6 +110,7 @@ class Training(object):
                     targets_future=targets_future,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
+                    bias_loss = self.bias_loss,
                     loss_masks=cuda_converter(torch.from_numpy(loss_masks).byte()).contiguous(),
                     teacher_forcing_ratio=teacher_forcing_ratio
                 )
@@ -125,6 +127,7 @@ class Training(object):
                     model=self.model,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
+                    bias_loss=self.bias_loss,
                     targets_future=targets_future,
                     inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous()
                 )

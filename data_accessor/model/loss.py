@@ -4,7 +4,6 @@ import torch.nn
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-from torch.nn.modules.loss import _assert_no_grad
 
 from model_utilities import cuda_converter
 
@@ -62,9 +61,17 @@ class KPILoss(nn.Module):
         super(KPILoss, self).__init__()
 
     def forward(self, input, target, weights=None):
-        _assert_no_grad(target)
         scaler = torch.sum(torch.mul(target, weights)) + 0.00001
         out = (torch.mul(F.l1_loss(input, target, size_average=False, reduce=False), weights)).sum() / scaler
+        return out
+
+
+class BiasLoss(nn.Module):
+    def __init__(self):
+        super(BiasLoss, self).__init__()
+
+    def forward(self, input, target, weights=None):
+        out = F.l1_loss(torch.logsumexp(input, dim=0), torch.logsumexp(target, dim=0))
         return out
 
 
@@ -74,7 +81,6 @@ class L1Loss(nn.Module):
         self.sum_loss = sum_loss
 
     def forward(self, input, target):
-        _assert_no_grad(target)
         out = torch.mean(F.l1_loss(input, target, size_average=False, reduce=False), dim=0)
         if self.sum_loss:
             out = out.sum()
@@ -87,11 +93,13 @@ class L2Loss(nn.Module):
         self.sum_loss = sum_loss
 
     def forward(self, input, target):
-        _assert_no_grad(target)
         out = torch.mean(F.mse_loss(input, target, size_average=False, reduce=False), dim=0)
         if self.sum_loss:
             out = out.sum()
         return out
+
+
+from torch.nn import MSELoss
 
 
 class LogNormalLoss(nn.Module):
@@ -100,7 +108,6 @@ class LogNormalLoss(nn.Module):
         self.size_average = size_average
 
     def forward(self, miu, variance, target):
-        _assert_no_grad(target)
         if self.size_average:
             return torch.mean(torch.log(variance) + (target - miu) ** 2 / variance)
         else:

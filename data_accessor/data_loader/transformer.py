@@ -19,7 +19,7 @@ class Transform(object):
                  max_end_date=None,
                  target_dates=[],
                  training_transformation=True,
-                 testing_Transformation = False,
+                 testing_Transformation=False,
                  keep_zero_stock_filter=0.0,
                  keep_zero_sale_filter=1.0,
                  stock_threshold=0,

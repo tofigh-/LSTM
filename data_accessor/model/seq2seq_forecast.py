@@ -16,7 +16,6 @@ from datetime import timedelta
 import git
 from data_accessor.model.attention_transformer.attention_transformer_model import make_model
 from train import Training
-from torch import nn
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
