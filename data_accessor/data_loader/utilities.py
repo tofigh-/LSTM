@@ -6,9 +6,7 @@ import types
 from Settings import *
 import codecs
 import json
-from numba import jit
 
-@jit()
 def zero_padder(x, num_zeros, num_zeros_right, global_or_international, **kwargs):
     size = x.shape
     if num_zeros == 0 and num_zeros_right == 0:
@@ -52,7 +50,6 @@ def get_supplier_stock_uplift(past_stock, past_sales, past_returns):
     uplift = np.maximum(np.diff(past_stock) + past_sales[0:-1] - past_returns[1:], 0)
     return np.concatenate([uplift, [0]])
 
-@jit()
 def log_transform(x, is_transform, **kwargs):
     return np.log(x + 1.0) if is_transform else x
 
@@ -67,7 +64,6 @@ def add_cgs(csku_object):
         csku_object[u'CG{i}'.format(i=idx + 1)] = cg
     return csku_object
 
-@jit()
 def high_dimensional_harmonic(x, **kwargs):
     size = kwargs[SIZE]
     x1 = np.repeat(x[:, None], repeats=size, axis=1) * 2 * np.pi / 52.0 * ((2 * np.arange(size) + 1.0) / size)
