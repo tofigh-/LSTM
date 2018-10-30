@@ -4,6 +4,7 @@ from utilities import add_cgs, iso_week_generate, get_supplier_stock_uplift, log
     iso_week_padding, encode_strings, to_string, add_country, high_dimensional_harmonic
 import numpy as np
 from numpy import inf
+from numba import jit
 
 
 class MyFeatureClass(FeaturesBase):
@@ -33,6 +34,8 @@ class MyFeatureClass(FeaturesBase):
         if global_or_international == STATIC_GLOBAL:
             return csku_object.get(key, MISSING_VALUE)
 
+
+    @jit
     def enrich_csku(self, csku_object, training_transformation=True):
         iso_week_seq = iso_week_generate(csku_object, training_transformation)
         csku_object[ISO_WEEK_SEQ] = iso_week_seq

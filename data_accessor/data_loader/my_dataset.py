@@ -73,30 +73,14 @@ class DatasetReader(Dataset):
             connection_cursor.execute(select_query)
             rows = connection_cursor.fetchall()
             selected_rows = []
-            csku_objects = []
             for row in rows:
-                csku_objects.append(pickle.loads(str(row[0])))
-
-            def calc_stuff(csku_object):
-                csku_samples = self.transform(csku_object)
-                return csku_samples
-
-            pool = multiprocess.Pool(2)
-            all_samples = pool.map(calc_stuff, csku_objects)
-            pool.close()
-            pool.join()
-            selected_rows = []
-            for sample in all_samples:
-                if sample is not None and sample != []:
-                    selected_rows.extend(sample)
-            # for row in rows:
-            #     csku_object = pickle.loads(str(row[0]))
-            #     if self.transform is not None:
-            #         csku_samples = self.transform(csku_object)
-            #         if csku_samples is not None and csku_samples != []:
-            #             selected_rows.extend(csku_samples)
-            #     else:
-            #         selected_rows.append(csku_object)
+                csku_object = pickle.loads(str(row[0]))
+                if self.transform is not None:
+                    csku_samples = self.transform(csku_object)
+                    if csku_samples is not None and csku_samples != []:
+                        selected_rows.extend(csku_samples)
+                else:
+                    selected_rows.append(csku_object)
 
         finally:
             connection.close()
