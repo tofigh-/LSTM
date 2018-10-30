@@ -126,8 +126,8 @@ class Training(object):
                 if batch_num % 100 == 0:
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
-                if batch_num % UPDATE_LOSS_AT_BATCH_NUM == 0:
-                    update_loss_weights_mode = True
+                # if batch_num % UPDATE_LOSS_AT_BATCH_NUM == 0:
+                #     update_loss_weights_mode =True
             elif train_mode and update_loss_weights_mode:
                 update_step_counts, \
                 update_loss_weights_mode, \
