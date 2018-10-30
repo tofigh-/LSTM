@@ -7,6 +7,7 @@ from isoweek import Week
 
 from Settings import *
 from utilities import compute_label_encoders, high_dimensional_harmonic
+from joblib import Parallel, delayed
 
 
 class Transform(object):
@@ -148,27 +149,63 @@ class Transform(object):
         num_countries, num_weeks = feature_dictionary[SALES_MATRIX].shape
         num_window_shifts = int(np.floor((num_weeks - TOTAL_LENGTH) / float(WINDOW_SHIFT))) + 1
         samples = []
-        for slide_i in range(num_window_shifts):
-            if slide_i < OUTPUT_SIZE and not self.no_additional_right_zeros:
+
+        def select_sample(slide_i,
+                          activate_filters=self.activate_filters,
+                          feature_transforms=self.feature_transforms,
+                          filter_out_low_stock=self.filter_out_low_stock,
+                          filter_out_low_sales=self.filter_out_low_sales,
+                          keep_zero_stock_filter=self.keep_zero_stock_filter,
+                          no_additional_right_zeros=self.no_additional_right_zeros,
+                          keep_zero_sale_filter=self.keep_zero_sale_filter,
+                          filter_out_zero_price=self.filter_out_zero_price,
+                          keep_zero_price_percentage=self.keep_zero_price_percentage,
+                          stock_threshold=self.stock_threshold):
+            if slide_i < OUTPUT_SIZE and not no_additional_right_zeros:
                 loss_mask = np.concatenate([np.ones(slide_i + 1), np.zeros(OUTPUT_SIZE - slide_i - 1)])
             else:
                 loss_mask = np.ones(OUTPUT_SIZE)
             first_target_week_idx = num_weeks - slide_i * WINDOW_SHIFT - OUTPUT_SIZE
-            if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx,
-                                                                   self.stock_threshold):
-                if np.random.rand() >= self.keep_zero_stock_filter:
-                    continue
-            if self.activate_filters and self.filter_out_low_sales(feature_dictionary, first_target_week_idx, 0):
-                if np.random.rand() >= self.keep_zero_sale_filter:
-                    continue
+            if activate_filters and filter_out_low_stock(feature_dictionary, first_target_week_idx,
+                                                              stock_threshold):
+                if np.random.rand() >= keep_zero_stock_filter:
+                    return []
+            if activate_filters and filter_out_low_sales(feature_dictionary, first_target_week_idx, 0):
+                if np.random.rand() >= keep_zero_sale_filter:
+                    return []
 
-            if self.activate_filters and self.filter_out_zero_price(feature_dictionary):
-                if np.random.rand() >= self.keep_zero_price_percentage:
-                    continue
+            if activate_filters and filter_out_zero_price(feature_dictionary):
+                if np.random.rand() >= keep_zero_price_percentage:
+                    return []
 
             selected_range = range(first_target_week_idx - TOTAL_INPUT, first_target_week_idx + OUTPUT_SIZE)
-            sample = self.feature_transforms.to_final_format_training(feature_dictionary, selected_range,
-                                                                      self.activate_filters)
-            if sample != []:
-                samples.append([sample, loss_mask])  # NUM_SAMPLES x TOTAL_LENGTH x NUM_FEAT
+            sample = feature_transforms.to_final_format_training(feature_dictionary, selected_range,
+                                                                      activate_filters)
+            return [sample, loss_mask]
+
+        samples = Parallel(n_jobs=8)(map(delayed(select_sample), range(num_window_shifts)))
+        samples = filter(lambda x: x != [] and x[0] !=[], samples)
+        d = 1
+        #     if slide_i < OUTPUT_SIZE and not self.no_additional_right_zeros:
+        #         loss_mask = np.concatenate([np.ones(slide_i + 1), np.zeros(OUTPUT_SIZE - slide_i - 1)])
+        #     else:
+        #         loss_mask = np.ones(OUTPUT_SIZE)
+        #     first_target_week_idx = num_weeks - slide_i * WINDOW_SHIFT - OUTPUT_SIZE
+        #     if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx,
+        #                                                            self.stock_threshold):
+        #         if np.random.rand() >= self.keep_zero_stock_filter:
+        #             continue
+        #     if self.activate_filters and self.filter_out_low_sales(feature_dictionary, first_target_week_idx, 0):
+        #         if np.random.rand() >= self.keep_zero_sale_filter:
+        #             continue
+        #
+        #     if self.activate_filters and self.filter_out_zero_price(feature_dictionary):
+        #         if np.random.rand() >= self.keep_zero_price_percentage:
+        #             continue
+        #
+        #     selected_range = range(first_target_week_idx - TOTAL_INPUT, first_target_week_idx + OUTPUT_SIZE)
+        #     sample = self.feature_transforms.to_final_format_training(feature_dictionary, selected_range,
+        #                                                               self.activate_filters)
+        #     if sample != []:
+        #         samples.append([sample, loss_mask])  # NUM_SAMPLES x TOTAL_LENGTH x NUM_FEAT
         return samples

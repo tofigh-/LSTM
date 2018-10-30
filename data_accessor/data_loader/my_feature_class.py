@@ -139,11 +139,11 @@ class MyFeatureClass(FeaturesBase):
 
         for feature, description in self.feature_descriptions.iteritems():
             feature_value = self.extract(feature_dictionary, feature, idx_range)
-            if description[TYPE] is STATIC_GLOBAL:
+            if description[TYPE] == STATIC_GLOBAL:
                 f = np.ones((1, TOTAL_LENGTH)) * feature_value
-            if description[TYPE] is STATIC_INT:
+            elif description[TYPE] == STATIC_INT:
                 f = np.repeat(np.array(feature_value)[:, None], TOTAL_LENGTH, axis=1)
-            if description[TYPE] is DYNAMIC_GLOBAL:
+            elif description[TYPE] == DYNAMIC_GLOBAL:
                 if SIZE not in description.keys():
                     f = np.array(feature_value)[None, :]
                 else:
@@ -151,8 +151,10 @@ class MyFeatureClass(FeaturesBase):
                         f = self.positional_encoding_values
                     else:
                         f = feature_value.transpose()
-            if description[TYPE] is DYNAMIC_INT:
+            elif description[TYPE] == DYNAMIC_INT:
                 f = feature_value
+            else:
+                raise Exception
             feature_seq.append(f)
 
         feature_seq = np.concatenate(feature_seq).transpose()  # TOTAL_LENGTH x  NUM_FEAT
