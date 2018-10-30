@@ -35,7 +35,6 @@ class MyFeatureClass(FeaturesBase):
             return csku_object.get(key, MISSING_VALUE)
 
 
-    @jit
     def enrich_csku(self, csku_object, training_transformation=True):
         iso_week_seq = iso_week_generate(csku_object, training_transformation)
         csku_object[ISO_WEEK_SEQ] = iso_week_seq
