@@ -5,7 +5,7 @@ from torch import optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from data_accessor.data_loader.Settings import *
 from data_accessor.model.attention_transformer.prediciton import predict
-from loss import L2Loss, L1Loss, KPILoss,BiasLoss
+from loss import L2Loss, L1Loss, KPILoss, BiasLoss
 from model_utilities import exponential, cuda_converter, \
     kpi_compute_per_country, rounder
 
@@ -17,6 +17,7 @@ from data_accessor.model.attention_transformer.encoder_decoder import EncoderDec
 from time import time
 from datetime import datetime
 
+
 class Training(object):
     def __init__(self, model, train_dataloader, test_dataloader, validation_dataloader, n_iters):
         self.model = model
@@ -26,7 +27,9 @@ class Training(object):
         self.n_iters = n_iters
         self.msloss = L2Loss(sum_loss=SUM_LOSS)
         self.l1loss = L1Loss(sum_loss=SUM_LOSS)
-        self.bias_loss = BiasLoss()
+        self.kpi_loss = KPILoss()
+
+        self.bias_loss = None
         self.cache_validation = None
 
     def _kpi_print(self, mode, loss_value, kpi_value, weekly_aggregated_kpi, weekly_aggregated_kpi_scale, k1, k2,
@@ -85,6 +88,11 @@ class Training(object):
             self.model.mode(train_mode=True)
         else:
             self.model.mode(train_mode=False)
+        update_loss_weights_mode = False
+        kpi_loss_grads = []
+        loss_weight_gradients = None
+        update_step_counts = 0
+
         for batch_num, batch_data2 in enumerate(data):
             loss_masks = []
             batch_data = []
@@ -102,7 +110,7 @@ class Training(object):
                 sys.exit()
 
             targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
-            if train_mode:
+            if train_mode and not update_loss_weights_mode:
 
                 loss, sale_predictions = train_per_batch(
                     model=self.model,
@@ -110,7 +118,7 @@ class Training(object):
                     targets_future=targets_future,
                     loss_function=loss_func,
                     loss_function2=loss_func2,
-                    bias_loss = self.bias_loss,
+                    bias_loss=self.bias_loss,
                     loss_masks=cuda_converter(torch.from_numpy(loss_masks).byte()).contiguous(),
                     teacher_forcing_ratio=teacher_forcing_ratio
                 )
@@ -119,9 +127,15 @@ class Training(object):
                     print "loss at num_batches {batch_number} is {loss_value}".format(batch_number=batch_num,
                                                                                       loss_value=loss)
                 if batch_num % UPDATE_LOSS_AT_BATCH_NUM == 0:
-                    # print "loss weights before update", self.model.loss_weights
-                    d = 1
-                    # self._update_loss_weights()
+                    update_loss_weights_mode = True
+            elif train_mode and update_loss_weights_mode:
+                update_step_counts, \
+                update_loss_weights_mode, \
+                kpi_loss_grads, \
+                loss_weight_gradients = self._update_loss_weights(
+                    batch_data, targets_future, black_price, kpi_loss_grads,
+                    loss_weight_gradients=loss_weight_gradients, count=update_step_counts)
+                continue
             else:
                 loss, sale_predictions = predict(
                     model=self.model,
@@ -286,83 +300,102 @@ class Training(object):
                         weekly_aggregated_kpi_scale_test, k1, k2, predicted_country_sales_test,
                         country_sales_test)
 
-    def _update_loss_weights(self):
-        kpi_loss = KPILoss()
+    def _update_loss_weights(self,
+                             batch_data,
+                             targets_future,
+                             black_price,
+                             kpi_loss_grads=[],
+                             loss_weight_gradients=None,
+                             count=0):
         self.model.mode(train_mode=True)
-        cache_validation = None
+        if loss_weight_gradients is None:
+            loss_weight_gradients = cuda_converter(
+                torch.zeros(len(list_l2_loss_countries + list_l1_loss_countries)))
 
-        def compute_aggregated_gradients(loss_function=None, loss_function2=None, reference_kpi=None,
-                                         use_weights=False,
-                                         country_id=None, cache_validation=None):
-            temp_data_cached = []
-            if cache_validation is None:
-                iterate_over = self.validation_dataloader
+        def _compute_aggregated_gradients(loss_function=None, loss_function2=None, reference_kpi=None,
+                                          use_weights=False,
+                                          country_id=None):
+
+            if use_weights:
+                weights = black_price
             else:
-                iterate_over = cache_validation
-            for batch_num, data in enumerate(iterate_over):
-                if cache_validation is None:
-                    batch_data = np.array(data)
-                    if batch_data.shape[0] == 1: continue
-                    targets_future, batch_data, black_price = self._mini_batch_preparation(batch_data)
-                    temp_data_cached.append([targets_future, batch_data, black_price])
-                else:
-                    targets_future, batch_data, black_price = data
-                if use_weights:
-                    weights = black_price
-                else:
-                    weights = None
-                loss_kpi = predict_weight_update(
-                    model=self.model,
-                    targets_future=targets_future,
-                    inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous(),
-                    loss_function=loss_function,
-                    loss_function2=loss_function2,
-                    reference_kpi=reference_kpi,
-                    weights=weights,
-                    country_id=country_id
-                )
-                loss_kpi.backward()
-            if cache_validation is None:
-                cache_validation = temp_data_cached
-            return cache_validation
+                weights = None
+            loss_kpi = predict_weight_update(
+                model=self.model,
+                targets_future=targets_future,
+                inputs=cuda_converter(torch.from_numpy(batch_data).float()).contiguous(),
+                loss_function=loss_function,
+                loss_function2=loss_function2,
+                reference_kpi=reference_kpi,
+                weights=weights,
+                country_id=country_id
+            )
+            loss_kpi.backward()
 
-        def _update_weight_gradients(model, loss_weight_gradients, country_id, kpi_loss_grads):
+        def _update_weight_gradients(model, loss_weight_gradients, idx_weights, kpi_loss_grads):
             for idx, param in enumerate(model.parameters()):
                 if param.grad is not None:
-                    loss_weight_gradients[country_id] += (-param.grad * kpi_loss_grads[idx]).sum()
-                param.grad = None
+                    loss_weight_gradients[idx_weights] += (-param.grad * kpi_loss_grads[idx]).sum()
+            model.optimizer.step()
+            model.optimizer.zero_grad()
             return loss_weight_gradients
 
-        cache_validation = compute_aggregated_gradients(reference_kpi=kpi_loss, use_weights=True,
-                                                        cache_validation=cache_validation)
-        print "Passed the reference kpi evaluation/ gradient computation"
-        kpi_loss_grads = []
-        loss_weight_gradients = cuda_converter(torch.zeros(len(list_l2_loss_countries + list_l1_loss_countries)))
-        for param in self.model.parameters():
-            kpi_loss_grads.append(param.grad)
-            param.grad = None
-        self.model.optimizer.zero_grad()
-
-        for country_id in zip(list_l2_loss_countries):
-            compute_aggregated_gradients(loss_function=self.msloss, country_id=country_id, use_weights=False,
-                                         cache_validation=cache_validation)
-            loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, country_id,
-                                                             kpi_loss_grads)
+        num_kpi_gradient_accumulation = 5
+        if count < (num_kpi_gradient_accumulation - 1):
+            _compute_aggregated_gradients(reference_kpi=self.kpi_loss, use_weights=True)
+            count += 1
+            update_not_finished = True
+            return count, update_not_finished, kpi_loss_grads, loss_weight_gradients
+        if count == (num_kpi_gradient_accumulation - 1):
+            _compute_aggregated_gradients(reference_kpi=self.kpi_loss, use_weights=True)
+            count += 1
+            update_not_finished = True
+            for param in self.model.parameters():
+                if param.grad is not None:
+                    kpi_loss_grads.append(param.grad / 5.0)
+                else:
+                    kpi_loss_grads.append([])
+                param.grad = None
             self.model.optimizer.zero_grad()
+            return count, update_not_finished, kpi_loss_grads, loss_weight_gradients
+        if (num_kpi_gradient_accumulation - 1) < count < (
+                num_kpi_gradient_accumulation - 1 + len(list_l2_loss_countries + list_l1_loss_countries)):
+            idx = count - num_kpi_gradient_accumulation
+            loss_function = self.msloss if idx < len(list_l2_loss_countries) else self.l1loss
+            country_id = list_l2_loss_countries[idx] if idx < len(list_l2_loss_countries) else list_l1_loss_countries[
+                idx - len(list_l2_loss_countries)]
+            _compute_aggregated_gradients(loss_function=loss_function, country_id=country_id, use_weights=False)
+            loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients, idx,
+                                                             kpi_loss_grads)
 
-        for country_id in list_l1_loss_countries:
-            compute_aggregated_gradients(loss_function=self.l1loss, country_id=country_id, use_weights=False,
-                                         cache_validation=cache_validation)
+            count += 1
+            update_not_finished = True
+            return count, update_not_finished, kpi_loss_grads, loss_weight_gradients
+
+        if count == num_kpi_gradient_accumulation - 1 + len(list_l2_loss_countries + list_l1_loss_countries):
+            country_id = list_l1_loss_countries[-1]
+            _compute_aggregated_gradients(loss_function=self.l1loss, country_id=country_id, use_weights=False)
             loss_weight_gradients = _update_weight_gradients(self.model, loss_weight_gradients,
-                                                             country_id + len(list_l2_loss_countries),
+                                                             len(list_l2_loss_countries + list_l1_loss_countries) - 1,
                                                              kpi_loss_grads)
-            self.model.optimizer.zero_grad()
-        loss_weight_gradients = loss_weight_gradients / torch.norm(loss_weight_gradients)
-        self.model.loss_weights -= 0.001 * loss_weight_gradients
-        self.model.loss_weights = torch.clamp(self.model.loss_weights, min=0)
-        self.model.loss_weights = self.model.loss_weights / self.model.loss_weights.sum()
-        # self._loss_weight_mode(train_mode=False)
-        self.model.optimizer.zero_grad()
-        self.validation_dataloader.reshuffle_dataset()
-        print "average loss for updating weights", loss_weight_gradients
-        print "loss weights after update", self.model.loss_weights
+
+            loss_weight_gradients = loss_weight_gradients / torch.norm(loss_weight_gradients)
+            self.model.loss_weights -= 0.001 * loss_weight_gradients
+            self.model.loss_weights = torch.clamp(self.model.loss_weights, min=0)
+            self.model.loss_weights = self.model.loss_weights / self.model.loss_weights.sum()
+            print "average loss for updating weights", loss_weight_gradients
+            print "loss weights after update", self.model.loss_weights
+
+            count = 0
+            update_not_finished = False
+            loss_weight_gradients = None
+            kpi_loss_grads = []
+            return count, update_not_finished, kpi_loss_grads, loss_weight_gradients
+        if count > num_kpi_gradient_accumulation - 1 + len(list_l2_loss_countries + list_l1_loss_countries):
+            print "This should not happen"
+            count = 0
+            update_not_finished = False
+            update_not_finished = False
+            loss_weight_gradients = None
+            kpi_loss_grads = []
+            return count, update_not_finished, kpi_loss_grads, loss_weight_gradients

@@ -8,7 +8,6 @@ def predict_weight_update(model, inputs, targets_future, loss_function=None, los
     sales_future = targets_future[SALES_MATRIX]
     input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs)
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
-    all_weeks = []
 
 
     loss = 0
@@ -16,22 +15,20 @@ def predict_weight_update(model, inputs, targets_future, loss_function=None, los
     for week_idx in range(OUTPUT_SIZE):
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
-        features = torch.cat([output_prefinal.squeeze(), embedded_features, input_decoder[:, week_idx, :]], dim=1)
+        features = torch.cat([output_prefinal[:, 0, :], embedded_features, input_decoder[:, week_idx, :]], dim=1)
         sales_mean, sales_predictions = model.generate_mu_sigma(features)
 
         # without teacher forcing
         future_unknown_estimates = sales_predictions
 
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
-        all_weeks.append(sales_mean.squeeze())
         if loss_function is not None:
-            loss += loss_function(sales_mean[:, country_id],
+            loss += loss_function(sales_predictions[:, country_id],
                                   sales_future[:, week_idx, country_id])
         if loss_function2 is not None:
-            loss += loss_function2(sales_mean[:, country_id],
+            loss += loss_function2(sales_predictions[:, country_id],
                                    sales_future[:, week_idx, country_id])
         if reference_kpi is not None:
-            loss += reference_kpi(exponential(sales_mean, True), exponential(sales_future[:, week_idx, :], True),
-                                  weights / 1000 * week_weights[week_idx])
+            loss += reference_kpi(exponential(sales_predictions, True), exponential(sales_future[:, week_idx, :], True), weights / 1000 * week_weights[week_idx])
 
     return loss/OUTPUT_SIZE
