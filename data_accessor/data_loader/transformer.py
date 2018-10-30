@@ -183,7 +183,7 @@ class Transform(object):
                                                                       activate_filters)
             return [sample, loss_mask]
 
-        samples = Parallel(n_jobs=8,backend="multiprocessing")(map(delayed(select_sample), range(num_window_shifts)))
+        samples = Parallel(n_jobs=4,backend="threading")(map(delayed(select_sample), range(num_window_shifts)))
         samples = filter(lambda x: x != [] and x[0] !=[], samples)
         d = 1
         #     if slide_i < OUTPUT_SIZE and not self.no_additional_right_zeros:
