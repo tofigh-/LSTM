@@ -81,7 +81,7 @@ class DatasetReader(Dataset):
                 csku_samples = self.transform(csku_object)
                 return csku_samples
 
-            pool = multiprocess.Pool(8)
+            pool = multiprocess.Pool(2)
             all_samples = pool.map(calc_stuff, csku_objects)
             pool.close()
             pool.join()
