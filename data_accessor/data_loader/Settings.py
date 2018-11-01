@@ -71,13 +71,14 @@ PREDICT = u"predict"
 MISSING_VALUE = u'-1'
 PAST_UNKNOWN_RETURN_LENGTH = 0
 OUTPUT_SIZE = 5
+OUTPUT_SIZE_FAR = 20
 PAST_KNOWN_LENGTH = 52
 TOTAL_LENGTH = PAST_KNOWN_LENGTH + PAST_UNKNOWN_RETURN_LENGTH + OUTPUT_SIZE
 TOTAL_RETURN_INPUT = PAST_KNOWN_LENGTH
 TOTAL_INPUT = PAST_KNOWN_LENGTH + PAST_UNKNOWN_RETURN_LENGTH
 WINDOW_SHIFT = 1
 TEST_BATCH_SIZE = 256
-BATCH_SIZE = 512
+BATCH_SIZE = 1024
 BN_MOMENTUM = 0.0001
 GRADIENT_CLIP = 5
 LEARNING_RATE = 0.0001 * (BATCH_SIZE / 128.0)
@@ -97,7 +98,7 @@ use_future_unknown_estimates = True
 list_l2_loss_countries = list(range(0, 14))
 list_l1_loss_countries = list(range(0, 14))
 FAR_WEEK_THRESHOLD = 5
-to_print_variables = ['FAR_WEEK_THRESHOLD','list_l2_loss_countries', 'list_l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
+to_print_variables = ['OUTPUT_SIZE_FAR','FAR_WEEK_THRESHOLD','list_l2_loss_countries', 'list_l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
                       'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',

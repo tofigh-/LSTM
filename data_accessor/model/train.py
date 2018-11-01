@@ -214,7 +214,7 @@ class Training(object):
         self.model.mode(mode=TRAIN_NEAR_FUTURE)
         self._train(model_mode=TRAIN_NEAR_FUTURE, resume=resume)
 
-        self.set_output_size(output_size=20)
+        self.set_output_size(output_size=OUTPUT_SIZE_FAR)
         self.n_iters = 1
         for param_far, param_near in zip(self.model.far_future_decoder.parameters(),
                                          self.model.near_future_decoder.parameters()):
