@@ -4,7 +4,7 @@ import torch
 
 
 class Embeddings(nn.Module):
-    def __init__(self, embedding_descriptions, total_input, forecast_length):
+    def __init__(self, embedding_descriptions, total_input):
         super(Embeddings, self).__init__()
         self.embeddings = nn.ModuleList(
             [nn.Embedding(
@@ -19,7 +19,6 @@ class Embeddings(nn.Module):
         self.embedding_sizes = [embedding_descriptions[feature][EMBEDDING_SIZE] for feature in embedded_features]
         self.embedding_feature_indices = embedding_feature_indices
         self.numeric_feature_indices = numeric_feature_indices
-        self.total_length = total_input + forecast_length
         self.total_input = total_input
         self.num_numeric_features = len(self.numeric_feature_indices)
 

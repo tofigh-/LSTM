@@ -6,7 +6,7 @@ import six
 from isoweek import Week
 
 from Settings import *
-from utilities import compute_label_encoders, high_dimensional_harmonic
+from utilities import compute_label_encoders
 
 
 class Transform(object):
@@ -23,6 +23,8 @@ class Transform(object):
                  keep_zero_stock_filter=0.0,
                  keep_zero_sale_filter=1.0,
                  stock_threshold=0,
+                 output_size=OUTPUT_SIZE,
+                 total_input=TOTAL_INPUT,
                  keep_percentage_zero_price=0.0,
                  no_additional_left_zeros=True,
                  no_additional_right_zeros=True,
@@ -45,6 +47,9 @@ class Transform(object):
         self.no_additional_left_zeros = no_additional_left_zeros
         self.no_additional_right_zeros = no_additional_right_zeros
         self.testing_Transformation = testing_Transformation
+        self.output_size = output_size
+        self.total_input = total_input
+        self.total_length = self.output_size + self.total_input
         if label_encoders is None:
             assert db_file is not None, 'Path to DB to compute label encoder is not provided'
             self.label_encoders = compute_label_encoders(db_file)
@@ -60,7 +65,7 @@ class Transform(object):
             for dat in target_dates:
                 end_date = self.nearest_leading_iso_week(self.convert_to_datetime(dat)) + timedelta(
                     7)  # To make the end_date exclusive as we have with current_date in batch data
-                start_date = end_date - timedelta(TOTAL_LENGTH * 7)
+                start_date = end_date - timedelta(self.total_input * 7)
                 self.target_dates.append((start_date, end_date))
         else:
             self.target_dates = [(
@@ -68,6 +73,11 @@ class Transform(object):
                 self.nearest_leading_iso_week(self.convert_to_datetime(max_end_date)) + timedelta(7),
             )]
         self.activate_filters = activate_filters
+
+    def set_output_size(self, output_size):
+        self.output_size = output_size
+        self.total_length = self.total_input + self.output_size
+        self.feature_transforms.set_total_length(self.total_length)
 
     def convert_to_datetime(self, input_date):
         if isinstance(input_date, six.string_types):
@@ -94,7 +104,7 @@ class Transform(object):
             end_date = min(max_end_date, current_date)  # End date is always exclusive
         else:
             end_date = current_date
-            start_date = max(current_date - timedelta(TOTAL_INPUT * 7),
+            start_date = max(current_date - timedelta(self.total_input * 7),
                              first_sale_date)
 
         num_weeks = (end_date - start_date).days // 7
@@ -120,15 +130,15 @@ class Transform(object):
             if not idx_range:
                 continue
             num_weeks = len(idx_range)
-            sufficient_length = TOTAL_LENGTH if self.training_transformation else TOTAL_INPUT
+            sufficient_length = self.total_length if self.training_transformation else self.total_input
 
             num_zeros = sufficient_length - num_weeks if num_weeks < sufficient_length else 0
             num_zeros_right = 0
             if self.training_transformation:
                 if not self.no_additional_left_zeros:
-                    num_zeros = max(num_zeros, TOTAL_LENGTH - 1 - OUTPUT_SIZE)
+                    num_zeros = max(num_zeros, self.total_length - 1 - self.output_size)
                 if not self.no_additional_right_zeros:
-                    num_zeros_right = OUTPUT_SIZE - 1
+                    num_zeros_right = self.output_size - 1
             csku_object = self.feature_transforms.enrich_csku(csku_object, self.training_transformation)
             arguments = {'num_zeros': num_zeros, 'num_zeros_right': num_zeros_right, 'num_weeks': num_weeks,
                          'start_period': start_period,
@@ -146,14 +156,14 @@ class Transform(object):
 
     def create_chunk_of_samples(self, feature_dictionary):
         num_countries, num_weeks = feature_dictionary[SALES_MATRIX].shape
-        num_window_shifts = int(np.floor((num_weeks - TOTAL_LENGTH) / float(WINDOW_SHIFT))) + 1
+        num_window_shifts = int(np.floor((num_weeks - self.total_length) / float(WINDOW_SHIFT))) + 1
         samples = []
         for slide_i in range(num_window_shifts):
-            if slide_i < OUTPUT_SIZE and not self.no_additional_right_zeros:
-                loss_mask = np.concatenate([np.ones(slide_i + 1), np.zeros(OUTPUT_SIZE - slide_i - 1)])
+            if slide_i < self.output_size and not self.no_additional_right_zeros:
+                loss_mask = np.concatenate([np.ones(slide_i + 1), np.zeros(self.output_size - slide_i - 1)])
             else:
-                loss_mask = np.ones(OUTPUT_SIZE)
-            first_target_week_idx = num_weeks - slide_i * WINDOW_SHIFT - OUTPUT_SIZE
+                loss_mask = np.ones(self.output_size)
+            first_target_week_idx = num_weeks - slide_i * WINDOW_SHIFT - self.output_size
             if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx,
                                                                    self.stock_threshold):
                 if np.random.rand() >= self.keep_zero_stock_filter:
@@ -166,7 +176,7 @@ class Transform(object):
                 if np.random.rand() >= self.keep_zero_price_percentage:
                     continue
 
-            selected_range = range(first_target_week_idx - TOTAL_INPUT, first_target_week_idx + OUTPUT_SIZE)
+            selected_range = range(first_target_week_idx - self.total_input, first_target_week_idx + self.output_size)
             sample = self.feature_transforms.to_final_format_training(feature_dictionary, selected_range,
                                                                       self.activate_filters)
             if sample != []:

@@ -5,12 +5,16 @@ import time
 
 class DatasetLoader(object):
     def __init__(self, dataset, mini_batch_size, num_workers, collate_fn=append_lists, num_db_calls_per_iter=1):
-        self.dataloader = DataLoader(dataset, num_workers=num_workers, collate_fn=collate_fn, pin_memory=False,
+        self.dataset = dataset
+        self.dataloader = DataLoader(self.dataset, num_workers=num_workers, collate_fn=collate_fn, pin_memory=False,
                                      batch_size=num_db_calls_per_iter)
         self.mini_batch_size = mini_batch_size
 
     def reshuffle_dataset(self):
         self.dataloader.dataset.reshuffle()
+
+    def set_output_size(self, output_size):
+        self.dataset.transform.set_output_size(output_size)
 
     def __iter__(self):
         st = time.time()
@@ -19,7 +23,7 @@ class DatasetLoader(object):
 
             num_samples = len(big_batch)
             if num_samples % self.mini_batch_size != 0:
-                num_mini_batchs = num_samples // self.\
+                num_mini_batchs = num_samples // self. \
                     mini_batch_size + 1
             else:
                 num_mini_batchs = num_samples // self.mini_batch_size

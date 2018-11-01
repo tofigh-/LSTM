@@ -12,11 +12,22 @@ class EncoderDecoder(nn.Module):
     other models.
     """
 
-    def __init__(self, embeddings, encoder, decoder, generator, model_size):
+    def __init__(self, embeddings,
+                 encoder,
+                 near_future_decoder,
+                 far_future_decoder,
+                 near_future_generator,
+                 far_future_generator,
+                 model_size):
         super(EncoderDecoder, self).__init__()
         self.encoder = encoder
-        self.decoder = decoder
-        self.generator = generator
+
+        self.near_future_decoder = near_future_decoder
+        self.far_future_decoder = far_future_decoder
+
+        self.near_future_generator = near_future_generator
+        self.far_future_generator = far_future_generator
+
         self.embeddings = embeddings
         self.model_size = model_size
         self.optimizer = self.get_std_optimizer()
@@ -37,11 +48,17 @@ class EncoderDecoder(nn.Module):
     def encode(self, input_seq, encoder_input_mask):
         return self.encoder(input_seq, encoder_input_mask)
 
-    def decode(self, hidden_state, encoder_input_mask, decoder_input):
-        return self.decoder(decoder_input, hidden_state, encoder_input_mask)
+    def decode(self, hidden_state, encoder_input_mask, decoder_input, is_near_future=True):
+        if is_near_future:
+            return self.near_future_decoder(decoder_input, hidden_state, encoder_input_mask)
+        else:
+            return self.far_future_decoder(decoder_input, hidden_state, encoder_input_mask)
 
-    def generate_mu_sigma(self, input):
-        return self.generator(input)
+    def generate_mu_sigma(self, input, is_near_future=True):
+        if is_near_future:
+            return self.near_future_generator(input)
+        else:
+            return self.far_future_generator(input)
 
     @staticmethod
     def load_checkpoint(model_path_dict, model):
@@ -58,11 +75,33 @@ class EncoderDecoder(nn.Module):
 
         torch.save(encoder_decoder_state, model_file_name)
 
-    def mode(self, train_mode=True):
-        if train_mode:
-            self.train(True)
-        else:
+    def mode(self, mode="predict"):
+        if mode == "predict":
             self.eval()
+        elif mode == "train_near_future":
+            self.train(True)
+
+            for module_name, module in self._modules.iteritems():
+                if module_name == "far_future_decoder" or module_name == "far_future_generator":
+                    for params in module.parameters():
+                        params.requires_grad = False
+                else:
+                    for params in module.parameters():
+                        params.requires_grad = True
+
+        elif mode == "train_far_future":
+            self.train(True)
+            for module_name, module in self._modules.iteritems():
+                if module_name == "far_future_decoder" or module_name == "far_future_generator":
+                    for params in module.parameters():
+                        params.requires_grad = True
+                else:
+                    for params in module.parameters():
+                        params.requires_grad = False
+
+        else:
+            raise ValueError(
+                "provided mode option is invalid. Valid options are predict, train_near_future and train_far_future")
 
     def get_std_optimizer(self):
         return NoamOpt(model_size=self.model_size, factor=2, warmup=10,

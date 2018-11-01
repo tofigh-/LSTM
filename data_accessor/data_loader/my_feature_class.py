@@ -8,15 +8,23 @@ from numba import jit
 
 
 class MyFeatureClass(FeaturesBase):
-    def __init__(self, feature_descriptions, low_sale_percentage):
+    def __init__(self, feature_descriptions, low_sale_percentage, total_length):
         super(MyFeatureClass, self).__init__(feature_descriptions)
         self.transformations = {LOG_TRANSFORM: log_transform, LABEL_ENCODING: encode_strings,
                                 ZERO_PAD: zero_padder, ISO_WEEK_PADDING: iso_week_padding, TO_STRING: to_string
             , HIGH_DIMENSIONAL_SIN: high_dimensional_harmonic}
         self.low_sale_percentage = low_sale_percentage
         self.positional_encoding_values = None
+        self.total_length = total_length
         if POSITION_ENCODING in FEATURE_DESCRIPTIONS:
-            self.positional_encoding_values = high_dimensional_harmonic(np.arange(TOTAL_LENGTH),
+            self.positional_encoding_values = high_dimensional_harmonic(np.arange(self.total_length),
+                                                                        size=FEATURE_DESCRIPTIONS[POSITION_ENCODING][
+                                                                            SIZE]).transpose()
+
+    def set_total_length(self, total_length):
+        self.total_length = total_length
+        if POSITION_ENCODING in FEATURE_DESCRIPTIONS:
+            self.positional_encoding_values = high_dimensional_harmonic(np.arange(self.total_length),
                                                                         size=FEATURE_DESCRIPTIONS[POSITION_ENCODING][
                                                                             SIZE]).transpose()
 
@@ -34,7 +42,6 @@ class MyFeatureClass(FeaturesBase):
         if global_or_international == STATIC_GLOBAL:
             return csku_object.get(key, MISSING_VALUE)
 
-
     def enrich_csku(self, csku_object, training_transformation=True):
         iso_week_seq = iso_week_generate(csku_object, training_transformation)
         csku_object[ISO_WEEK_SEQ] = iso_week_seq
@@ -42,7 +49,7 @@ class MyFeatureClass(FeaturesBase):
         csku_object = add_cgs(csku_object)
         csku_object[GLOBAL_SALE] = np.sum(csku_object[SALES_MATRIX], axis=0)
         csku_object = add_country(csku_object)
-        csku_object[STOCK_UPLIFT] = np.append(0,np.maximum(csku_object[STOCK_UPLIFT], 0))
+        csku_object[STOCK_UPLIFT] = np.append(0, np.maximum(csku_object[STOCK_UPLIFT], 0))
         csku_object[STOCK_UPLIFT][csku_object[STOCK_UPLIFT] == inf] = 0
         csku_object[STOCK_UPLIFT][csku_object[STOCK_UPLIFT] == -inf] = 0
         csku_object[STOCK][csku_object[STOCK] == inf] = 0
@@ -96,43 +103,6 @@ class MyFeatureClass(FeaturesBase):
                          country_sample[-1, feature_indices[SALES_MATRIX]] > threshold]
         return final_samples
 
-    def independent_country_samples(self, feature_dictionary, idx_range, activate_filters):
-        feature_seq = []
-        for feature, description in self.feature_descriptions.iteritems():
-            feature_value = self.extract(feature_dictionary, feature, idx_range)
-            if description[TYPE] is STATIC_GLOBAL:
-                f = np.ones((NUM_COUNTRIES, TOTAL_LENGTH)) * feature_value
-            if description[TYPE] is STATIC_INT:
-                f = np.repeat(np.array(feature_value)[:, None], TOTAL_LENGTH, axis=1)
-            if description[TYPE] is DYNAMIC_GLOBAL:
-                f = np.repeat(np.array(feature_value)[None, :], NUM_COUNTRIES, axis=0)
-            if description[TYPE] is DYNAMIC_INT:
-                f = feature_value
-            feature_seq.append(f)
-            # 0 : 40
-            # 1 : 64
-            # 2 : 83
-            # 3 : 68
-            # 4 : 112
-            # 5 : 78
-            # 6 : 50
-            # 7 : 88
-            # 8 : 105
-            # 9 : 72
-            # 10 : 96
-            # 11 : 99
-            # 12 : 96
-            # 13 : 97
-        feature_seq = list(np.moveaxis(np.array(feature_seq), source=[0, 1, 2],
-                                       destination=[2, 0, 1])[4, :, :][None, :,
-                           :])  # NUM_COUNTRY xTOTAL_LENGTH x NUM_FEAT
-        if FILTER_ZERO_PRICE and activate_filters:
-            feature_seq = self.filter_zero_price(feature_seq)
-
-        if FILTER_LOW_SALE and activate_filters and np.random.rand() > self.low_sale_percentage:
-            feature_seq = self.filter_low_sales(feature_seq, threshold=0)
-        return feature_seq
-
     def dependent_country_samples(self, feature_dictionary, idx_range, activate_filters):
         feature_seq = []
         if FILTER_ZERO_PRICE and activate_filters:
@@ -142,9 +112,9 @@ class MyFeatureClass(FeaturesBase):
         for feature, description in self.feature_descriptions.iteritems():
             feature_value = self.extract(feature_dictionary, feature, idx_range)
             if description[TYPE] == STATIC_GLOBAL:
-                f = np.ones((1, TOTAL_LENGTH)) * feature_value
+                f = np.ones((1, self.total_length)) * feature_value
             elif description[TYPE] == STATIC_INT:
-                f = np.repeat(np.array(feature_value)[:, None], TOTAL_LENGTH, axis=1)
+                f = np.repeat(np.array(feature_value)[:, None], self.total_length, axis=1)
             elif description[TYPE] == DYNAMIC_GLOBAL:
                 if SIZE not in description.keys():
                     f = np.array(feature_value)[None, :]

@@ -5,8 +5,6 @@ from random import shuffle
 import numpy as np
 from torch.utils.data import Dataset
 
-import multiprocess
-
 
 class DatasetReader(Dataset):
 

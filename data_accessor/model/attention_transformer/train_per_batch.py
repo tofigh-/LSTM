@@ -8,22 +8,21 @@ import sys
 import numpy as np
 
 
-def train_per_batch(model, inputs, targets_future, loss_function, loss_function2, bias_loss, loss_masks,
-                    teacher_forcing_ratio):
-    use_teacher_forcing = True if random.random() < teacher_forcing_ratio else False
-
+def train_per_batch(model, inputs, targets_future, loss_function, loss_function2, bias_loss, loss_masks, output_size):
     sales_future = targets_future[SALES_MATRIX]
     mask_key = STOCK
     input_encoder, input_decoder, embedded_features, encoded_mask = model.embed(inputs, mask_key)
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     loss = 0
     all_weeks = []
-    for week_idx in range(OUTPUT_SIZE):
+    for week_idx in range(output_size):
+        is_near_future = False if week_idx >= FAR_WEEK_THRESHOLD else True
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
-                                       decoder_input=input_decoder[:, week_idx:week_idx + 1, :])
+                                       decoder_input=input_decoder[:, week_idx:week_idx + 1, :],
+                                       is_near_future=is_near_future)
 
         features = torch.cat([output_prefinal[:, 0, :], embedded_features, input_decoder[:, week_idx, :]], dim=1)
-        sales_mean, sales_predictions = model.generate_mu_sigma(features)
+        sales_mean, sales_predictions = model.generate_mu_sigma(features, is_near_future=is_near_future)
 
         l2 = loss_function(sales_predictions[loss_masks[:, week_idx]],
                            sales_future[loss_masks[:, week_idx], week_idx, :])
@@ -34,14 +33,9 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
             loss += bias_loss(sales_predictions[loss_masks[:, week_idx]],
                               sales_future[loss_masks[:, week_idx], week_idx, :])
 
-        if use_teacher_forcing:
-            input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = sales_future[:, week_idx, :].data
-
-        else:
-            # without teacher forcing
-            future_unknown_estimates = sales_predictions
-            # Batch x time x num_feature
-            input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
+        future_unknown_estimates = sales_predictions
+        # Batch x time x num_feature
+        input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         all_weeks.append(sales_predictions.squeeze())
 
     sales_predictions = torch.stack(all_weeks).transpose(0, 1)

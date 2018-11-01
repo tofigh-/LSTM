@@ -65,6 +65,9 @@ ENCODER_DECODER_CHECKPOINT = u'Encoder Decoder Checkpoint'
 OPTIMIZER = u'Optimizer'
 STATE_DICT = u'State Dict'
 FUTURE_DECODER_CHECKPOINT = u'Future Decoder Checkpoint'
+TRAIN_NEAR_FUTURE = u"train_near_future"
+TRAIN_FAR_FUTURE = u"train_far_future"
+PREDICT = u"predict"
 MISSING_VALUE = u'-1'
 PAST_UNKNOWN_RETURN_LENGTH = 0
 OUTPUT_SIZE = 5
@@ -93,7 +96,8 @@ UPDATE_LOSS_AT_BATCH_NUM = 250
 use_future_unknown_estimates = True
 list_l2_loss_countries = list(range(0, 14))
 list_l1_loss_countries = list(range(0, 14))
-to_print_variables = ['list_l2_loss_countries', 'list_l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
+FAR_WEEK_THRESHOLD = 5
+to_print_variables = ['FAR_WEEK_THRESHOLD','list_l2_loss_countries', 'list_l1_loss_countries', 'TEST_ZERO_SALE_PERCENTAGE',
                       'TRAIN_ZERO_SALE_PERCENTAGE', 'WINDOW_SHIFT',
                       'TRAIN_STOCK_THRESHOLD', 'TEST_STOCK_THRESHOLD', 'use_future_unknown_estimates', 'RESUME',
                       'ENCODER_WEIGHT_DECAY', 'RNN_DROPOUT', 'BI_DIRECTIONAL', 'NUM_BATCH_SAVING_MODEL',

@@ -31,10 +31,10 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 path_to_training_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 if debug_mode:
-    num_csku_per_query_train = 500
+    num_csku_per_query_train = 100
     num_csku_per_query_test = 100
     num_csku_per_query_validation = 50
     train_workers = 0
@@ -51,11 +51,13 @@ else:
     max_num_queries_test = 5
     max_num_queries_validation = 1
 
+
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
 else:
     label_encoders = None
-my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, low_sale_percentage=1.0)
+
+my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, total_length=TOTAL_LENGTH, low_sale_percentage=1.0)
 max_end_date = datetime.strptime('2016-12-28', '%Y-%m-%d').date()
 target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 1)
 train_transform = Transform(
@@ -71,19 +73,16 @@ train_transform = Transform(
     keep_zero_sale_filter=TRAIN_ZERO_SALE_PERCENTAGE,
     no_additional_left_zeros=False,
     no_additional_right_zeros=False,
+    output_size=OUTPUT_SIZE,
+    total_input=TOTAL_INPUT,
     activate_filters=True)
-
-validation_transform = copy.deepcopy(train_transform)
-validation_transform.stock_threshold = TEST_STOCK_THRESHOLD
-validation_transform.no_additional_left_zeros = True
-validation_transform.keep_zero_sale_filter = TEST_ZERO_SALE_PERCENTAGE
 
 if label_encoders is None:
     label_encoders = train_transform.label_encoders
     save_label_encoder(label_encoders, label_encoder_file)
     print ("Saving Label Encoder Done.")
 
-my_feature_class_test = MyFeatureClass(FEATURE_DESCRIPTIONS, low_sale_percentage=1.0)
+my_feature_class_test = MyFeatureClass(FEATURE_DESCRIPTIONS, total_length=TOTAL_LENGTH, low_sale_percentage=1.0)
 test_transform = Transform(
     feature_transforms=my_feature_class_test,
     label_encoders=label_encoders,
@@ -96,6 +95,8 @@ test_transform = Transform(
     stock_threshold=TEST_STOCK_THRESHOLD,
     keep_zero_sale_filter=TEST_ZERO_SALE_PERCENTAGE,
     no_additional_left_zeros=True,
+    output_size=OUTPUT_SIZE,
+    total_input=TOTAL_INPUT,
     activate_filters=True)
 
 train_db = DatasetReader(
@@ -103,13 +104,6 @@ train_db = DatasetReader(
     transform=train_transform,
     num_csku_per_query=num_csku_per_query_train,
     max_num_queries=max_num_queries_train,
-    shuffle_dataset=True)
-
-validation_db = DatasetReader(
-    path_to_training_db=path_to_training_db,
-    transform=validation_transform,
-    num_csku_per_query=num_csku_per_query_validation,
-    max_num_queries=max_num_queries_validation,
     shuffle_dataset=True)
 
 test_db = DatasetReader(
@@ -120,15 +114,15 @@ test_db = DatasetReader(
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
-validation_dataloader = DatasetLoader(validation_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
 test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
+
+
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 
 d_model = len(numeric_feature_indices)
 print "d_model is: " + str(d_model)
 attention_model = make_model(embedding_descriptions=embedding_descripts,
                              total_input=TOTAL_INPUT,
-                             forecast_length=OUTPUT_SIZE,
                              N_enc=6,
                              N_dec=6,
                              d_model=d_model,
@@ -140,6 +134,11 @@ attention_model = cuda_converter(attention_model)
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
 
-training = Training(model=attention_model, train_dataloader=train_dataloader, test_dataloader=test_dataloader,
-                    validation_dataloader=validation_dataloader, n_iters=50)
+training = Training(model=attention_model,
+                    train_dataloader=train_dataloader,
+                    test_dataloader=test_dataloader,
+                    output_size=OUTPUT_SIZE,
+                    total_input=TOTAL_INPUT,
+                    n_iters=1)
+
 training.train(resume=RESUME)
