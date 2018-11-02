@@ -223,6 +223,18 @@ class Training(object):
         for param_far, param_near in zip(self.model.far_future_generator.parameters(),
                                          self.model.near_future_generator.parameters()):
             param_far.data = param_near.data.clone()
+        total_far_sum = 0
+        total_near_sum = 0
+        for module_name, module in self.model._modules.iteritems():
+            if module_name == "far_future_decoder" or module_name == "far_future_generator":
+                for params in module.parameters():
+                    if params is not None:
+                        total_far_sum += params.sum()
+            else:
+                for params in module.parameters():
+                    if params is not None:
+                        total_near_sum += params.sum()
+        print total_far_sum, total_near_sum
 
         self.model.mode(mode=TRAIN_FAR_FUTURE)
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
@@ -231,7 +243,18 @@ class Training(object):
 
         self.set_output_size(output_size=OUTPUT_SIZE)
         print self.test_dataloader.dataset.transform.target_dates
-
+        total_far_sum = 0
+        total_near_sum = 0
+        for module_name, module in self.model._modules.iteritems():
+            if module_name == "far_future_decoder" or module_name == "far_future_generator":
+                for params in module.parameters():
+                    if params is not None:
+                        total_far_sum += params.sum()
+            else:
+                for params in module.parameters():
+                    if params is not None:
+                        total_near_sum += params.sum()
+        print total_far_sum, total_near_sum
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
 
     def _train(self, model_mode, resume=RESUME):
