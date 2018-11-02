@@ -31,7 +31,7 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "label_encoders.json"
 path_to_training_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 if debug_mode:
     num_csku_per_query_train = 100

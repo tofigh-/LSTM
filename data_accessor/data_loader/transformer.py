@@ -1,7 +1,6 @@
 from datetime import datetime
 from datetime import timedelta
 
-import numpy as np
 import six
 from isoweek import Week
 
@@ -75,6 +74,7 @@ class Transform(object):
         self.activate_filters = activate_filters
 
     def set_output_size(self, output_size):
+        self.target_dates = self.target_dates + timedelta(weeks=output_size - self.output_size)
         self.output_size = output_size
         self.total_length = self.total_input + self.output_size
         self.feature_transforms.set_total_length(self.total_length)
@@ -163,6 +163,8 @@ class Transform(object):
                 loss_mask = np.concatenate([np.ones(slide_i + 1), np.zeros(self.output_size - slide_i - 1)])
             else:
                 loss_mask = np.ones(self.output_size)
+            if slide_i >= 1 and self.testing_Transformation:
+                return samples
             first_target_week_idx = num_weeks - slide_i * WINDOW_SHIFT - self.output_size
             if self.activate_filters and self.filter_out_low_stock(feature_dictionary, first_target_week_idx,
                                                                    self.stock_threshold):
