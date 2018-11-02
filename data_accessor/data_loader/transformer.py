@@ -75,8 +75,9 @@ class Transform(object):
 
     def set_output_size(self, output_size):
         if self.testing_Transformation:
+            factor = 1 if output_size > self.output_size else -1
             self.target_dates = [(self.target_dates[0][0],
-                                  self.target_dates[0][1] + timedelta(weeks=output_size - self.output_size))]
+                                  self.target_dates[0][1] + factor * timedelta(weeks=abs(output_size - self.output_size)))]
         self.output_size = output_size
         self.total_length = self.total_input + self.output_size
         self.feature_transforms.set_total_length(self.total_length)
