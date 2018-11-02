@@ -213,7 +213,7 @@ class Training(object):
     def train(self, resume=RESUME):
         self.model.mode(mode=TRAIN_NEAR_FUTURE)
         self._train(model_mode=TRAIN_NEAR_FUTURE, resume=resume)
-
+        print self.test_dataloader.dataset.transform.target_dates
         self.set_output_size(output_size=OUTPUT_SIZE_FAR)
         self.n_iters = 1
         for param_far, param_near in zip(self.model.far_future_decoder.parameters(),
@@ -226,8 +226,12 @@ class Training(object):
 
         self.model.mode(mode=TRAIN_FAR_FUTURE)
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
+        print self.test_dataloader.dataset.transform.target_dates
+
 
         self.set_output_size(output_size=OUTPUT_SIZE)
+        print self.test_dataloader.dataset.transform.target_dates
+
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
 
     def _train(self, model_mode, resume=RESUME):
