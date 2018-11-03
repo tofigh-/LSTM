@@ -259,6 +259,11 @@ class Training(object):
             if param is not None:
                 total_near_generator += param.sum()
         print "near future generator sum",total_near_generator
+        total_far_generator = 0
+        for param in self.model.far_future_generator.parameters():
+            if param is not None:
+                total_far_generator += param.sum()
+        print "fat future generator sum",total_far_generator
         total_far_sum = 0
         total_near_sum = 0
         for module_name, module in self.model._modules.iteritems():
@@ -271,6 +276,7 @@ class Training(object):
                     if params is not None:
                         total_near_sum += params.sum()
         print total_far_sum, total_near_sum
+
 
         self.set_output_size(output_size=OUTPUT_SIZE)
         print self.test_dataloader.dataset.transform.target_dates
