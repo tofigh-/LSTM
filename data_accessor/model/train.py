@@ -227,7 +227,12 @@ class Training(object):
         for param in self.model.encoder.parameters():
             if param is not None:
                 total_encoder += param.sum()
-        print total_encoder
+        print "encoder sum",total_encoder
+        total_near_generator = 0
+        for param in self.model.near_future_generator.parameters():
+            if param is not None:
+                total_near_generator += param.sum()
+        print "near future generator sum",total_near_generator
         total_far_sum = 0
         total_near_sum = 0
         for module_name, module in self.model._modules.iteritems():
@@ -248,7 +253,12 @@ class Training(object):
         for param in self.model.encoder.parameters():
             if param is not None:
                 total_encoder += param.sum()
-        print total_encoder
+        print "encoder sum",total_encoder
+        total_near_generator = 0
+        for param in self.model.near_future_generator.parameters():
+            if param is not None:
+                total_near_generator += param.sum()
+        print "near future generator sum",total_near_generator
         total_far_sum = 0
         total_near_sum = 0
         for module_name, module in self.model._modules.iteritems():
