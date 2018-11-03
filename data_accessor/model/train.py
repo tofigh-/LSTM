@@ -223,6 +223,11 @@ class Training(object):
         for param_far, param_near in zip(self.model.far_future_generator.parameters(),
                                          self.model.near_future_generator.parameters()):
             param_far.data = param_near.data.clone()
+        total_encoder = 0
+        for param in self.model.encoder.parameters():
+            if param is not None:
+                total_encoder += param.sum()
+        print total_encoder
         total_far_sum = 0
         total_near_sum = 0
         for module_name, module in self.model._modules.iteritems():
@@ -239,6 +244,11 @@ class Training(object):
         self.model.mode(mode=TRAIN_FAR_FUTURE)
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
         print self.test_dataloader.dataset.transform.target_dates
+        total_encoder = 0
+        for param in self.model.encoder.parameters():
+            if param is not None:
+                total_encoder += param.sum()
+        print total_encoder
         total_far_sum = 0
         total_near_sum = 0
         for module_name, module in self.model._modules.iteritems():
@@ -293,7 +303,7 @@ class Training(object):
                     loss_func=loss_function,
                     loss_func2=loss_function2
                 )
-                self.model.mode(mode=TRAIN_NEAR_FUTURE)
+                self.model.mode(mode=model_mode)
                 self._kpi_print("Test", test_loss, test_sale_kpi, weekly_aggregated_kpi_test,
                                 weekly_aggregated_kpi_scale_test, k1, k2, predicted_country_sales_test,
                                 country_sales_test)
