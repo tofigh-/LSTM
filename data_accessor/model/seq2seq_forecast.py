@@ -58,13 +58,13 @@ else:
     label_encoders = None
 
 my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, total_length=TOTAL_LENGTH, low_sale_percentage=1.0)
-max_end_date = datetime.strptime('2016-12-28', '%Y-%m-%d').date()
+max_end_date = datetime.strptime('2016-01-28', '%Y-%m-%d').date()
 target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 1)
 train_transform = Transform(
     feature_transforms=my_feature_class_train,
     label_encoders=label_encoders,
     db_file=path_to_training_db,
-    min_start_date='2014-01-01',
+    min_start_date='2012-01-01',
     max_end_date=max_end_date,
     training_transformation=True,
     keep_zero_stock_filter=0.0,
