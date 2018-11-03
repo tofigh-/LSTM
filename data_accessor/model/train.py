@@ -226,6 +226,9 @@ class Training(object):
         self.model.mode(mode=TRAIN_FAR_FUTURE)
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
 
+        self.set_output_size(output_size=OUTPUT_SIZE)
+        self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
+
     def _train(self, model_mode, resume=RESUME):
         if resume:
             EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'}, self.model)
