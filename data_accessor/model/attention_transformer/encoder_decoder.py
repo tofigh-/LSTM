@@ -85,6 +85,7 @@ class EncoderDecoder(nn.Module):
                 if module_name == "far_future_decoder" or module_name == "far_future_generator":
                     for params in module.parameters():
                         params.requires_grad = False
+                        params.grad = None
                 else:
                     for params in module.parameters():
                         params.requires_grad = True
@@ -98,6 +99,8 @@ class EncoderDecoder(nn.Module):
                 else:
                     for params in module.parameters():
                         params.requires_grad = False
+                        params.grad = None
+
 
         else:
             raise ValueError(

@@ -213,7 +213,7 @@ class Training(object):
     def train(self, resume=RESUME):
         self.model.mode(mode=TRAIN_NEAR_FUTURE)
         self._train(model_mode=TRAIN_NEAR_FUTURE, resume=resume)
-        print self.test_dataloader.dataset.transform.target_dates
+
         self.set_output_size(output_size=OUTPUT_SIZE_FAR)
         self.n_iters = 1
         for param_far, param_near in zip(self.model.far_future_decoder.parameters(),
@@ -223,76 +223,9 @@ class Training(object):
         for param_far, param_near in zip(self.model.far_future_generator.parameters(),
                                          self.model.near_future_generator.parameters()):
             param_far.data = param_near.data.clone()
-        total_encoder = 0
-        for param in self.model.encoder.parameters():
-            if param is not None:
-                total_encoder += param.sum()
-        print "encoder sum",total_encoder
-        total_near_generator = 0
-        for param in self.model.near_future_generator.parameters():
-            if param is not None:
-                total_near_generator += param.sum()
-        print "near future generator sum",total_near_generator
-        total_far_sum = 0
-        total_near_sum = 0
-        for module_name, module in self.model._modules.iteritems():
-            if module_name == "far_future_decoder" or module_name == "far_future_generator":
-                for params in module.parameters():
-                    if params is not None:
-                        total_far_sum += params.sum()
-            else:
-                for params in module.parameters():
-                    if params is not None:
-                        total_near_sum += params.sum()
-        print total_far_sum, total_near_sum
-
         self.model.mode(mode=TRAIN_FAR_FUTURE)
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
-        print self.test_dataloader.dataset.transform.target_dates
-        total_encoder = 0
-        for param in self.model.encoder.parameters():
-            if param is not None:
-                total_encoder += param.sum()
-        print "encoder sum",total_encoder
-        total_near_generator = 0
-        for param in self.model.near_future_generator.parameters():
-            if param is not None:
-                total_near_generator += param.sum()
-        print "near future generator sum",total_near_generator
-        total_far_generator = 0
-        for param in self.model.far_future_generator.parameters():
-            if param is not None:
-                total_far_generator += param.sum()
-        print "fat future generator sum",total_far_generator
-        total_far_sum = 0
-        total_near_sum = 0
-        for module_name, module in self.model._modules.iteritems():
-            if module_name == "far_future_decoder" or module_name == "far_future_generator":
-                for params in module.parameters():
-                    if params is not None:
-                        total_far_sum += params.sum()
-            else:
-                for params in module.parameters():
-                    if params is not None:
-                        total_near_sum += params.sum()
-        print total_far_sum, total_near_sum
 
-
-        self.set_output_size(output_size=OUTPUT_SIZE)
-        print self.test_dataloader.dataset.transform.target_dates
-        total_far_sum = 0
-        total_near_sum = 0
-        for module_name, module in self.model._modules.iteritems():
-            if module_name == "far_future_decoder" or module_name == "far_future_generator":
-                for params in module.parameters():
-                    if params is not None:
-                        total_far_sum += params.sum()
-            else:
-                for params in module.parameters():
-                    if params is not None:
-                        total_near_sum += params.sum()
-        print total_far_sum, total_near_sum
-        self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
 
     def _train(self, model_mode, resume=RESUME):
         if resume:
