@@ -73,7 +73,7 @@ class Transform(object):
             )]
         self.activate_filters = activate_filters
 
-    def set_output_size(self, output_size):
+    def set_forecast_length(self, output_size):
         if self.testing_Transformation:
             factor = 1 if output_size > self.output_size else -1
             self.target_dates = [(self.target_dates[0][0],
@@ -139,7 +139,8 @@ class Transform(object):
             num_zeros_right = 0
             if self.training_transformation:
                 if not self.no_additional_left_zeros:
-                    num_zeros = max(num_zeros, self.total_length - 1 - self.output_size)
+                    num_last_features = 5
+                    num_zeros = max(num_zeros, self.total_length - num_last_features - self.output_size)
                 if not self.no_additional_right_zeros:
                     num_zeros_right = self.output_size - 1
             csku_object = self.feature_transforms.enrich_csku(csku_object, self.training_transformation)

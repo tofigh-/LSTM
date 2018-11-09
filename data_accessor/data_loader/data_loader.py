@@ -13,8 +13,8 @@ class DatasetLoader(object):
     def reshuffle_dataset(self):
         self.dataloader.dataset.reshuffle()
 
-    def set_output_size(self, output_size):
-        self.dataset.transform.set_output_size(output_size)
+    def set_forecast_length(self, output_size):
+        self.dataset.transform.set_forecast_length(output_size)
 
     def __iter__(self):
         st = time.time()

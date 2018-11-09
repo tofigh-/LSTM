@@ -51,20 +51,19 @@ else:
     max_num_queries_test = 5
     max_num_queries_validation = 1
 
-
 if os.path.exists(label_encoder_file):
     label_encoders = load_label_encoder(label_encoder_file)
 else:
     label_encoders = None
 
 my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, total_length=TOTAL_LENGTH, low_sale_percentage=1.0)
-max_end_date = datetime.strptime('2016-01-28', '%Y-%m-%d').date()
+max_end_date = datetime.strptime('2016-12-31', '%Y-%m-%d').date()
 target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 1)
 train_transform = Transform(
     feature_transforms=my_feature_class_train,
     label_encoders=label_encoders,
     db_file=path_to_training_db,
-    min_start_date='2012-01-01',
+    min_start_date='2015-01-01',
     max_end_date=max_end_date,
     training_transformation=True,
     keep_zero_stock_filter=0.0,
@@ -95,6 +94,7 @@ test_transform = Transform(
     stock_threshold=TEST_STOCK_THRESHOLD,
     keep_zero_sale_filter=TEST_ZERO_SALE_PERCENTAGE,
     no_additional_left_zeros=True,
+    no_additional_right_zeros=True,
     output_size=OUTPUT_SIZE,
     total_input=TOTAL_INPUT,
     activate_filters=True)
@@ -116,20 +116,19 @@ test_db = DatasetReader(
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
 test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
 
-
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 
 d_model = len(numeric_feature_indices)
 print "d_model is: " + str(d_model)
 attention_model = make_model(embedding_descriptions=embedding_descripts,
                              total_input=TOTAL_INPUT,
-                             N_enc=6,
-                             N_dec=6,
+                             N_enc=NUM_ENCODER_LAYERS,
+                             N_dec=NUM_DECODER_LAYERS,
                              d_model=d_model,
                              d_ff=4 * d_model,
-                             h=18,
-                             dropout_enc=0.1,
-                             dropout_dec=0.1)
+                             h=NUM_HEAD,
+                             dropout_enc=DROPOUT,
+                             dropout_dec=DROPOUT)
 attention_model = cuda_converter(attention_model)
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
@@ -139,6 +138,6 @@ training = Training(model=attention_model,
                     test_dataloader=test_dataloader,
                     output_size=OUTPUT_SIZE,
                     total_input=TOTAL_INPUT,
-                    n_iters=6)
+                    n_iters=25)
 
 training.train(resume=RESUME)

@@ -36,8 +36,8 @@ class Training(object):
     def set_output_size(self, output_size):
         self.output_size = output_size
         self.total_length = self.output_size + self.total_input
-        self.train_dataloader.set_output_size(self.output_size)
-        self.test_dataloader.set_output_size(self.output_size)
+        self.train_dataloader.set_forecast_length(self.output_size)
+        self.test_dataloader.set_forecast_length(self.output_size)
 
     def _kpi_print(self, mode, loss_value, kpi_value, weekly_aggregated_kpi, weekly_aggregated_kpi_scale, k1, k2,
                    predicted_country_sales=None, country_sales=None):
