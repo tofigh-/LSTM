@@ -28,6 +28,8 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
                            sales_future[loss_masks[:, week_idx], week_idx, :])
         l1 = loss_function2(sales_predictions[loss_masks[:, week_idx]],
                             sales_future[loss_masks[:, week_idx], week_idx, :])
+        if not l2.shape:
+            continue
         loss += (torch.cat([l2, l1]) * model.loss_weights).sum()
         if bias_loss is not None:
             loss += bias_loss(sales_predictions[loss_masks[:, week_idx]],
