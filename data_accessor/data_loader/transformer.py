@@ -64,7 +64,7 @@ class Transform(object):
             for dat in target_dates:
                 end_date = self.nearest_leading_iso_week(self.convert_to_datetime(dat)) + timedelta(
                     7)  # To make the end_date exclusive as we have with current_date in batch data
-                start_date = end_date - timedelta(self.total_input * 7)
+                start_date = end_date - timedelta(self.total_length * 7)
                 self.target_dates.append((start_date, end_date))
         else:
             self.target_dates = [(

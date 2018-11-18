@@ -211,6 +211,10 @@ class Training(object):
             weekly_aggregated_kpi_scale)
 
     def train(self, resume=RESUME):
+        if resume:
+            EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'}, self.model)
+        self.model.optimizer.zero_grad()
+
         self.model.mode(mode=TRAIN_NEAR_FUTURE)
         self._train(model_mode=TRAIN_NEAR_FUTURE, resume=resume)
 
@@ -226,11 +230,8 @@ class Training(object):
         self.model.mode(mode=TRAIN_FAR_FUTURE)
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
 
-
     def _train(self, model_mode, resume=RESUME):
-        if resume:
-            EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'}, self.model)
-        self.model.optimizer.zero_grad()
+
         np.random.seed(0)
         loss_function = self.msloss
         loss_function2 = self.l1loss
@@ -240,7 +241,7 @@ class Training(object):
             print start_date_time
 
             change_optimizer_epoch = 1
-            if RESUME:
+            if resume:
                 self.model.mode(mode=PREDICT)
                 test_loss, k1, k2, test_sale_kpi, \
                 predicted_country_sales_test, \

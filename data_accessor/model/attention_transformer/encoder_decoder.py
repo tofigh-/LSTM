@@ -62,7 +62,11 @@ class EncoderDecoder(nn.Module):
 
     @staticmethod
     def load_checkpoint(model_path_dict, model):
-        encoder_decoder_checkpoint = torch.load(model_path_dict[ENCODER_DECODER_CHECKPOINT])
+        if torch.cuda.is_available():
+            encoder_decoder_checkpoint = torch.load(model_path_dict[ENCODER_DECODER_CHECKPOINT])
+        else:
+            encoder_decoder_checkpoint = torch.load(model_path_dict[ENCODER_DECODER_CHECKPOINT],map_location='cpu')
+
 
         model.load_state_dict(encoder_decoder_checkpoint[STATE_DICT])
 
