@@ -107,7 +107,7 @@ train_db = DatasetReader(
     shuffle_dataset=True)
 
 import pandas as pd
-valid_cskus = pd.read_csv("csks.csv")
+valid_cskus = pd.read_csv("cskus.csv")
 
 test_db = DatasetReader(
     path_to_training_db=path_to_training_db,
