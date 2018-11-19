@@ -48,7 +48,7 @@ else:
     train_workers = 6
     num_csku_per_query_test = 10000
     max_num_queries_train = None
-    max_num_queries_test = 5
+    max_num_queries_test = 50
     max_num_queries_validation = 1
 
 if os.path.exists(label_encoder_file):
@@ -106,12 +106,16 @@ train_db = DatasetReader(
     max_num_queries=max_num_queries_train,
     shuffle_dataset=True)
 
+import pandas as pd
+valid_cskus = pd.read_csv("csks.csv")
+
 test_db = DatasetReader(
     path_to_training_db=path_to_training_db,
     transform=test_transform,
     num_csku_per_query=num_csku_per_query_test,
     max_num_queries=max_num_queries_test,
     shuffle_dataset=True,
+    valid_cskus=set(valid_cskus['csku']),
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
 test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)

@@ -10,7 +10,8 @@ class DatasetReader(Dataset):
 
     def __init__(self, path_to_training_db, transform=None, num_csku_per_query=10000, max_num_queries=None,
                  shuffle_dataset=True, seed=None,
-                 row_iteration_order=None):
+                 row_iteration_order=None,
+                 valid_cskus=None):
         if row_iteration_order is not None and shuffle_dataset:
             raise ValueError('shuffle_dataset and row_iteration_order are mutually exclusive. '
                              'When row_iteration_order is provided, shuffle_dataset should be set to False.')
@@ -27,7 +28,7 @@ class DatasetReader(Dataset):
         conn_db = connection.cursor()
         conn_db.execute(count_num_rows)
         self.num_samples = conn_db.fetchall()[0][0]
-
+        self.valid_cskus = valid_cskus
         if shuffle_dataset:
             if seed is not None:
                 np.random.seed(seed)
@@ -73,6 +74,10 @@ class DatasetReader(Dataset):
             selected_rows = []
             for row in rows:
                 csku_object = pickle.loads(str(row[0]))
+                if self.valid_cskus is not None:
+                    csku_id = csku_object['Config SKU']
+                    if csku_id not in self.valid_cskus:
+                        continue
                 if self.transform is not None:
                     csku_samples = self.transform(csku_object)
                     if csku_samples is not None and csku_samples != []:
