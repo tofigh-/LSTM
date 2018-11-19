@@ -138,6 +138,6 @@ training = Training(model=attention_model,
                     test_dataloader=test_dataloader,
                     output_size=OUTPUT_SIZE,
                     total_input=TOTAL_INPUT,
-                    n_iters=25)
+                    n_iters=0)
 
 training.train(resume=RESUME)
