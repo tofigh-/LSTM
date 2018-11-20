@@ -9,9 +9,7 @@ def predict_per_batch(model, loss_function, loss_function2, bias_loss, targets_f
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     all_weeks = []
     loss = 0
-    future_unknown_estimates=input_encoder[:,-1,feature_indices[SALES_MATRIX]]
     for week_idx in range(output_size):
-        input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         is_near_future = False if week_idx >= FAR_WEEK_THRESHOLD else True
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :],
@@ -21,6 +19,7 @@ def predict_per_batch(model, loss_function, loss_function2, bias_loss, targets_f
 
         # without teacher forcing
         future_unknown_estimates = sales_predictions
+        input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
 
 
         all_weeks.append(sales_mean.squeeze())

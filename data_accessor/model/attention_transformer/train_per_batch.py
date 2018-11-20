@@ -15,9 +15,7 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
     encoder_state = model.encode(input_encoder, encoder_input_mask=encoded_mask)
     loss = 0
     all_weeks = []
-    future_unknown_estimates=input_encoder[:,-1,feature_indices[SALES_MATRIX]]
     for week_idx in range(output_size):
-        input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         is_near_future = False if week_idx >= FAR_WEEK_THRESHOLD else True
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
                                        decoder_input=input_decoder[:, week_idx:week_idx + 1, :],
@@ -38,6 +36,8 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
                               sales_future[loss_masks[:, week_idx], week_idx, :])
 
         future_unknown_estimates = sales_predictions
+        input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
+
         # Batch x time x num_feature
         all_weeks.append(sales_predictions.squeeze())
 
