@@ -5,7 +5,7 @@ from torch import optim
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from data_accessor.data_loader.Settings import *
 from data_accessor.model.attention_transformer.predict_per_batch import predict_per_batch
-from loss import L2Loss, L1Loss, KPILoss
+from loss import L2Loss, L1Loss, KPILoss, BiasLoss
 from model_utilities import exponential, cuda_converter, \
     kpi_compute_per_country, rounder
 
@@ -227,6 +227,7 @@ class Training(object):
         for param_far, param_near in zip(self.model.far_future_generator.parameters(),
                                          self.model.near_future_generator.parameters()):
             param_far.data = param_near.data.clone()
+        self.bias_loss = BiasLoss()
         self.model.mode(mode=TRAIN_FAR_FUTURE)
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
 
