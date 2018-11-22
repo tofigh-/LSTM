@@ -107,6 +107,7 @@ train_db = DatasetReader(
     shuffle_dataset=True)
 
 import pandas as pd
+
 valid_cskus = pd.read_csv("cskus.csv")
 
 test_db = DatasetReader(
@@ -142,6 +143,6 @@ training = Training(model=attention_model,
                     test_dataloader=test_dataloader,
                     output_size=OUTPUT_SIZE,
                     total_input=TOTAL_INPUT,
-                    n_iters=0)
+                    n_iters=6)
 
 training.train(resume=RESUME)
