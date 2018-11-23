@@ -219,7 +219,7 @@ class Training(object):
         self._train(model_mode=TRAIN_NEAR_FUTURE, resume=resume)
 
         self.set_output_size(output_size=OUTPUT_SIZE_FAR)
-        self.n_iters = 1
+        self.n_iters = 4
         for param_far, param_near in zip(self.model.far_future_decoder.parameters(),
                                          self.model.near_future_decoder.parameters()):
             param_far.data = param_near.data.clone()
@@ -227,7 +227,7 @@ class Training(object):
         for param_far, param_near in zip(self.model.far_future_generator.parameters(),
                                          self.model.near_future_generator.parameters()):
             param_far.data = param_near.data.clone()
-        self.bias_loss = BiasLoss()
+        self.bias_loss = None
         self.model.mode(mode=TRAIN_FAR_FUTURE)
         self._train(model_mode=TRAIN_FAR_FUTURE, resume=resume)
 
