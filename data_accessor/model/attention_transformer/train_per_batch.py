@@ -6,6 +6,7 @@ import math
 import torch
 import sys
 import numpy as np
+import numpy as np
 
 
 def train_per_batch(model, inputs, targets_future, loss_function, loss_function2, bias_loss, loss_masks, output_size):
@@ -16,7 +17,11 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
     loss = 0
     all_weeks = []
     future_unknown_estimates = input_encoder[:, -1, feature_indices[SALES_MATRIX]]
+    mask_sum = torch.sum(loss_masks, dim=0)
+    use_teacher_forcing = True if np.random.rand() < TEACHER_FORCING_RATIO else False
     for week_idx in range(output_size):
+        if mask_sum[week_idx] == 0:
+            continue
         input_decoder[:, week_idx, feature_indices[SALES_MATRIX]] = future_unknown_estimates
         is_near_future = False if week_idx >= FAR_WEEK_THRESHOLD else True
         output_prefinal = model.decode(hidden_state=encoder_state, encoder_input_mask=encoded_mask,
@@ -37,7 +42,10 @@ def train_per_batch(model, inputs, targets_future, loss_function, loss_function2
             loss += bias_loss(sales_predictions[loss_masks[:, week_idx]],
                               sales_future[loss_masks[:, week_idx], week_idx, :])
 
-        future_unknown_estimates = sales_predictions
+        if use_teacher_forcing:
+            future_unknown_estimates = sales_future[:, week_idx, :]
+        else:
+            future_unknown_estimates = sales_predictions
         # Batch x time x num_feature
         all_weeks.append(sales_predictions.squeeze())
 
