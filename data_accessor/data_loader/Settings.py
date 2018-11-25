@@ -51,7 +51,7 @@ POSITION_ENCODING = u'Position Encoding'
 FUTURE_BINARY_SEASON_FLAGS = u'Future Binary Season Flags'
 INT_FUTURE_DISCOUNT = u'INT Future Discounts'
 STOCK_UPLIFT_FUTURE = u'Stock Uplift Vector'
-TEACHER_FORCING_RATIO = 0.5
+TEACHER_FORCING_RATIO = 0.9
 ## Boolean Switches
 IS_LOG_TRANSFORM = True
 FILTER_LOW_STOCK = True
