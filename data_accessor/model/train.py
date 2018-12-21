@@ -201,7 +201,7 @@ class Training(object):
                                                              )
 
             if (batch_num + 1) % NUM_BATCH_SAVING_MODEL == 0 and train_mode:
-                EncoderDecoder.save_checkpoint(self.model, 'attention_encoder_decoder.gz')
+                EncoderDecoder.save_checkpoint(self.model, 'transformer_sibr_model_s3.torch')
 
         kpi_per_country_total = [rounder(
             100 * np.sum(np.array(kpi_sale[i]), axis=0) / np.sum(np.array(kpi_sale_scale[i]), axis=0))
@@ -212,7 +212,7 @@ class Training(object):
 
     def train(self, resume=RESUME):
         if resume:
-            EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'attention_encoder_decoder.gz'}, self.model)
+            EncoderDecoder.load_checkpoint({ENCODER_DECODER_CHECKPOINT: 'transformer_sibr_model_s3.torch'}, self.model)
         self.model.optimizer.zero_grad()
 
         self.model.mode(mode=TRAIN_NEAR_FUTURE)
@@ -275,7 +275,7 @@ class Training(object):
             print "Weekly Aggregated KPI {kpi}".format(
                 kpi=rounder(np.sum(weekly_aggregated_kpi, axis=0) / np.sum(weekly_aggregated_kpi_scale, axis=0) * 100)
             )
-            EncoderDecoder.save_checkpoint(self.model, 'attention_encoder_decoder.gz')
+            EncoderDecoder.save_checkpoint(self.model, 'transformer_sibr_model_s3.torch')
 
             self.train_dataloader.reshuffle_dataset()
 

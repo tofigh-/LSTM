@@ -29,7 +29,7 @@ print "Experiment time: " + str(datetime.now())
 
 dir_path = ""
 file_name = "training.db"
-label_encoder_file = "label_encoders.json"
+label_encoder_file = "transformer_sibr_label_encoders_s3.json "
 path_to_training_db = join(dir_path, file_name)
 debug_mode = False
 
@@ -43,9 +43,9 @@ if debug_mode:
     max_num_queries_validation = 1
 
 else:
-    num_csku_per_query_train = 3000
+    num_csku_per_query_train = 10000
     num_csku_per_query_validation = 1000
-    train_workers = 6
+    train_workers = 0
     num_csku_per_query_test = 10000
     max_num_queries_train = None
     max_num_queries_test = 5
@@ -57,13 +57,13 @@ else:
     label_encoders = None
 
 my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, total_length=TOTAL_LENGTH, low_sale_percentage=1.0)
-max_end_date = datetime.strptime('2016-04-04', '%Y-%m-%d').date()
+max_end_date = datetime.strptime('2018-12-52', '%Y-%m-%d').date()
 target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 1)
 train_transform = Transform(
     feature_transforms=my_feature_class_train,
     label_encoders=label_encoders,
     db_file=path_to_training_db,
-    min_start_date='2014-01-01',
+    min_start_date='2016-10-01',
     max_end_date=max_end_date,
     training_transformation=True,
     keep_zero_stock_filter=0.0,
