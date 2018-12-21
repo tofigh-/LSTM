@@ -57,7 +57,7 @@ else:
     label_encoders = None
 
 my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, total_length=TOTAL_LENGTH, low_sale_percentage=1.0)
-max_end_date = datetime.strptime('2018-12-52', '%Y-%m-%d').date()
+max_end_date = datetime.strptime('2018-12-30', '%Y-%m-%d').date()
 target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 1)
 train_transform = Transform(
     feature_transforms=my_feature_class_train,
