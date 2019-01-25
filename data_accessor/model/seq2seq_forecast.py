@@ -15,7 +15,7 @@ from datetime import datetime
 from datetime import timedelta
 import git
 from data_accessor.model.attention_transformer.attention_transformer_model import make_model
-from train import Training
+from test import Testing
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
 for variable in to_print_variables:
@@ -29,9 +29,9 @@ print "Experiment time: " + str(datetime.now())
 
 dir_path = ""
 file_name = "training.db"
-label_encoder_file = "transformer_sibr_label_encoders_s3.json "
+label_encoder_file = "transformer_sibr_label_encoders_s3.json"
 path_to_training_db = join(dir_path, file_name)
-debug_mode = False
+debug_mode = True
 
 if debug_mode:
     num_csku_per_query_train = 100
@@ -46,9 +46,9 @@ else:
     num_csku_per_query_train = 10000
     num_csku_per_query_validation = 1000
     train_workers = 0
-    num_csku_per_query_test = 10000
+    num_csku_per_query_test = 2500
     max_num_queries_train = None
-    max_num_queries_test = 5
+    max_num_queries_test = 20
     max_num_queries_validation = 1
 
 if os.path.exists(label_encoder_file):
@@ -57,7 +57,7 @@ else:
     label_encoders = None
 
 my_feature_class_train = MyFeatureClass(FEATURE_DESCRIPTIONS, total_length=TOTAL_LENGTH, low_sale_percentage=1.0)
-max_end_date = datetime.strptime('2018-12-30', '%Y-%m-%d').date()
+max_end_date = datetime.strptime('2016-12-30', '%Y-%m-%d').date()
 target_test_date = max_end_date + timedelta(weeks=OUTPUT_SIZE + 1)
 train_transform = Transform(
     feature_transforms=my_feature_class_train,
@@ -120,24 +120,29 @@ embedding_descripts = complete_embedding_description(embedding_descriptions, lab
 
 d_model = len(numeric_feature_indices)
 print "d_model is: " + str(d_model)
-attention_model = make_model(embedding_descriptions=embedding_descripts,
-                             total_input=TOTAL_INPUT,
-                             N_enc=NUM_ENCODER_LAYERS,
-                             N_dec=NUM_DECODER_LAYERS,
-                             d_model=d_model,
-                             d_ff=4 * d_model,
-                             h=NUM_HEAD,
-                             dropout_enc=DROPOUT,
-                             dropout_dec=DROPOUT)
+attention_model = make_model(
+    embedding_descriptions=embedding_descripts,
+    total_input=TOTAL_INPUT,
+    N_enc=NUM_ENCODER_LAYERS,
+    N_dec=NUM_DECODER_LAYERS,
+    d_model=d_model,
+    d_ff=4 * d_model,
+    h=NUM_HEAD,
+    dropout_enc=DROPOUT,
+    dropout_dec=DROPOUT
+)
 attention_model = cuda_converter(attention_model)
 print "num parameters in model is {p_num}".format(
     p_num=sum(p.numel() for p in attention_model.parameters() if p.requires_grad))
 
-training = Training(model=attention_model,
-                    train_dataloader=train_dataloader,
-                    test_dataloader=test_dataloader,
-                    output_size=OUTPUT_SIZE,
-                    total_input=TOTAL_INPUT,
-                    n_iters=0)
+testing = Testing(
+    model=attention_model,
+    train_dataloader=train_dataloader,
+    test_dataloader=test_dataloader,
+    output_size=OUTPUT_SIZE,
+    total_input=TOTAL_INPUT,
+    n_iters=5,
+    label_encoder = label_encoders
+)
 
-training.train(resume=RESUME)
+testing.test()

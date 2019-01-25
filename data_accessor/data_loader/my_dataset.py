@@ -82,6 +82,6 @@ class DatasetReader(Dataset):
 
         finally:
             connection.close()
-            if selected_rows:
-                shuffle(selected_rows)
+            # if selected_rows:
+            #     shuffle(selected_rows)
         return selected_rows
