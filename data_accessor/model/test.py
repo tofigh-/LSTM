@@ -77,12 +77,12 @@ class Testing(object):
         batch_data[:, self.total_input:, feature_indices[GLOBAL_SALE][0]] = batch_data[:,
                                                                             self.total_input - 1:self.total_input,
                                                                             feature_indices[GLOBAL_SALE][0]]
-        # batch_data[:, self.total_input:, feature_indices[STOCK][0]] = np.log1p(np.expm1(max_stock) * iter_num / 10.0)[:,
-        #                                                               None]
-        batch_data[:, self.total_input:, feature_indices[STOCK][0]] = batch_data[:,
-                                                                            self.total_input - 1:self.total_input,
-                                                                            feature_indices[STOCK][0]]
-        batch_data[:,self.total_input:,feature_indices[DISCOUNT_MATRIX]] = np.ones((batch_data.shape[0],1,14)) * iter_num / 10.0
+        batch_data[:, self.total_input:, feature_indices[STOCK][0]] = np.log1p(np.expm1(max_stock))[:, None]
+        # batch_data[:, self.total_input:, feature_indices[STOCK][0]] = batch_data[:,
+        #                                                               self.total_input - 1:self.total_input,
+        #                                                               feature_indices[STOCK][0]]
+        batch_data[:, self.total_input:, feature_indices[DISCOUNT_MATRIX]] = np.ones(
+            (batch_data.shape[0], 1, 14)) * iter_num / 10.0
         black_price = exponential(
             cuda_converter(
                 torch.from_numpy(
@@ -122,7 +122,8 @@ class Testing(object):
                 output_size=self.output_size
             )
             unbounded_prediction = np.sum(exponential(sale_predictions, True).squeeze().data.cpu().numpy(), axis=1)
-            out_prediction = np.minimum(unbounded_prediction, batch_data[:, self.total_input, feature_indices[STOCK][0]])
+            out_prediction = np.minimum(unbounded_prediction,
+                                        batch_data[:, self.total_input, feature_indices[STOCK][0]])
             cg2 = batch_data[:, 0, feature_indices[CG2]]
             cg2 = np.array([self.cg2_encoder[int(el)] for el in cg2])[:, None]
             total_predictions.append(np.concatenate([out_prediction[:, None], cg2], axis=1))
@@ -135,9 +136,9 @@ class Testing(object):
         self.model.mode(mode=PREDICT)
         out = self._test()
         out = np.concatenate([out[:, 0:-1:2], out[:, -1][:, None]], axis=1)
-        header= map(lambda i: str(i), range(out.shape[1] -1)) + ["cg2"]
-        out_df = pd.DataFrame(out,columns=header)
-        out_df.to_csv("discount_Response_withcg2_real_stock.csv",index=False)
+        header = map(lambda i: str(i), range(out.shape[1] - 1)) + ["cg2"]
+        out_df = pd.DataFrame(out, columns=header)
+        out_df.to_csv("discount_Response_withcg2_max_stock.csv", index=False)
 
     def _test(self):
         loss_function = self.msloss
