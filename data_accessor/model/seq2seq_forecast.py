@@ -143,7 +143,7 @@ testing = Testing(
     test_dataloader=test_dataloader,
     output_size=OUTPUT_SIZE,
     total_input=TOTAL_INPUT,
-    n_iters=51,
+    n_iters=8,
     label_encoder=label_encoders
 )
 
