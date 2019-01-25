@@ -31,13 +31,14 @@ dir_path = ""
 file_name = "training.db"
 label_encoder_file = "transformer_sibr_label_encoders_s3.json"
 path_to_training_db = join(dir_path, file_name)
-debug_mode = True
+debug_mode = False
 
 if debug_mode:
     num_csku_per_query_train = 100
     num_csku_per_query_test = 100
     num_csku_per_query_validation = 50
     train_workers = 0
+    test_workers = 0
     max_num_queries_train = 1
     max_num_queries_test = 1
     max_num_queries_validation = 1
@@ -143,7 +144,7 @@ testing = Testing(
     output_size=OUTPUT_SIZE,
     total_input=TOTAL_INPUT,
     n_iters=5,
-    label_encoder = label_encoders
+    label_encoder=label_encoders
 )
 
 testing.test()
