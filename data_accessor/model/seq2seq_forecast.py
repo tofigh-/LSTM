@@ -46,9 +46,10 @@ else:
     num_csku_per_query_train = 10000
     num_csku_per_query_validation = 1000
     train_workers = 0
+    test_workers = 4
     num_csku_per_query_test = 2500
     max_num_queries_train = None
-    max_num_queries_test = 20
+    max_num_queries_test = 100
     max_num_queries_validation = 1
 
 if os.path.exists(label_encoder_file):
@@ -114,7 +115,7 @@ test_db = DatasetReader(
     shuffle_dataset=True,
     seed=42)
 train_dataloader = DatasetLoader(train_db, mini_batch_size=BATCH_SIZE, num_workers=train_workers)
-test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=0)
+test_dataloader = DatasetLoader(test_db, mini_batch_size=TEST_BATCH_SIZE, num_workers=test_workers)
 
 embedding_descripts = complete_embedding_description(embedding_descriptions, label_encoders)
 
